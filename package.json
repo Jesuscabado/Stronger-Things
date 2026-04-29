@@ -13,7 +13,12 @@
     "type": "git",
     "url": "git+https://github.com/Jesuscabado/Stronger-Things-Backend.git"
   },
-  "keywords": ["dnd", "backend", "mongodb", "mongoose"],
+  "keywords": [
+    "dnd",
+    "backend",
+    "mongodb",
+    "mongoose"
+  ],
   "author": "",
   "license": "ISC",
   "bugs": {
@@ -22,12 +27,13 @@
   "homepage": "https://github.com/Jesuscabado/Stronger-Things-Backend#readme",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
     "dotenv": "^16.4.5",
     "express": "^5.2.1",
+    "googleapis": "171.4.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.0",
-    "multer":"2.1.1",
-    "googleapis":"171.4.0"
+    "multer": "2.1.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
