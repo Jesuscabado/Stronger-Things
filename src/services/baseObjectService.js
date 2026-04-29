@@ -6,17 +6,25 @@ export const findBaseObjectById = (id) => BaseObject.findById(id);
 
 export const createBaseObject = (data) => BaseObject.create(data);
 
-/**
- * Construye una instancia de objeto lista para embeber en el inventario
- * de un personaje. No la persiste todavía — sólo la prepara.
- */
-export const createObjectInstance = (baseObjectId, { customName, quantity, durability, equipped, notes } = {}) => {
-    return {
-        baseObject: baseObjectId,
-        customName,
-        quantity: quantity ?? 1,
-        durability: durability ?? 100,
-        equipped: equipped ?? false,
-        notes
-    };
+export const updateBaseObject = async (id, data) => {
+    const updated = await BaseObject.findByIdAndUpdate(id, data, {
+        new: true,
+        runValidators: true
+    });
+    if (!updated) {
+        const err = new Error("BaseObject no encontrado");
+        err.status = 404;
+        throw err;
+    }
+    return updated;
+};
+
+export const deleteBaseObject = async (id) => {
+    const deleted = await BaseObject.findByIdAndDelete(id);
+    if (!deleted) {
+        const err = new Error("BaseObject no encontrado");
+        err.status = 404;
+        throw err;
+    }
+    return { deleted: true, id };
 };

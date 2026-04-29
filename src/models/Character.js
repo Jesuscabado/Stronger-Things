@@ -21,6 +21,29 @@ const inventoryItemSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+/**
+ * Sub-esquema para la hoja de personaje en PDF.
+ * Soporta dos modos de almacenamiento: local (en disco) o drive (Google Drive).
+ */
+const characterSheetSchema = new mongoose.Schema(
+    {
+        filename: { type: String },                        // nombre original del archivo
+        mimeType: { type: String },
+        size: { type: Number },
+        uploadedAt: { type: Date },
+
+        // Solo si storage === "local"
+        storedName: { type: String },                      // nombre con UUID en el disco
+
+        // Solo si storage === "drive"
+        driveFileId: { type: String },
+        driveLink: { type: String },
+
+        storage: { type: String, enum: ["local", "drive"], default: "local" }
+    },
+    { _id: false }
+);
+
 // Clases oficiales de D&D 5e
 const DND_CLASSES = [
     "Barbarian", "Bard", "Cleric", "Druid", "Fighter", "Monk",
@@ -79,7 +102,10 @@ const characterSchema = new mongoose.Schema(
             current: { type: Number, default: 10 },
             max: { type: Number, default: 10 }
         },
-        inventory: [inventoryItemSchema]
+        inventory: [inventoryItemSchema],
+
+        // Hoja de personaje (PDF) — opcional
+        characterSheet: characterSheetSchema
     },
     { timestamps: true }
 );
