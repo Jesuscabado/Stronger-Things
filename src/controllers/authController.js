@@ -1,0 +1,42 @@
+import * as authService from "../services/authService.js";
+
+export const register = async (req, res, next) => {
+    try {
+        const { username, email, password } = req.body;
+        const user = await authService.registerUser({ username, email, password });
+        const token = authService.generateToken(user);
+        res.status(201).json({ user, token });
+    } catch (error) {
+        if (error.status) {
+            return res.status(error.status).json({ message: error.message });
+        }
+        // Mongo duplicate key
+        if (error.code === 11000) {
+            return res.status(400).json({
+                message: "Email o username ya registrado",
+                field: error.keyValue
+            });
+        }
+        next(error);
+    }
+};
+
+export const login = async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+        const { user, token } = await authService.loginUser({ email, password });
+        res.status(200).json({ user, token });
+    } catch (error) {
+        if (error.status) {
+            return res.status(error.status).json({ message: error.message });
+        }
+        next(error);
+    }
+};
+
+/**
+ * GET /api/auth/me — devuelve el usuario actual (requiere middleware authRequired).
+ */
+export const me = async (req, res) => {
+    res.status(200).json(req.user);
+};
