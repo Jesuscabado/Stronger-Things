@@ -7,6 +7,7 @@ import baseObjectRoutes from "./routes/baseObjectRoutes.js";
 import characterRoutes from "./routes/characterRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import { notFoundHandler, errorHandler } from "./middlewares/errorHandler.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ app.get("/", (req, res) => {
 });
 
 // Rutas
+app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/objects", baseObjectRoutes);
 app.use("/api/characters", characterRoutes);
