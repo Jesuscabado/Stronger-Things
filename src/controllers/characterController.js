@@ -83,11 +83,9 @@ export const uploadCharacterSheet = async (req, res, next) => {
 
 export const downloadCharacterSheet = async (req, res, next) => {
     try {
-        const { absolutePath, downloadName } = await characterService.getCharacterSheetPath(
-            req.params.id, req.user._id
-        );
-        res.download(absolutePath, downloadName);
-    } catch (error) { handleStatusError(error, res, next); }
+        const { url } = await characterService.getCharacterSheetUrl(req.params.id, req.user._id);
+        res.redirect(url);
+    } catch (e) { handleStatusError(e, res, next); }
 };
 
 export const deleteCharacterSheet = async (req, res, next) => {

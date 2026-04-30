@@ -1,8 +1,6 @@
-import path from "node:path";
-import fs from "node:fs/promises";
 import Character from "../models/Character.js";
 import BaseObject from "../models/BaseObject.js";
-import { UPLOAD_PATH } from "../config/upload.js";
+import { uploadToCloudinary, deleteFromCloudinary } from "./cloudinaryService.js";
 
 const notFound = (msg = "Personaje no encontrado") => {
     const err = new Error(msg);
@@ -16,9 +14,8 @@ const forbidden = () => {
     return err;
 };
 
-/**
- * Devuelve solo los personajes del usuario logueado.
- */
+/* ───────── CRUD ───────── */
+
 export const findAllCharacters = (userId) =>
     Character.find({ user: userId })
         .populate("user", "username email")
@@ -40,12 +37,9 @@ export const updateCharacter = async (id, data, userId) => {
     const character = await Character.findById(id);
     if (!character) throw notFound();
     if (character.user.toString() !== userId.toString()) throw forbidden();
-
-    // Bloqueamos cambiar el dueño
     delete data.user;
     Object.assign(character, data);
     await character.save();
-
     return Character.findById(id)
         .populate("user", "username email")
         .populate("inventory.baseObject");
@@ -56,10 +50,8 @@ export const deleteCharacter = async (id, userId) => {
     if (!character) throw notFound();
     if (character.user.toString() !== userId.toString()) throw forbidden();
 
-    // Si tiene PDF, borrarlo del disco
-    if (character.characterSheet?.storedName) {
-        await fs.unlink(path.join(UPLOAD_PATH, character.characterSheet.storedName))
-            .catch(() => {});
+    if (character.characterSheet?.cloudinaryPublicId) {
+        await deleteFromCloudinary(character.characterSheet.cloudinaryPublicId).catch(() => {});
     }
 
     await character.deleteOne();
@@ -78,7 +70,6 @@ export const giveObjectToCharacter = async (characterId, baseObjectId, instanceD
 
     character.inventory.push({ baseObject: baseObjectId, ...instanceData });
     await character.save();
-
     return Character.findById(character._id)
         .populate("user", "username email")
         .populate("inventory.baseObject");
@@ -88,15 +79,11 @@ export const updateInventoryItem = async (characterId, itemId, updateData, userI
     const character = await Character.findById(characterId);
     if (!character) throw notFound();
     if (character.user.toString() !== userId.toString()) throw forbidden();
-
     const item = character.inventory.id(itemId);
     if (!item) throw notFound("Item no encontrado en el inventario");
-
-    // No permitimos cambiar la referencia al baseObject
     delete updateData.baseObject;
     Object.assign(item, updateData);
     await character.save();
-
     return Character.findById(character._id)
         .populate("user", "username email")
         .populate("inventory.baseObject");
@@ -106,58 +93,49 @@ export const removeInventoryItem = async (characterId, itemId, userId) => {
     const character = await Character.findById(characterId);
     if (!character) throw notFound();
     if (character.user.toString() !== userId.toString()) throw forbidden();
-
     const item = character.inventory.id(itemId);
     if (!item) throw notFound("Item no encontrado en el inventario");
-
     item.deleteOne();
     await character.save();
-
     return Character.findById(character._id)
         .populate("user", "username email")
         .populate("inventory.baseObject");
 };
 
-/* ───────── Hoja de personaje (PDF) ───────── */
+/* ───────── Hoja de personaje (PDF en Cloudinary) ───────── */
 
 export const attachCharacterSheet = async (characterId, file, userId) => {
     const character = await Character.findById(characterId);
-    if (!character) {
-        // Si subió PDF pero no existe el personaje, limpiamos el archivo
-        await fs.unlink(file.path).catch(() => {});
-        throw notFound();
-    }
-    if (character.user.toString() !== userId.toString()) {
-        await fs.unlink(file.path).catch(() => {});
-        throw forbidden();
+    if (!character) throw notFound();
+    if (character.user.toString() !== userId.toString()) throw forbidden();
+
+    if (character.characterSheet?.cloudinaryPublicId) {
+        await deleteFromCloudinary(character.characterSheet.cloudinaryPublicId).catch(() => {});
     }
 
-    // Si ya tenía uno, borramos el viejo
-    if (character.characterSheet?.storedName) {
-        await fs.unlink(path.join(UPLOAD_PATH, character.characterSheet.storedName))
-            .catch(() => {});
-    }
+    const result = await uploadToCloudinary(file.buffer, file.originalname);
 
     character.characterSheet = {
         filename: file.originalname,
-        storedName: file.filename,
         mimeType: file.mimetype,
         size: file.size,
-        uploadedAt: new Date()
+        uploadedAt: new Date(),
+        cloudinaryPublicId: result.public_id,
+        cloudinaryUrl: result.secure_url
     };
     await character.save();
     return character;
 };
 
-export const getCharacterSheetPath = async (characterId, userId) => {
+export const getCharacterSheetUrl = async (characterId, userId) => {
     const character = await Character.findById(characterId);
     if (!character) throw notFound();
     if (character.user.toString() !== userId.toString()) throw forbidden();
-    if (!character.characterSheet?.storedName) {
+    if (!character.characterSheet?.cloudinaryUrl) {
         throw notFound("Este personaje no tiene hoja de personaje subida");
     }
     return {
-        absolutePath: path.join(UPLOAD_PATH, character.characterSheet.storedName),
+        url: character.characterSheet.cloudinaryUrl,
         downloadName: character.characterSheet.filename
     };
 };
@@ -166,12 +144,10 @@ export const removeCharacterSheet = async (characterId, userId) => {
     const character = await Character.findById(characterId);
     if (!character) throw notFound();
     if (character.user.toString() !== userId.toString()) throw forbidden();
-    if (!character.characterSheet?.storedName) {
-        throw notFound("Este personaje no tiene hoja de personaje subida");
+    if (!character.characterSheet?.cloudinaryPublicId) {
+        throw notFound("Este personaje no tiene hoja subida");
     }
-
-    await fs.unlink(path.join(UPLOAD_PATH, character.characterSheet.storedName))
-        .catch(() => {});
+    await deleteFromCloudinary(character.characterSheet.cloudinaryPublicId).catch(() => {});
     character.characterSheet = undefined;
     await character.save();
     return { deleted: true };

@@ -23,23 +23,18 @@ const inventoryItemSchema = new mongoose.Schema(
 
 /**
  * Sub-esquema para la hoja de personaje en PDF.
- * Soporta dos modos de almacenamiento: local (en disco) o drive (Google Drive).
+ * almacenamiento en la nube.
  */
 const characterSheetSchema = new mongoose.Schema(
     {
-        filename: { type: String },                        // nombre original del archivo
+        filename: { type: String },
         mimeType: { type: String },
         size: { type: Number },
         uploadedAt: { type: Date },
 
-        // Solo si storage === "local"
-        storedName: { type: String },                      // nombre con UUID en el disco
-
-        // Solo si storage === "drive"
-        driveFileId: { type: String },
-        driveLink: { type: String },
-
-        storage: { type: String, enum: ["local", "drive"], default: "local" }
+        // Cloudinary
+        cloudinaryPublicId: { type: String },
+        cloudinaryUrl: { type: String }
     },
     { _id: false }
 );
