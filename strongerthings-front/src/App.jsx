@@ -6,6 +6,8 @@ import RegisterPage from "./pages/RegisterPage.jsx";
 import CharactersPage from "./pages/CharactersPage.jsx";
 import CharacterDetailPage from "./pages/CharacterDetailPage.jsx";
 import ObjectsPage from "./pages/ObjectsPage.jsx";
+import AdminPage from "./pages/AdminPage.jsx";
+import AdminRoute from "./components/AdminRoute.jsx";
 
 export default function App() {
     return (
@@ -13,6 +15,7 @@ export default function App() {
             <Header />
             <Routes>
                 <Route path="/" element={<Navigate to="/characters" replace />} />
+                <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/characters" element={
