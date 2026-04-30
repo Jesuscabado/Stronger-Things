@@ -1,31 +1,29 @@
-import mongoose from 'mongoose';
-import dotenv from "dotenv";
+import mongoose from "mongoose";
 
-dotenv.config();
+const buildMongoUri = () => {
+    const {
+        MONGO_HOST,
+        MONGO_PORT,
+        MONGO_USER,
+        MONGO_PASSWORD,
+        MONGO_DB
+    } = process.env;
 
-const {
-MONGO_HOST,
-MONGO_USER,
-MONGO_PASSWORD,
-MONGO_DB
-} = process.env;
-const MONGO_PORT = 27017;
-const buildMongoUri =()=>{
     const user = encodeURIComponent(MONGO_USER);
     const password = encodeURIComponent(MONGO_PASSWORD);
     return `mongodb://${user}:${password}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}?authSource=admin`;
-}
+};
 
-const connectMongo = async()=>{
-
+const connectMongo = async () => {
+    const mongoUri = buildMongoUri();
+    console.log(`🔌 Conectando a: ${mongoUri.replace(/:[^:@]+@/, ":***@")}`);
     try {
-        const mongoUri = buildMongoUri();
-        console.log(mongoUri)
-        await mongoose.connect(mongoUri);
-        console.log(`✅ Conectado a MongoDB (${MONGO_DB}@${MONGO_HOST})`);
+        await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
+        console.log(`✅ Conectado a MongoDB (${process.env.MONGO_DB}@${process.env.MONGO_HOST})`);
     } catch (error) {
-        console.error('❌ Error de conexión:', error.message);
+        console.error("❌ Error de conexión:", error.message);
+        throw error;
     }
-}
+};
 
-export {connectMongo}
+export { connectMongo };
