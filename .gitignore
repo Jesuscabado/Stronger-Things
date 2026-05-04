@@ -143,5 +143,5 @@ vite.config.ts.timestamp-*
 .vite/
 
 # Google files
-google-credentials.json
+google-credentials.json.json
 uploads/
