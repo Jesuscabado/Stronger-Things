@@ -19,5 +19,12 @@ export const charactersApi = {
         return api.upload(`/api/characters/${id}/sheet`, fd);
     },
     downloadSheet: (id) => api.download(`/api/characters/${id}/sheet`),
-    deleteSheet: (id) => api.del(`/api/characters/${id}/sheet`)
+    deleteSheet: (id) => api.del(`/api/characters/${id}/sheet`),
+    uploadAvatar: (id, file) => {
+    const fd = new FormData();
+    fd.append("avatar", file);
+    return api.upload(`/api/characters/${id}/avatar`, fd);
+},
+deleteAvatar: (id) => api.del(`/api/characters/${id}/avatar`)
 };
+

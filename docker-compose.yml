@@ -4,7 +4,7 @@ services:
     container_name: ${APP_HOST}
     build: .
     restart: unless-stopped
-    command: npm start
+    command: npm run dev
     ports:
       - ${APP_PORT}:3000
     environment:

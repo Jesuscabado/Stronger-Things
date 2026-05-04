@@ -29,5 +29,31 @@ export const uploadToCloudinary = (buffer, originalname) => {
     });
 };
 
+export const uploadImageToCloudinary = (buffer, characterName) => {
+    return new Promise((resolve, reject) => {
+        const sanitized = characterName.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                resource_type: "image",
+                folder: "strongerthings/avatars",
+                public_id: `${sanitized}-${Date.now()}`,
+                overwrite: true,
+                transformation: [
+                    { width: 500, height: 500, crop: "fill", gravity: "auto" },
+                    { quality: "auto", fetch_format: "auto" }
+                ]
+            },
+            (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+            }
+        );
+        stream.end(buffer);
+    });
+};
+
+export const deleteImageFromCloudinary = (publicId) =>
+    cloudinary.uploader.destroy(publicId, { resource_type: "image" });
+
 export const deleteFromCloudinary = (publicId) =>
     cloudinary.uploader.destroy(publicId, { resource_type: "raw" });

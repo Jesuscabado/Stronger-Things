@@ -51,6 +51,15 @@ const DND_RACES = [
     "Half-Orc", "Tiefling", "Dragonborn", "Aasimar", "Goliath"
 ];
 
+const avatarSchema = new mongoose.Schema(
+    {
+        cloudinaryPublicId: { type: String },
+        cloudinaryUrl: { type: String },
+        uploadedAt: { type: Date }
+    },
+    { _id: false }
+);
+
 const characterSchema = new mongoose.Schema(
     {
         user: {
@@ -100,7 +109,8 @@ const characterSchema = new mongoose.Schema(
         inventory: [inventoryItemSchema],
 
         // Hoja de personaje (PDF) — opcional
-        characterSheet: characterSheetSchema
+        characterSheet: characterSheetSchema,
+        avatar: avatarSchema
     },
     { timestamps: true }
 );
