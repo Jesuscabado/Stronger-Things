@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/Jesuscabado/Stronger-Things-Backend#readme",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.92.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
     "cors": "^2.8.6",

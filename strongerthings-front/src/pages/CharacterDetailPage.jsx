@@ -144,6 +144,25 @@ export default function CharacterDetailPage() {
         } catch (err) { setError(err.message); }
     };
 
+    const handleUploadAvatar = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+        await charactersApi.uploadAvatar(id, file);
+        flash("Avatar actualizado");
+        load();
+    } catch (err) { setError(err.message); }
+};
+
+const handleDeleteAvatar = async () => {
+    if (!confirm("¿Eliminar el avatar?")) return;
+    try {
+        await charactersApi.deleteAvatar(id);
+        flash("Avatar eliminado");
+        load();
+    } catch (err) { setError(err.message); }
+};
+
     if (loading) return <div className="loading">Consultando los pergaminos...</div>;
     if (!character) return <div className="container"><div className="alert">{error || "Personaje no encontrado"}</div></div>;
 
@@ -157,43 +176,92 @@ export default function CharacterDetailPage() {
             {success && <div className="alert alert-success">{success}</div>}
 
             <div className="scroll-card">
-                <h1 style={{ fontFamily: "MedievalSharp", fontSize: "3rem", margin: 0 }}>{character.name}</h1>
-                <div style={{ marginBottom: "1rem" }}>
-                    <span className="class-badge">{character.charClass}</span>{" "}
-                    <span style={{ color: "var(--ink-faded)" }}>{character.race} • Nivel {character.level}</span>
+    <div style={{ display: "flex", gap: "1.5rem", alignItems: "flex-start" }}>
+        {/* Avatar a la izquierda */}
+        <div style={{ flexShrink: 0, textAlign: "center" }}>
+            {character.avatar?.cloudinaryUrl ? (
+                <img
+                    src={character.avatar.cloudinaryUrl}
+                    alt={character.name}
+                    style={{
+                        width: "150px",
+                        height: "150px",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        border: "3px solid var(--gold)",
+                        boxShadow: "0 4px 8px var(--shadow)"
+                    }}
+                />
+            ) : (
+                <div style={{
+                    width: "150px",
+                    height: "150px",
+                    borderRadius: "50%",
+                    background: "var(--parchment)",
+                    border: "3px dashed var(--parchment-shadow)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "3rem",
+                    color: "var(--ink-faded)"
+                }}>
+                    🧙
                 </div>
-                <div style={{ display: "flex", gap: "2rem", fontSize: "1.1rem", flexWrap: "wrap" }}>
-                    <span>
-                        ❤ <EditableNumber
-                            value={character.hitPoints?.current ?? 0}
-                            onSave={(v) => updateField("hitPoints", { ...character.hitPoints, current: v })}
-                            min={0}
-                        />/<EditableNumber
-                            value={character.hitPoints?.max ?? 0}
-                            onSave={(v) => updateField("hitPoints", { ...character.hitPoints, max: v })}
-                            min={1}
-                        /> PG
-                    </span>
-                    <span>
-                        💰 <EditableNumber
-                            value={character.gold ?? 0}
-                            onSave={(v) => updateField("gold", v)}
-                            min={0}
-                        /> oro
-                    </span>
-                    <span>
-                        🎖 Nv <EditableNumber
-                            value={character.level ?? 1}
-                            onSave={(v) => updateField("level", v)}
-                            min={1}
-                            max={20}
-                        />
-                    </span>
-                </div>
-                <p style={{ marginTop: "0.8rem", fontSize: "0.85rem", color: "var(--ink-faded)" }}>
-                    💡 Click en los números para editarlos.
-                </p>
+            )}
+            <div style={{ marginTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                <label className="btn btn-small">
+                    {character.avatar?.cloudinaryUrl ? "Cambiar" : "Subir avatar"}
+                    <input type="file" accept="image/*" onChange={handleUploadAvatar} hidden />
+                </label>
+                {character.avatar?.cloudinaryUrl && (
+                    <button className="btn btn-small btn-danger" onClick={handleDeleteAvatar}>
+                        Eliminar
+                    </button>
+                )}
             </div>
+        </div>
+
+        {/* Info a la derecha */}
+        <div style={{ flex: 1 }}>
+            <h1 style={{ fontFamily: "MedievalSharp", fontSize: "3rem", margin: 0 }}>{character.name}</h1>
+            <div style={{ marginBottom: "1rem" }}>
+                <span className="class-badge">{character.charClass}</span>{" "}
+                <span style={{ color: "var(--ink-faded)" }}>{character.race} • Nivel {character.level}</span>
+            </div>
+            <div style={{ display: "flex", gap: "2rem", fontSize: "1.1rem", flexWrap: "wrap" }}>
+                <span>
+                    ❤ <EditableNumber
+                        value={character.hitPoints?.current ?? 0}
+                        onSave={(v) => updateField("hitPoints", { ...character.hitPoints, current: v })}
+                        min={0}
+                    />/<EditableNumber
+                        value={character.hitPoints?.max ?? 0}
+                        onSave={(v) => updateField("hitPoints", { ...character.hitPoints, max: v })}
+                        min={1}
+                    /> PG
+                </span>
+                <span>
+                    💰 <EditableNumber
+                        value={character.gold ?? 0}
+                        onSave={(v) => updateField("gold", v)}
+                        min={0}
+                    /> oro
+                </span>
+                <span>
+                    🎖 Nv <EditableNumber
+                        value={character.level ?? 1}
+                        onSave={(v) => updateField("level", v)}
+                        min={1}
+                        max={20}
+                    />
+                </span>
+            </div>
+            <p style={{ marginTop: "0.8rem", fontSize: "0.85rem", color: "var(--ink-faded)" }}>
+                💡 Click en los números para editarlos.
+            </p>
+        </div>
+    </div>
+</div>
 
             <div className="scroll-card">
                 <h2>Características</h2>
@@ -245,7 +313,7 @@ export default function CharacterDetailPage() {
                 ) : (
                     <div>
                         <p style={{ marginBottom: "1rem", color: "var(--ink-faded)" }}>
-                            Sube tu hoja de personaje en PDF (máx 5MB).
+                            Sube tu hoja de personaje en PDF (máx 50MB).
                         </p>
                         <label className="btn btn-primary">
                             Subir PDF

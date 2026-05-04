@@ -94,3 +94,18 @@ export const deleteCharacterSheet = async (req, res, next) => {
         res.status(200).json(result);
     } catch (error) { handleStatusError(error, res, next); }
 };
+
+export const uploadAvatar = async (req, res, next) => {
+    try {
+        if (!req.file) return res.status(400).json({ message: "Falta la imagen (campo 'avatar')" });
+        const character = await characterService.attachAvatar(req.params.id, req.file, req.user._id);
+        res.status(200).json({ message: "Avatar subido", avatar: character.avatar });
+    } catch (e) { handleStatusError(e, res, next); }
+};
+
+export const deleteAvatar = async (req, res, next) => {
+    try {
+        const result = await characterService.removeAvatar(req.params.id, req.user._id);
+        res.status(200).json(result);
+    } catch (e) { handleStatusError(e, res, next); }
+};

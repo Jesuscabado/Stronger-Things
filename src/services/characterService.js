@@ -1,6 +1,11 @@
 import Character from "../models/Character.js";
 import BaseObject from "../models/BaseObject.js";
-import { uploadToCloudinary, deleteFromCloudinary } from "./cloudinaryService.js";
+import {
+    uploadToCloudinary,
+    deleteFromCloudinary,
+    uploadImageToCloudinary,
+    deleteImageFromCloudinary
+} from "./cloudinaryService.js";
 
 const notFound = (msg = "Personaje no encontrado") => {
     const err = new Error(msg);
@@ -53,11 +58,13 @@ export const deleteCharacter = async (id, userId) => {
     if (character.characterSheet?.cloudinaryPublicId) {
         await deleteFromCloudinary(character.characterSheet.cloudinaryPublicId).catch(() => {});
     }
+    if (character.avatar?.cloudinaryPublicId) {
+        await deleteImageFromCloudinary(character.avatar.cloudinaryPublicId).catch(() => {});
+    }
 
     await character.deleteOne();
     return { deleted: true, id };
 };
-
 /* ───────── Inventario ───────── */
 
 export const giveObjectToCharacter = async (characterId, baseObjectId, instanceData, userId) => {
@@ -113,16 +120,20 @@ export const attachCharacterSheet = async (characterId, file, userId) => {
         await deleteFromCloudinary(character.characterSheet.cloudinaryPublicId).catch(() => {});
     }
 
-    const result = await uploadToCloudinary(file.buffer, file.originalname);
+    const sanitizedName = character.name.replace(/[^a-zA-Z0-9_-]/g, "_");   
+    const result = await uploadToCloudinary(
+    file.buffer,
+    `${sanitizedName}-character-sheet.pdf`
+);
 
     character.characterSheet = {
-        filename: file.originalname,
-        mimeType: file.mimetype,
-        size: file.size,
-        uploadedAt: new Date(),
-        cloudinaryPublicId: result.public_id,
-        cloudinaryUrl: result.secure_url
-    };
+    filename: `${character.name}-character-sheet.pdf`,
+    mimeType: file.mimetype,
+    size: file.size,
+    uploadedAt: new Date(),
+    cloudinaryPublicId: result.public_id,
+    cloudinaryUrl: result.secure_url
+};
     await character.save();
     return character;
 };
@@ -149,6 +160,41 @@ export const removeCharacterSheet = async (characterId, userId) => {
     }
     await deleteFromCloudinary(character.characterSheet.cloudinaryPublicId).catch(() => {});
     character.characterSheet = undefined;
+    await character.save();
+    return { deleted: true };
+};
+
+export const attachAvatar = async (characterId, file, userId) => {
+    const character = await Character.findById(characterId);
+    if (!character) throw notFound();
+    if (character.user.toString() !== userId.toString()) throw forbidden();
+
+    // Borrar el avatar anterior si existía
+    if (character.avatar?.cloudinaryPublicId) {
+        await deleteImageFromCloudinary(character.avatar.cloudinaryPublicId).catch(() => {});
+    }
+
+    const result = await uploadImageToCloudinary(file.buffer, character.name);
+    
+
+    character.avatar = {
+        cloudinaryPublicId: result.public_id,
+        cloudinaryUrl: result.secure_url,
+        uploadedAt: new Date()
+    };
+    await character.save();
+    return character;
+};
+
+export const removeAvatar = async (characterId, userId) => {
+    const character = await Character.findById(characterId);
+    if (!character) throw notFound();
+    if (character.user.toString() !== userId.toString()) throw forbidden();
+    if (!character.avatar?.cloudinaryPublicId) {
+        throw notFound("Este personaje no tiene avatar");
+    }
+    await deleteImageFromCloudinary(character.avatar.cloudinaryPublicId).catch(() => {});
+    character.avatar = undefined;
     await character.save();
     return { deleted: true };
 };
