@@ -336,3 +336,418 @@ form textarea:focus {
     border: 1px solid currentColor;
     background: rgba(255,255,255,0.3);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   HOJA DE PERSONAJE IMPRIMIBLE
+   Pega este bloque al FINAL de tu src/styles/global.css
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sheet-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: "Cinzel", serif;
+    font-size: 1.5rem;
+    color: #5c4530;
+}
+
+.sheet-wrapper {
+    background: #d6c5a8;
+    min-height: 100vh;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.sheet-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    width: 210mm;
+    justify-content: flex-end;
+}
+
+.sheet-page {
+    width: 210mm;
+    min-height: 297mm;
+    background: #f5e9d4;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    padding: 12mm;
+    box-sizing: border-box;
+    color: #3d2817;
+    font-family: "EB Garamond", "Georgia", serif;
+    font-size: 10pt;
+    page-break-after: always;
+}
+
+.sheet-header {
+    display: flex;
+    border-bottom: 3px double #3d2817;
+    padding-bottom: 8mm;
+    margin-bottom: 5mm;
+    gap: 5mm;
+}
+
+.sheet-title {
+    flex: 1;
+    border-right: 1px solid #8b6f47;
+    padding-right: 5mm;
+}
+
+.sheet-logo {
+    font-family: "MedievalSharp", "Cinzel", serif;
+    font-size: 14pt;
+    color: #8b1a1a;
+    margin-bottom: 3mm;
+    letter-spacing: 1px;
+}
+
+.sheet-charname {
+    font-family: "MedievalSharp", "Cinzel", serif;
+    font-size: 24pt;
+    line-height: 1;
+    color: #3d2817;
+}
+
+.sheet-meta {
+    flex: 2;
+}
+
+.meta-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4mm;
+}
+
+.meta-cell {
+    border: 1px solid #8b6f47;
+    padding: 2mm 3mm;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.meta-label {
+    font-size: 7pt;
+    font-family: "Cinzel", serif;
+    text-transform: uppercase;
+    color: #6b5538;
+    letter-spacing: 0.5px;
+}
+
+.meta-value {
+    font-size: 11pt;
+    font-weight: bold;
+    margin-top: 1mm;
+}
+
+.sheet-body {
+    display: grid;
+    grid-template-columns: 35mm 70mm 1fr;
+    gap: 5mm;
+}
+
+/* Columna 1 — atributos */
+.ability-box {
+    border: 2px solid #3d2817;
+    border-radius: 4mm;
+    background: rgba(255, 255, 255, 0.3);
+    text-align: center;
+    padding: 3mm 1mm 2mm;
+    margin-bottom: 4mm;
+    position: relative;
+}
+
+.ability-label {
+    font-family: "Cinzel", serif;
+    font-size: 8pt;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    color: #6b5538;
+}
+
+.ability-mod {
+    font-size: 22pt;
+    font-weight: bold;
+    line-height: 1;
+    margin: 2mm 0 1mm;
+    color: #3d2817;
+}
+
+.ability-score {
+    display: inline-block;
+    border: 2px solid #3d2817;
+    border-radius: 50%;
+    width: 10mm;
+    height: 10mm;
+    line-height: 10mm;
+    background: #f5e9d4;
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 1mm;
+}
+
+/* Columna 2 — habilidades */
+.prof-bonus {
+    border: 2px solid #3d2817;
+    border-radius: 3mm;
+    padding: 2mm;
+    text-align: center;
+    margin-bottom: 4mm;
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.prof-label {
+    font-family: "Cinzel", serif;
+    font-size: 7pt;
+    color: #6b5538;
+}
+
+.prof-value {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-top: 1mm;
+}
+
+.section-title {
+    font-family: "Cinzel", serif;
+    font-size: 8pt;
+    font-weight: bold;
+    text-align: center;
+    border-top: 1px solid #8b6f47;
+    border-bottom: 1px solid #8b6f47;
+    padding: 1mm 0;
+    margin: 3mm 0 2mm;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: rgba(139, 111, 71, 0.1);
+}
+
+.saving-throws,
+.skills {
+    margin-bottom: 3mm;
+}
+
+.skill-row {
+    display: grid;
+    grid-template-columns: 4mm 8mm 1fr;
+    gap: 1mm;
+    align-items: center;
+    font-size: 9pt;
+    padding: 0.5mm 0;
+}
+
+.skill-circle {
+    color: #3d2817;
+    font-size: 8pt;
+}
+
+.skill-mod {
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 1px solid #8b6f47;
+    font-size: 9pt;
+}
+
+.skill-name {
+    font-size: 9pt;
+}
+
+.skill-attr {
+    color: #8b6f47;
+    font-size: 7pt;
+}
+
+.passive-box {
+    border: 2px solid #3d2817;
+    border-radius: 3mm;
+    padding: 2mm;
+    text-align: center;
+    margin-top: 4mm;
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.passive-value {
+    font-size: 18pt;
+    font-weight: bold;
+}
+
+.passive-label {
+    font-family: "Cinzel", serif;
+    font-size: 7pt;
+    color: #6b5538;
+    margin-top: 1mm;
+}
+
+/* Columna 3 — combate, equipo */
+.combat-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2mm;
+    margin-bottom: 3mm;
+}
+
+.combat-cell {
+    border: 2px solid #3d2817;
+    border-radius: 3mm;
+    padding: 2mm 1mm;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.combat-value {
+    font-size: 14pt;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.combat-label {
+    font-family: "Cinzel", serif;
+    font-size: 6pt;
+    color: #6b5538;
+    margin-top: 1mm;
+    line-height: 1.2;
+}
+
+.hp-box {
+    border: 2px solid #3d2817;
+    border-radius: 3mm;
+    padding: 3mm;
+    text-align: center;
+    margin-bottom: 3mm;
+    background: rgba(139, 26, 26, 0.08);
+}
+
+.hp-label {
+    font-family: "Cinzel", serif;
+    font-size: 8pt;
+    color: #8b1a1a;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.hp-current {
+    font-size: 22pt;
+    font-weight: bold;
+    color: #8b1a1a;
+    margin: 1mm 0;
+}
+
+.hp-sub {
+    font-size: 7pt;
+    color: #6b5538;
+}
+
+.gold-box {
+    border: 1px solid #b8860b;
+    border-radius: 3mm;
+    padding: 2mm;
+    text-align: center;
+    margin-bottom: 3mm;
+    background: rgba(184, 134, 11, 0.08);
+}
+
+.gold-label {
+    font-family: "Cinzel", serif;
+    font-size: 8pt;
+    color: #6b5538;
+}
+
+.gold-value {
+    font-size: 14pt;
+    font-weight: bold;
+    color: #b8860b;
+    margin-top: 1mm;
+}
+
+.attacks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+    margin-bottom: 3mm;
+}
+
+.attacks-table th {
+    background: rgba(139, 111, 71, 0.2);
+    font-family: "Cinzel", serif;
+    font-size: 7pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 1mm 2mm;
+    border-bottom: 1px solid #8b6f47;
+    text-align: left;
+}
+
+.attacks-table td {
+    padding: 1mm 2mm;
+    border-bottom: 1px dotted #b8a070;
+}
+
+.empty-row {
+    font-style: italic;
+    color: #8b6f47;
+    text-align: center;
+}
+
+.equipment-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 9pt;
+    column-count: 1;
+}
+
+.equipment-list li {
+    padding: 0.8mm 0;
+    border-bottom: 1px dotted #c4a878;
+}
+
+.equipment-list li:last-child {
+    border-bottom: none;
+}
+
+.badge-eq {
+    color: #8b1a1a;
+    font-weight: bold;
+}
+
+.sheet-footer {
+    margin-top: 8mm;
+    padding-top: 3mm;
+    border-top: 1px solid #8b6f47;
+    text-align: center;
+    font-size: 7pt;
+    color: #8b6f47;
+    font-family: "Cinzel", serif;
+}
+
+/* ═════════════ MEDIA PRINT ═════════════ */
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 0;
+    }
+
+    body {
+        background: white !important;
+        margin: 0;
+    }
+
+    .no-print,
+    .sheet-controls {
+        display: none !important;
+    }
+
+    .sheet-wrapper {
+        background: white !important;
+        padding: 0;
+        min-height: auto;
+    }
+
+    .sheet-page {
+        box-shadow: none;
+        margin: 0;
+        width: 210mm;
+        min-height: 297mm;
+    }
+}

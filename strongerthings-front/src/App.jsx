@@ -8,6 +8,7 @@ import CharacterDetailPage from "./pages/CharacterDetailPage.jsx";
 import ObjectsPage from "./pages/ObjectsPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
+import CharacterSheetPrint from "./pages/CharacterSheetPrint.jsx";
 
 export default function App() {
     return (
@@ -28,6 +29,10 @@ export default function App() {
                     <ProtectedRoute><ObjectsPage /></ProtectedRoute>
                 } />
                 <Route path="*" element={<div className="container"><h1>Aquí no hay nada</h1></div>} />
+                <Route
+    path="/characters/:id/print"
+    element={<ProtectedRoute><CharacterSheetPrint /></ProtectedRoute>}
+/>
             </Routes>
         </>
     );

@@ -178,7 +178,15 @@ export default function CharacterDetailPage() {
 
     return (
         <div className="container">
-            <button className="btn btn-small" onClick={() => navigate("/characters")} style={{ marginBottom: "1rem" }}>← Volver</button>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+    <button className="btn btn-small" onClick={() => navigate("/characters")}>← Volver</button>
+    <button
+        className="btn btn-gold"
+        onClick={() => window.open(`/characters/${id}/print`, "_blank")}
+    >
+        🖨 Imprimir hoja
+    </button>
+</div>
 
             {error && <div className="alert">{error}</div>}
             {success && <div className="alert alert-success">{success}</div>}
@@ -308,10 +316,10 @@ export default function CharacterDetailPage() {
                         </p>
                         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                             <button className="btn btn-primary" onClick={() => setShowPreview(true)}>
-                                👁 Previsualizar
-                            </button>
-                            <button className="btn btn-gold" onClick={handleDownloadSheet}>⬇ Descargar</button>
-                            <button className="btn btn-danger btn-small" onClick={handleDeleteSheet}>Eliminar</button>
+    👁 Previsualizar
+</button>
+<button className="btn btn-gold" onClick={handleDownloadSheet}>⬇ Descargar</button>
+<button className="btn btn-danger btn-small" onClick={handleDeleteSheet}>Eliminar</button>
                         </div>
                     </div>
                 ) : (
