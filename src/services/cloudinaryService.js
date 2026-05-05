@@ -14,11 +14,12 @@ export const uploadToCloudinary = (buffer, originalname) => {
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
             {
-                resource_type: "raw",
+                resource_type: "image",      // 👈 IMPORTANTE
                 folder: "strongerthings/character-sheets",
-                public_id: `${Date.now()}-${originalname.replace(/\.[^/.]+$/, "")}`,
                 use_filename: true,
-                unique_filename: true
+                unique_filename: true,
+                filename_override: originalname,
+                format: "pdf"                // 👈 IMPORTANTE
             },
             (error, result) => {
                 if (error) return reject(error);
