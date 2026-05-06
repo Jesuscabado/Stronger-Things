@@ -5,12 +5,9 @@ import { objectsApi } from "../api/objects.js";
 import PDFPreviewModal from "../components/PDFPreviewModal.jsx";
 import Tabs from "../components/Tabs.jsx";
 import GeneralSection from "../components/character/GeneralSection.jsx";
-
-const mod = (score) => Math.floor((score - 10) / 2);
-const formatMod = (score) => {
-    const m = mod(score);
-    return m >= 0 ? `+${m}` : `${m}`;
-};
+import StatsSection from "../components/character/StatsSection.jsx";
+import CombatSection from "../components/character/CombatSection.jsx";
+/* import PersonalitySection from "../components/character/PersonalitySection.jsx"; */
 
 const formatFileSize = (bytes) => {
     if (!bytes) return "0 KB";
@@ -175,72 +172,10 @@ export default function CharacterDetailPage() {
     if (loading) return <div className="loading">Consultando los pergaminos...</div>;
     if (!character) return <div className="container"><div className="alert">{error || "Personaje no encontrado"}</div></div>;
 
-    const stats = character.abilityScores || {};
-
     const generalTab = <GeneralSection character={character} onUpdate={updateField} />;
-
-    const statsTab = (
-        <div className="scroll-card">
-            <h2>Características</h2>
-            <div className="stats-grid">
-                {[
-                    ["FUE", "strength", stats.strength],
-                    ["DES", "dexterity", stats.dexterity],
-                    ["CON", "constitution", stats.constitution],
-                    ["INT", "intelligence", stats.intelligence],
-                    ["SAB", "wisdom", stats.wisdom],
-                    ["CAR", "charisma", stats.charisma]
-                ].map(([label, key, value]) => (
-                    <div key={label} className="stat">
-                        <div className="stat__label">{label}</div>
-                        <div className="stat__value">
-                            <EditableNumber
-                                value={value ?? 10}
-                                onSave={(v) => updateField("abilityScores", { ...stats, [key]: v })}
-                                min={1}
-                                max={30}
-                            />
-                        </div>
-                        <div className="stat__mod">{formatMod(value ?? 10)}</div>
-                    </div>
-                ))}
-            </div>
-            <p style={{ marginTop: "1rem", fontSize: "0.85rem", color: "var(--ink-faded)" }}>
-                💡 Click en los números para editarlos. En la próxima fase añadiremos las
-                tiradas de salvación y habilidades con sus competencias.
-            </p>
-        </div>
-    );
-
-    const combatTab = (
-        <div className="scroll-card">
-            <h2>Combate</h2>
-            <div style={{ display: "flex", gap: "2rem", fontSize: "1.1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-                <span>
-                    ❤ <EditableNumber
-                        value={character.hitPoints?.current ?? 0}
-                        onSave={(v) => updateField("hitPoints", { ...character.hitPoints, current: v })}
-                        min={0}
-                    />/<EditableNumber
-                        value={character.hitPoints?.max ?? 0}
-                        onSave={(v) => updateField("hitPoints", { ...character.hitPoints, max: v })}
-                        min={1}
-                    /> PG
-                </span>
-                <span>
-                    💰 <EditableNumber
-                        value={character.gold ?? 0}
-                        onSave={(v) => updateField("gold", v)}
-                        min={0}
-                    /> oro
-                </span>
-            </div>
-            <div className="tab-placeholder">
-                <span className="tab-placeholder-emoji">⚔</span>
-                <p>Próximamente: CA, iniciativa, velocidad, dados de golpe, salvaciones contra muerte y tabla de ataques.</p>
-            </div>
-        </div>
-    );
+    const statsTab = <StatsSection character={character} onUpdate={updateField} />;
+    const combatTab = <CombatSection character={character} onUpdate={updateField} />;
+    const personalityTab = <PersonalitySection character={character} onUpdate={updateField} />;
 
     const inventoryTab = (
         <div className="scroll-card">
@@ -329,16 +264,6 @@ export default function CharacterDetailPage() {
                     ))}
                 </ul>
             )}
-        </div>
-    );
-
-    const personalityTab = (
-        <div className="scroll-card">
-            <div className="tab-placeholder">
-                <span className="tab-placeholder-emoji">📖</span>
-                <h3>Personalidad y trasfondo</h3>
-                <p>Próximamente: rasgos de personalidad, ideales, vínculos, defectos, historia, aspecto físico y aliados.</p>
-            </div>
         </div>
     );
 
@@ -528,50 +453,5 @@ export default function CharacterDetailPage() {
                 />
             )}
         </div>
-    );
-}
-
-function EditableNumber({ value, onSave, min, max }) {
-    const [editing, setEditing] = useState(false);
-    const [draft, setDraft] = useState(value);
-
-    useEffect(() => { setDraft(value); }, [value]);
-
-    const commit = () => {
-        const n = Number(draft);
-        if (!Number.isFinite(n) || n === value) {
-            setEditing(false);
-            setDraft(value);
-            return;
-        }
-        if (min != null && n < min) { setDraft(value); setEditing(false); return; }
-        if (max != null && n > max) { setDraft(value); setEditing(false); return; }
-        onSave(n);
-        setEditing(false);
-    };
-
-    if (!editing) {
-        return (
-            <strong onClick={() => setEditing(true)} style={{ cursor: "pointer", borderBottom: "1px dotted var(--ink-faded)" }}>
-                {value}
-            </strong>
-        );
-    }
-
-    return (
-        <input
-            type="number"
-            autoFocus
-            min={min}
-            max={max}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={(e) => {
-                if (e.key === "Enter") commit();
-                if (e.key === "Escape") { setDraft(value); setEditing(false); }
-            }}
-            style={{ width: "70px", display: "inline-block", padding: "0.1rem 0.3rem", fontSize: "1rem" }}
-        />
     );
 }

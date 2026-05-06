@@ -1,9 +1,5 @@
 import mongoose from "mongoose";
 
-/**
- * Sub-esquema embebido: cada elemento es UNA instancia
- * concreta del objeto que el personaje posee.
- */
 const inventoryItemSchema = new mongoose.Schema(
     {
         baseObject: {
@@ -20,9 +16,6 @@ const inventoryItemSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-/**
- * Sub-esquema para la hoja de personaje en PDF (Cloudinary).
- */
 const characterSheetSchema = new mongoose.Schema(
     {
         filename: { type: String },
@@ -35,9 +28,6 @@ const characterSheetSchema = new mongoose.Schema(
     { _id: false }
 );
 
-/**
- * Sub-esquema para el avatar del personaje (Cloudinary).
- */
 const avatarSchema = new mongoose.Schema(
     {
         cloudinaryPublicId: { type: String },
@@ -47,31 +37,92 @@ const avatarSchema = new mongoose.Schema(
     { _id: false }
 );
 
-// Clases oficiales de D&D 5e
+const combatStatsSchema = new mongoose.Schema(
+    {
+        armorClass: { type: Number, default: 10 },
+        initiative: { type: Number, default: 0 },
+        speed: { type: Number, default: 30 },
+        hitDice: {
+            total: { type: Number, default: 1 },
+            type: { type: String, default: "d8" },
+            used: { type: Number, default: 0 }
+        },
+        deathSaves: {
+            successes: { type: Number, default: 0, min: 0, max: 3 },
+            failures: { type: Number, default: 0, min: 0, max: 3 }
+        }
+    },
+    { _id: false }
+);
+
+const proficienciesSchema = new mongoose.Schema(
+    {
+        savingThrows: {
+            strength:     { type: Boolean, default: false },
+            dexterity:    { type: Boolean, default: false },
+            constitution: { type: Boolean, default: false },
+            intelligence: { type: Boolean, default: false },
+            wisdom:       { type: Boolean, default: false },
+            charisma:     { type: Boolean, default: false }
+        },
+        skills: {
+            acrobatics:       { type: Boolean, default: false },
+            animalHandling:   { type: Boolean, default: false },
+            arcana:           { type: Boolean, default: false },
+            athletics:        { type: Boolean, default: false },
+            deception:        { type: Boolean, default: false },
+            history:          { type: Boolean, default: false },
+            insight:          { type: Boolean, default: false },
+            intimidation:     { type: Boolean, default: false },
+            investigation:    { type: Boolean, default: false },
+            medicine:         { type: Boolean, default: false },
+            nature:           { type: Boolean, default: false },
+            perception:       { type: Boolean, default: false },
+            performance:      { type: Boolean, default: false },
+            persuasion:       { type: Boolean, default: false },
+            religion:         { type: Boolean, default: false },
+            sleightOfHand:    { type: Boolean, default: false },
+            stealth:          { type: Boolean, default: false },
+            survival:         { type: Boolean, default: false }
+        }
+    },
+    { _id: false }
+);
+
+/**
+ * Personalidad y narrativa del personaje.
+ * Texto libre. Cada campo es un párrafo independiente.
+ */
+const personalitySchema = new mongoose.Schema(
+    {
+        traits: { type: String, default: "" },              // Rasgos de personalidad
+        ideals: { type: String, default: "" },              // Ideales
+        bonds: { type: String, default: "" },               // Vínculos
+        flaws: { type: String, default: "" },               // Defectos
+        backstory: { type: String, default: "" },           // Historia del personaje
+        appearance: { type: String, default: "" },          // Aspecto físico
+        allies: { type: String, default: "" },              // Aliados y organizaciones
+        treasure: { type: String, default: "" },            // Tesoro especial
+        featuresAndTraits: { type: String, default: "" }    // Rasgos y atributos adicionales
+    },
+    { _id: false }
+);
+
 const DND_CLASSES = [
     "Barbarian", "Bard", "Cleric", "Druid", "Fighter", "Monk",
     "Paladin", "Ranger", "Rogue", "Sorcerer", "Warlock", "Wizard", "Artificer"
 ];
 
-// Razas más comunes
 const DND_RACES = [
     "Human", "Elf", "Dwarf", "Halfling", "Gnome", "Half-Elf",
     "Half-Orc", "Tiefling", "Dragonborn", "Aasimar", "Goliath"
 ];
 
-// Alineamientos D&D 5e
 const ALIGNMENTS = [
     "Lawful Good", "Neutral Good", "Chaotic Good",
     "Lawful Neutral", "True Neutral", "Chaotic Neutral",
     "Lawful Evil", "Neutral Evil", "Chaotic Evil",
     "Unaligned"
-];
-
-// Trasfondos típicos del Player's Handbook
-const BACKGROUNDS = [
-    "Acolyte", "Charlatan", "Criminal", "Entertainer", "Folk Hero",
-    "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage",
-    "Sailor", "Soldier", "Urchin", "Custom"
 ];
 
 const characterSchema = new mongoose.Schema(
@@ -82,22 +133,18 @@ const characterSchema = new mongoose.Schema(
             required: true
         },
 
-        // ───── Identidad básica ─────
         name: { type: String, required: true, trim: true },
         charClass: { type: String, required: true, enum: DND_CLASSES },
         race: { type: String, enum: DND_RACES, default: "Human" },
         level: { type: Number, default: 1, min: 1, max: 20 },
 
-        // ───── Identidad extendida (NUEVO en Fase 1) ─────
         alignment: { type: String, enum: ALIGNMENTS, default: "True Neutral" },
         background: { type: String, default: "Custom" },
         experiencePoints: { type: Number, default: 0, min: 0 },
         inspiration: { type: Boolean, default: false },
 
-        // ───── Recursos ─────
         gold: { type: Number, default: 0, min: 0 },
 
-        // ───── Atributos ─────
         abilityScores: {
             strength:     { type: Number, default: 10, min: 1, max: 30 },
             dexterity:    { type: Number, default: 10, min: 1, max: 30 },
@@ -107,14 +154,18 @@ const characterSchema = new mongoose.Schema(
             charisma:     { type: Number, default: 10, min: 1, max: 30 }
         },
 
-        // ───── PG ─────
         hitPoints: {
             current: { type: Number, default: 10 },
             max: { type: Number, default: 10 },
             temporary: { type: Number, default: 0 }
         },
 
-        // ───── Inventario y archivos ─────
+        combatStats: { type: combatStatsSchema, default: () => ({}) },
+        proficiencies: { type: proficienciesSchema, default: () => ({}) },
+
+        // ───── NUEVO en Fase 3 ─────
+        personality: { type: personalitySchema, default: () => ({}) },
+
         inventory: [inventoryItemSchema],
         characterSheet: characterSheetSchema,
         avatar: avatarSchema

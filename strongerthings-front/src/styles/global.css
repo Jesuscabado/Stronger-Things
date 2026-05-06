@@ -404,3 +404,79 @@ form textarea:focus {
     margin-bottom: 1rem;
     display: block;
 }
+/* ═══════════════════════════════════════════════════════════════════
+   FASE 2: SALVACIONES Y HABILIDADES
+   Pega este bloque al FINAL de tu src/styles/global.css
+   ═══════════════════════════════════════════════════════════════════ */
+
+.dnd-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.dnd-list--two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.2rem 1rem;
+}
+
+@media (max-width: 600px) {
+    .dnd-list--two-col {
+        grid-template-columns: 1fr;
+    }
+}
+
+.dnd-list-row {
+    display: grid;
+    grid-template-columns: auto 50px 1fr;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.4rem 0.6rem;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 0.95rem;
+}
+
+.dnd-list-row:hover {
+    background: rgba(184, 134, 11, 0.08);
+}
+
+.dnd-list-row--prof {
+    background: rgba(184, 134, 11, 0.12);
+}
+
+.dnd-list-row--prof:hover {
+    background: rgba(184, 134, 11, 0.2);
+}
+
+.dnd-list-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    margin: 0;
+    accent-color: var(--gold, #b8860b);
+}
+
+.dnd-list-row__mod {
+    font-weight: bold;
+    text-align: center;
+    font-family: "Cinzel", serif;
+    color: var(--ink, #3d2817);
+    border-bottom: 1px solid var(--parchment-shadow, #c4a878);
+    padding: 0.1rem 0.3rem;
+}
+
+.dnd-list-row--prof .dnd-list-row__mod {
+    color: var(--gold, #b8860b);
+}
+
+.dnd-list-row__name {
+    font-size: 0.95rem;
+}
+
+.dnd-list-row__attr {
+    color: var(--ink-faded, #8b6f47);
+    font-size: 0.8rem;
+}
