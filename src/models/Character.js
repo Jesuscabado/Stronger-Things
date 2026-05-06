@@ -89,21 +89,34 @@ const proficienciesSchema = new mongoose.Schema(
     { _id: false }
 );
 
-/**
- * Personalidad y narrativa del personaje.
- * Texto libre. Cada campo es un párrafo independiente.
- */
 const personalitySchema = new mongoose.Schema(
     {
-        traits: { type: String, default: "" },              // Rasgos de personalidad
-        ideals: { type: String, default: "" },              // Ideales
-        bonds: { type: String, default: "" },               // Vínculos
-        flaws: { type: String, default: "" },               // Defectos
-        backstory: { type: String, default: "" },           // Historia del personaje
-        appearance: { type: String, default: "" },          // Aspecto físico
-        allies: { type: String, default: "" },              // Aliados y organizaciones
-        treasure: { type: String, default: "" },            // Tesoro especial
-        featuresAndTraits: { type: String, default: "" }    // Rasgos y atributos adicionales
+        traits: { type: String, default: "" },
+        ideals: { type: String, default: "" },
+        bonds: { type: String, default: "" },
+        flaws: { type: String, default: "" },
+        backstory: { type: String, default: "" },
+        appearance: { type: String, default: "" },
+        allies: { type: String, default: "" },
+        treasure: { type: String, default: "" },
+        featuresAndTraits: { type: String, default: "" }
+    },
+    { _id: false }
+);
+
+/**
+ * Características físicas del personaje (cabecera página 2 PDF oficial).
+ * Todos opcionales, todos como string para permitir formatos variados.
+ * Ej: "180 cm" o "5'11"", "75 kg" o "165 lb", "verdes" o "heterocromáticos".
+ */
+const physicalSchema = new mongoose.Schema(
+    {
+        age: { type: String, default: "" },        // "27 años" o "2 años (humano)"
+        height: { type: String, default: "" },     // "180 cm" o "5'11""
+        weight: { type: String, default: "" },     // "75 kg" o "165 lb"
+        eyes: { type: String, default: "" },       // "verdes", "ámbar"
+        skin: { type: String, default: "" },       // "morena", "pálida", "azul"
+        hair: { type: String, default: "" }        // "rojo, largo y trenzado"
     },
     { _id: false }
 );
@@ -162,9 +175,10 @@ const characterSchema = new mongoose.Schema(
 
         combatStats: { type: combatStatsSchema, default: () => ({}) },
         proficiencies: { type: proficienciesSchema, default: () => ({}) },
-
-        // ───── NUEVO en Fase 3 ─────
         personality: { type: personalitySchema, default: () => ({}) },
+
+        // ───── NUEVO en Fase 4 ─────
+        physical: { type: physicalSchema, default: () => ({}) },
 
         inventory: [inventoryItemSchema],
         characterSheet: characterSheetSchema,

@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 
 /**
- * Pestaña PERSONALIDAD — narrativa del personaje.
- * Edición inline: click → textarea → Esc cancela, Ctrl+Enter o blur guarda.
+ * Pestaña PERSONALIDAD — narrativa del personaje + características físicas.
  */
 export default function PersonalitySection({ character, onUpdate }) {
     const personality = character.personality || {};
+    const physical = character.physical || {};
 
     const updatePersonality = (field, value) => {
         onUpdate({
@@ -13,8 +13,64 @@ export default function PersonalitySection({ character, onUpdate }) {
         });
     };
 
+    const updatePhysical = (field, value) => {
+        onUpdate({
+            physical: { ...physical, [field]: value }
+        });
+    };
+
     return (
         <>
+            {/* Bloque 0: Características físicas (NUEVO en Fase 4) */}
+            <div className="scroll-card">
+                <h2>👤 Características físicas</h2>
+                <div className="physical-grid">
+                    <PhysicalField
+                        label="Edad"
+                        icon="⏳"
+                        placeholder="27"
+                        value={physical.age}
+                        onSave={(v) => updatePhysical("age", v)}
+                    />
+                    <PhysicalField
+                        label="Altura"
+                        icon="📏"
+                        placeholder="180 cm"
+                        value={physical.height}
+                        onSave={(v) => updatePhysical("height", v)}
+                    />
+                    <PhysicalField
+                        label="Peso"
+                        icon="⚖"
+                        placeholder="75 kg"
+                        value={physical.weight}
+                        onSave={(v) => updatePhysical("weight", v)}
+                    />
+                    <PhysicalField
+                        label="Ojos"
+                        icon="👁"
+                        placeholder="verdes"
+                        value={physical.eyes}
+                        onSave={(v) => updatePhysical("eyes", v)}
+                    />
+                    <PhysicalField
+                        label="Piel"
+                        icon="🎨"
+                        placeholder="morena"
+                        value={physical.skin}
+                        onSave={(v) => updatePhysical("skin", v)}
+                    />
+                    <PhysicalField
+                        label="Pelo"
+                        icon="💇"
+                        placeholder="negro y rizado"
+                        value={physical.hair}
+                        onSave={(v) => updatePhysical("hair", v)}
+                    />
+                </div>
+            </div>
+
+            {/* Bloque 1: Personalidad core */}
             <div className="scroll-card">
                 <h2>📖 Personalidad</h2>
                 <p style={{ fontSize: "0.85rem", color: "var(--ink-faded)", marginTop: "-0.5rem", marginBottom: "1rem" }}>
@@ -57,8 +113,9 @@ export default function PersonalitySection({ character, onUpdate }) {
                 </div>
             </div>
 
+            {/* Bloque 2: Aspecto físico (descripción larga) */}
             <div className="scroll-card">
-                <h2>👁 Aspecto físico</h2>
+                <h2>🖼 Aspecto físico (descripción)</h2>
                 <NarrativeField
                     label=""
                     placeholder="Describe a tu personaje: cicatrices, vestimenta habitual, manera de moverse, expresiones, lo que destaca al verlo por primera vez..."
@@ -68,6 +125,7 @@ export default function PersonalitySection({ character, onUpdate }) {
                 />
             </div>
 
+            {/* Bloque 3: Historia */}
             <div className="scroll-card">
                 <h2>📜 Historia del personaje</h2>
                 <NarrativeField
@@ -79,6 +137,7 @@ export default function PersonalitySection({ character, onUpdate }) {
                 />
             </div>
 
+            {/* Bloque 4: Otros detalles */}
             <div className="scroll-card">
                 <h2>🌟 Otros detalles</h2>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem" }}>
@@ -113,10 +172,74 @@ export default function PersonalitySection({ character, onUpdate }) {
 }
 
 /**
- * Campo de texto con edición inline.
- * - Click en el display → entra en modo edición.
- * - Escape → cancela y restaura el valor original.
- * - Ctrl/Cmd+Enter o pérdida de foco → guarda.
+ * Campo físico compacto: input pequeño con label encima.
+ */
+function PhysicalField({ label, icon, placeholder, value, onSave }) {
+    const [editing, setEditing] = useState(false);
+    const [draft, setDraft] = useState(value || "");
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+        setDraft(value || "");
+    }, [value]);
+
+    useEffect(() => {
+        if (editing && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [editing]);
+
+    const commit = () => {
+        if (draft !== (value || "")) {
+            onSave(draft);
+        }
+        setEditing(false);
+    };
+
+    const cancel = () => {
+        setDraft(value || "");
+        setEditing(false);
+    };
+
+    return (
+        <div className="physical-field">
+            <div className="physical-field__label">
+                {icon && <span style={{ marginRight: "0.3rem" }}>{icon}</span>}
+                {label}
+            </div>
+            {editing ? (
+                <input
+                    ref={inputRef}
+                    type="text"
+                    className="physical-field__input"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onBlur={commit}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); commit(); }
+                        if (e.key === "Escape") { e.preventDefault(); cancel(); }
+                    }}
+                    placeholder={placeholder}
+                />
+            ) : (
+                <div
+                    className="physical-field__display"
+                    onClick={() => setEditing(true)}
+                >
+                    {value ? (
+                        <span className="physical-field__value">{value}</span>
+                    ) : (
+                        <span className="physical-field__placeholder">{placeholder}</span>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+/**
+ * Campo narrativo grande con edición inline (textarea).
  */
 function NarrativeField({ label, icon, placeholder, value, onSave, rows = 3 }) {
     const [editing, setEditing] = useState(false);

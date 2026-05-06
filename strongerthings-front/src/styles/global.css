@@ -552,3 +552,87 @@ form textarea:focus {
         font-size: 0.95rem;
     }
 }
+/* ═══════════════════════════════════════════════════════════════════
+   FASE 4: CARACTERÍSTICAS FÍSICAS
+   Pega este bloque al FINAL de tu src/styles/global.css
+   ═══════════════════════════════════════════════════════════════════ */
+
+.physical-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .physical-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .physical-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.physical-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.physical-field__label {
+    font-family: "Cinzel", serif;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: var(--ink-faded, #8b6f47);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.physical-field__display {
+    padding: 0.5rem 0.7rem;
+    border: 1px dashed var(--parchment-shadow, #c4a878);
+    border-radius: 3px;
+    cursor: text;
+    background: rgba(255, 255, 255, 0.2);
+    transition: all 0.15s;
+    min-height: 1.5em;
+    display: flex;
+    align-items: center;
+}
+
+.physical-field__display:hover {
+    border-color: var(--gold, #b8860b);
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.physical-field__value {
+    color: var(--ink, #3d2817);
+    font-weight: 500;
+}
+
+.physical-field__placeholder {
+    color: var(--ink-faded, #8b6f47);
+    font-style: italic;
+    opacity: 0.6;
+    font-size: 0.9rem;
+}
+
+.physical-field__input {
+    width: 100%;
+    padding: 0.5rem 0.7rem;
+    border: 2px solid var(--gold, #b8860b);
+    border-radius: 3px;
+    background: var(--parchment, #f5e9d4);
+    color: var(--ink, #3d2817);
+    font-family: inherit;
+    font-size: 1rem;
+    box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.15);
+    box-sizing: border-box;
+}
+
+.physical-field__input:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(184, 134, 11, 0.25);
+}
