@@ -84,7 +84,10 @@ const proficienciesSchema = new mongoose.Schema(
             sleightOfHand:    { type: Boolean, default: false },
             stealth:          { type: Boolean, default: false },
             survival:         { type: Boolean, default: false }
-        }
+        },
+        // ───── NUEVO en Fase 5 ─────
+        languages: { type: [String], default: [] },        // ["Common", "Elvish", "Draconic"]
+        other: { type: [String], default: [] }              // ["Espadas largas", "Útiles de ladrón", "Caballos"]
     },
     { _id: false }
 );
@@ -104,19 +107,14 @@ const personalitySchema = new mongoose.Schema(
     { _id: false }
 );
 
-/**
- * Características físicas del personaje (cabecera página 2 PDF oficial).
- * Todos opcionales, todos como string para permitir formatos variados.
- * Ej: "180 cm" o "5'11"", "75 kg" o "165 lb", "verdes" o "heterocromáticos".
- */
 const physicalSchema = new mongoose.Schema(
     {
-        age: { type: String, default: "" },        // "27 años" o "2 años (humano)"
-        height: { type: String, default: "" },     // "180 cm" o "5'11""
-        weight: { type: String, default: "" },     // "75 kg" o "165 lb"
-        eyes: { type: String, default: "" },       // "verdes", "ámbar"
-        skin: { type: String, default: "" },       // "morena", "pálida", "azul"
-        hair: { type: String, default: "" }        // "rojo, largo y trenzado"
+        age: { type: String, default: "" },
+        height: { type: String, default: "" },
+        weight: { type: String, default: "" },
+        eyes: { type: String, default: "" },
+        skin: { type: String, default: "" },
+        hair: { type: String, default: "" }
     },
     { _id: false }
 );
@@ -176,8 +174,6 @@ const characterSchema = new mongoose.Schema(
         combatStats: { type: combatStatsSchema, default: () => ({}) },
         proficiencies: { type: proficienciesSchema, default: () => ({}) },
         personality: { type: personalitySchema, default: () => ({}) },
-
-        // ───── NUEVO en Fase 4 ─────
         physical: { type: physicalSchema, default: () => ({}) },
 
         inventory: [inventoryItemSchema],

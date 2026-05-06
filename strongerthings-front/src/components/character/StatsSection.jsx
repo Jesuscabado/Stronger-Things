@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
     ABILITY_LIST,
     SKILL_LIST,
@@ -8,13 +9,16 @@ import {
     passivePerception,
     proficiencyBonus
 } from "../../utils/dndCalc.js";
+import { COMMON_LANGUAGES, COMMON_OTHER_PROFICIENCIES } from "../../utils/dndConstants.js";
+import ChipList from "../ChipList.jsx";
 
 /**
- * Pestaña ATRIBUTOS — características, salvaciones, habilidades.
+ * Pestaña ATRIBUTOS — características, salvaciones, habilidades,
+ * idiomas y otras competencias.
  */
 export default function StatsSection({ character, onUpdate }) {
     const stats = character.abilityScores || {};
-    const profs = character.proficiencies || { savingThrows: {}, skills: {} };
+    const profs = character.proficiencies || { savingThrows: {}, skills: {}, languages: [], other: [] };
     const pb = proficiencyBonus(character.level);
 
     const toggleSavingThrow = (abilityKey) => {
@@ -45,6 +49,18 @@ export default function StatsSection({ character, onUpdate }) {
 
     const updateAbilityScore = (key, value) => {
         onUpdate({ abilityScores: { ...stats, [key]: value } });
+    };
+
+    const updateLanguages = (next) => {
+        onUpdate({
+            proficiencies: { ...profs, languages: next }
+        });
+    };
+
+    const updateOtherProfs = (next) => {
+        onUpdate({
+            proficiencies: { ...profs, other: next }
+        });
     };
 
     return (
@@ -138,11 +154,39 @@ export default function StatsSection({ character, onUpdate }) {
                     })}
                 </div>
             </div>
+
+            {/* ───── NUEVO Fase 5: Idiomas ───── */}
+            <div className="scroll-card">
+                <h2>🗣 Idiomas</h2>
+                <p style={{ fontSize: "0.85rem", color: "var(--ink-faded)", marginTop: "-0.5rem", marginBottom: "1rem" }}>
+                    Idiomas que tu personaje puede hablar y leer. Escribe y pulsa Enter, o selecciona del autocompletado.
+                </p>
+                <ChipList
+                    values={profs.languages || []}
+                    onChange={updateLanguages}
+                    suggestions={COMMON_LANGUAGES}
+                    placeholder="Escribe un idioma (Común, Élfico, Dracónico...)"
+                    emptyMessage="No habla ningún idioma todavía. Añade el primero abajo."
+                />
+            </div>
+
+            {/* ───── NUEVO Fase 5: Otras competencias ───── */}
+            <div className="scroll-card">
+                <h2>🛡 Otras competencias</h2>
+                <p style={{ fontSize: "0.85rem", color: "var(--ink-faded)", marginTop: "-0.5rem", marginBottom: "1rem" }}>
+                    Competencia con armaduras, tipos de armas, herramientas, vehículos o instrumentos.
+                </p>
+                <ChipList
+                    values={profs.other || []}
+                    onChange={updateOtherProfs}
+                    suggestions={COMMON_OTHER_PROFICIENCIES}
+                    placeholder="Escribe una competencia (Armas marciales, Útiles de ladrón...)"
+                    emptyMessage="Sin competencias adicionales todavía."
+                />
+            </div>
         </>
     );
 }
-
-import { useEffect, useState } from "react";
 
 function EditableNumber({ value, onSave, min, max }) {
     const [editing, setEditing] = useState(false);
