@@ -9,6 +9,7 @@ import baseObjectRoutes from "./routes/baseObjectRoutes.js";
 import characterRoutes from "./routes/characterRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import spellRoutes from "./routes/spellRoutes.js";
 import { notFoundHandler, errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -27,6 +28,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/objects", baseObjectRoutes);
 app.use("/api/characters", characterRoutes);
+app.use("/api/spells", spellRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.use(notFoundHandler);

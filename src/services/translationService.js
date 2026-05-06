@@ -1,116 +1,233 @@
 /**
- * Servicio de traducción inglés → español de items D&D 5e.
- *
- * Estrategia: caché persistente en src/data/translations.json
- *   - Si el item ya está traducido en el archivo, lo devuelve al instante.
- *   - Si no, llama a Claude API, lo traduce, lo guarda y lo devuelve.
- *
- * Esto significa que la primera ejecución del seed traduce todos los items,
- * y las siguientes son instantáneas (no usan la API).
+ * Traduce nombres y descripciones de items y hechizos del inglés al español
+ * usando Anthropic Claude. Mantiene caché persistente en disco para
+ * evitar pagar por traducciones repetidas.
  */
-
+import Anthropic from "@anthropic-ai/sdk";
 import fs from "node:fs/promises";
 import path from "node:path";
-import Anthropic from "@anthropic-ai/sdk";
+import { fileURLToPath } from "node:url";
 
-const TRANSLATIONS_PATH = path.resolve("src/data/translations.json");
-const MODEL = "claude-haiku-4-5";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CACHE_FILE = path.resolve(__dirname, "..", "data", "translations.json");
 
-const client = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY
-});
-
+let client = null;
 let cache = null;
+let saving = false;
+
+const ensureClient = () => {
+    if (!client) {
+        if (!process.env.ANTHROPIC_API_KEY) {
+            throw new Error("ANTHROPIC_API_KEY no está definida en .env");
+        }
+        client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    }
+    return client;
+};
 
 const loadCache = async () => {
-    if (cache) return cache;
+    if (cache !== null) return cache;
     try {
-        const raw = await fs.readFile(TRANSLATIONS_PATH, "utf-8");
-        cache = JSON.parse(raw);
-    } catch (err) {
-        cache = { items: {}, categories: {}, damageTypes: {}, properties: {} };
+        const text = await fs.readFile(CACHE_FILE, "utf8");
+        cache = JSON.parse(text);
+    } catch {
+        cache = { items: {}, damageTypes: {}, properties: {}, spells: {} };
     }
+    // Backfill por si la caché es vieja y no tiene la sección de spells
+    if (!cache.spells) cache.spells = {};
+    if (!cache.items) cache.items = {};
+    if (!cache.damageTypes) cache.damageTypes = {};
+    if (!cache.properties) cache.properties = {};
     return cache;
 };
 
-const saveCache = async () => {
-    if (!cache) return;
-    await fs.mkdir(path.dirname(TRANSLATIONS_PATH), { recursive: true });
-    await fs.writeFile(TRANSLATIONS_PATH, JSON.stringify(cache, null, 2), "utf-8");
-};
-
-const translateWithClaude = async (englishName, englishDescription) => {
-    const systemPrompt = `Eres un traductor especializado en Dungeons & Dragons 5ª edición. Traduces términos del manual oficial al español usando la terminología establecida por la comunidad de habla hispana de D&D.
-
-Reglas:
-- Conserva nombres propios de criaturas, lugares y personajes.
-- Las unidades de medida en español: feet → pies, pounds → libras.
-- Mantén la formalidad y el tono propio del manual.
-- Las descripciones deben ser fluidas en español, no traducciones literales.
-- Si el nombre tiene una traducción establecida en el manual oficial español de Wizards of the Coast, úsala (ej. "Longsword" → "Espada larga", "Battleaxe" → "Hacha de batalla", "Crossbow, light" → "Ballesta ligera").
-
-Responde ÚNICAMENTE con un objeto JSON válido con dos claves: "name" y "description". Sin texto adicional, sin markdown, sin explicaciones.`;
-
-    const userPrompt = `Traduce este item de D&D 5e al español:
-
-name: "${englishName}"
-description: "${englishDescription || "(sin descripción)"}"
-
-Responde con JSON: { "name": "...", "description": "..." }`;
-
-    const response = await client.messages.create({
-        model: MODEL,
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }]
-    });
-
-    const text = response.content[0].text.trim();
-    const cleaned = text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
-
+const persistCache = async () => {
+    if (saving) return;
+    saving = true;
     try {
-        return JSON.parse(cleaned);
-    } catch (err) {
-        throw new Error(`No se pudo parsear la respuesta de Claude: ${text}`);
+        await fs.mkdir(path.dirname(CACHE_FILE), { recursive: true });
+        await fs.writeFile(CACHE_FILE, JSON.stringify(cache, null, 2), "utf8");
+    } finally {
+        saving = false;
     }
 };
+
+const askClaude = async (prompt) => {
+    const res = await ensureClient().messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 1024,
+        messages: [{ role: "user", content: prompt }]
+    });
+    const text = res.content[0]?.type === "text" ? res.content[0].text : "";
+    return text.trim();
+};
+
+const cleanJSON = (text) => {
+    // Algunas respuestas vienen entre ```json ... ```
+    return text.replace(/```json\s*|```/g, "").trim();
+};
+
+/* ─────────────── ITEMS (existente) ─────────────── */
 
 export const translateItem = async (englishName, englishDescription) => {
-    await loadCache();
-
-    if (cache.items[englishName]) {
-        return cache.items[englishName];
+    const c = await loadCache();
+    const cacheKey = englishName;
+    if (c.items[cacheKey]) {
+        return c.items[cacheKey];
     }
 
-    const translated = await translateWithClaude(englishName, englishDescription);
-    cache.items[englishName] = translated;
-    await saveCache();
-    return translated;
-};
+    const prompt = `Traduce el siguiente equipo de D&D 5e del inglés al español. Responde SOLO en JSON sin texto extra ni markdown:
 
-export const translateCategory = async (englishCategory) => {
-    await loadCache();
-    return cache.categories[englishCategory] || englishCategory;
+Nombre: ${englishName}
+Descripción: ${englishDescription || "(sin descripción)"}
+
+Formato de respuesta:
+{"name": "...", "description": "..."}`;
+
+    try {
+        const raw = await askClaude(prompt);
+        const parsed = JSON.parse(cleanJSON(raw));
+        c.items[cacheKey] = {
+            name: parsed.name || englishName,
+            description: parsed.description || ""
+        };
+        await persistCache();
+        return c.items[cacheKey];
+    } catch (err) {
+        console.warn(`Traducción fallida para "${englishName}": ${err.message}`);
+        return { name: englishName, description: englishDescription || "" };
+    }
 };
 
 export const translateDamageType = async (englishType) => {
-    if (!englishType) return englishType;
-    await loadCache();
-    return cache.damageTypes[englishType.toLowerCase()] || englishType;
+    if (!englishType) return "";
+    const c = await loadCache();
+    if (c.damageTypes[englishType]) return c.damageTypes[englishType];
+
+    const prompt = `Traduce este tipo de daño de D&D 5e del inglés al español.
+Responde SOLO con la palabra traducida, sin comillas ni explicaciones.
+
+Tipo: ${englishType}`;
+
+    try {
+        const translated = await askClaude(prompt);
+        c.damageTypes[englishType] = translated;
+        await persistCache();
+        return translated;
+    } catch {
+        return englishType;
+    }
 };
 
-export const translateProperties = async (englishProperties) => {
-    if (!Array.isArray(englishProperties)) return englishProperties;
-    await loadCache();
-    return englishProperties.map(p => cache.properties[p] || p);
+export const translateProperties = async (englishProps) => {
+    if (!englishProps || englishProps.length === 0) return [];
+    const c = await loadCache();
+
+    const result = [];
+    const toTranslate = [];
+
+    for (const p of englishProps) {
+        if (c.properties[p]) {
+            result.push({ original: p, translation: c.properties[p] });
+        } else {
+            toTranslate.push(p);
+        }
+    }
+
+    if (toTranslate.length > 0) {
+        const prompt = `Traduce estas propiedades de armas/equipo D&D 5e del inglés al español.
+Responde SOLO con un objeto JSON sin markdown:
+
+Propiedades: ${JSON.stringify(toTranslate)}
+
+Formato: {"PropiedadOriginal": "Traducción", ...}`;
+
+        try {
+            const raw = await askClaude(prompt);
+            const parsed = JSON.parse(cleanJSON(raw));
+            for (const p of toTranslate) {
+                const tr = parsed[p] || p;
+                c.properties[p] = tr;
+                result.push({ original: p, translation: tr });
+            }
+            await persistCache();
+        } catch {
+            for (const p of toTranslate) {
+                result.push({ original: p, translation: p });
+            }
+        }
+    }
+
+    // Ordenar según el orden original
+    return englishProps.map(p =>
+        result.find(r => r.original === p)?.translation || p
+    );
 };
+
+/* ─────────────── HECHIZOS (NUEVO Fase 6a) ─────────────── */
+
+const SCHOOL_MAP = {
+    "Abjuration": "Abjuración",
+    "Conjuration": "Conjuración",
+    "Divination": "Adivinación",
+    "Enchantment": "Encantamiento",
+    "Evocation": "Evocación",
+    "Illusion": "Ilusión",
+    "Necromancy": "Nigromancia",
+    "Transmutation": "Transmutación"
+};
+
+/**
+ * Traduce el nombre, descripción y "at higher levels" de un hechizo.
+ * La escuela se mapea con una tabla local (más rápido y consistente).
+ */
+export const translateSpell = async (englishName, englishDescription, englishAtHigher) => {
+    const c = await loadCache();
+    const cacheKey = englishName;
+    if (c.spells[cacheKey]) {
+        return c.spells[cacheKey];
+    }
+
+    const desc = englishDescription || "(sin descripción)";
+    const higher = englishAtHigher || "";
+
+    const prompt = `Traduce el siguiente hechizo de D&D 5e del inglés al español. Mantén términos del juego coherentes (ej: "spell" -> "conjuro", "saving throw" -> "tirada de salvación", "spell attack" -> "ataque de conjuro"). Responde SOLO en JSON sin texto extra ni markdown:
+
+Nombre: ${englishName}
+Descripción: ${desc}
+A niveles superiores: ${higher || "(no aplica)"}
+
+Formato:
+{"name": "...", "description": "...", "atHigherLevels": "..."}
+
+Si "atHigherLevels" no aplica, devuélvelo como string vacío "".`;
+
+    try {
+        const raw = await askClaude(prompt);
+        const parsed = JSON.parse(cleanJSON(raw));
+        c.spells[cacheKey] = {
+            name: parsed.name || englishName,
+            description: parsed.description || "",
+            atHigherLevels: parsed.atHigherLevels || ""
+        };
+        await persistCache();
+        return c.spells[cacheKey];
+    } catch (err) {
+        console.warn(`Traducción de hechizo fallida para "${englishName}": ${err.message}`);
+        return { name: englishName, description: desc, atHigherLevels: higher };
+    }
+};
+
+export const translateSchool = (englishSchool) => SCHOOL_MAP[englishSchool] || englishSchool;
+
+/* ─────────────── Stats ─────────────── */
 
 export const getCacheStats = async () => {
-    await loadCache();
+    const c = await loadCache();
     return {
-        items: Object.keys(cache.items).length,
-        categories: Object.keys(cache.categories).length,
-        damageTypes: Object.keys(cache.damageTypes).length,
-        properties: Object.keys(cache.properties).length
+        items: Object.keys(c.items || {}).length,
+        damageTypes: Object.keys(c.damageTypes || {}).length,
+        properties: Object.keys(c.properties || {}).length,
+        spells: Object.keys(c.spells || {}).length
     };
 };

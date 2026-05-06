@@ -1,15 +1,14 @@
 /**
- * Script de seed con rate limiting y retry automático.
- *
- * - Pausa de 800ms entre items (la API D&D limita a ~100 req/min).
- * - Reintenta automáticamente si una petición falla, con backoff progresivo.
- * - Usa caché persistente de traducciones en src/data/translations.json.
+ * Seed con rate limiting, retry y caché de traducciones.
+ * Importa items y hechizos de la API D&D 5e.
  */
 
 import {
     translateItem,
     translateDamageType,
     translateProperties,
+    translateSpell,
+    translateSchool,
     getCacheStats
 } from "./services/translationService.js";
 
@@ -19,16 +18,12 @@ const DND_API = "https://www.dnd5eapi.co/api/2014";
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-/**
- * Hace un fetch con reintentos automáticos y backoff progresivo.
- */
 const fetchWithRetry = async (url, options = {}, retries = 5, baseDelay = 2000) => {
     let lastError;
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
             const res = await fetch(url, options);
             if (res.ok) return res;
-            // 429 (rate limit) o 5xx → reintentamos
             if (res.status === 429 || res.status >= 500) {
                 if (attempt < retries) {
                     const wait = baseDelay * attempt;
@@ -37,7 +32,6 @@ const fetchWithRetry = async (url, options = {}, retries = 5, baseDelay = 2000) 
                     continue;
                 }
             }
-            // Otros 4xx → no reintentar, devolver tal cual
             return res;
         } catch (err) {
             lastError = err;
@@ -68,6 +62,8 @@ const post = async (path, body, token) => {
         return { res: { ok: false, status: 0 }, json: { message: err.message } };
     }
 };
+
+/* ─────────────── ITEMS (existente) ─────────────── */
 
 const costToGold = (apiCost) => {
     if (!apiCost) return 0;
@@ -136,7 +132,7 @@ const mapAndTranslateItem = async (apiItem) => {
 };
 
 const importCatalogFromAPI = async (token) => {
-    console.log("\n📥 Descargando catálogo de la API D&D 5e...");
+    console.log("\n📥 Descargando catálogo de items de la API D&D 5e...");
     const listRes = await fetchWithRetry(`${DND_API}/equipment`);
     const { results } = await listRes.json();
     console.log(`   ${results.length} items disponibles`);
@@ -148,11 +144,8 @@ const importCatalogFromAPI = async (token) => {
 
     for (let i = 0; i < results.length; i++) {
         const item = results[i];
-
         try {
-            // Pausa entre items: respeta rate limit ~100/min de la API
             if (i > 0) await sleep(800);
-
             const detailRes = await fetchWithRetry(`https://www.dnd5eapi.co${item.url}`);
             const detail = await detailRes.json();
 
@@ -186,6 +179,133 @@ const importCatalogFromAPI = async (token) => {
     console.log(`\n\n   📊 ${inserted} insertados | ${skipped} ya estaban en BD | ${failed} fallidos`);
     console.log(`   🌐 ${newlyTranslated} traducciones nuevas | ${results.length - newlyTranslated} desde caché\n`);
 };
+
+/* ─────────────── HECHIZOS (NUEVO Fase 6a) ─────────────── */
+
+const mapAndTranslateSpell = async (apiSpell) => {
+    const englishDescription = Array.isArray(apiSpell.desc)
+        ? apiSpell.desc.join("\n\n")
+        : (apiSpell.desc || "");
+
+    const englishAtHigher = Array.isArray(apiSpell.higher_level)
+        ? apiSpell.higher_level.join("\n\n")
+        : (apiSpell.higher_level || "");
+
+    const translated = await translateSpell(
+        apiSpell.name,
+        englishDescription,
+        englishAtHigher
+    );
+
+    // Componentes V/S/M
+    const components = {
+        verbal: false,
+        somatic: false,
+        material: false,
+        materialDesc: ""
+    };
+    if (Array.isArray(apiSpell.components)) {
+        for (const c of apiSpell.components) {
+            if (c === "V") components.verbal = true;
+            if (c === "S") components.somatic = true;
+            if (c === "M") components.material = true;
+        }
+    }
+    if (apiSpell.material) components.materialDesc = apiSpell.material;
+
+    // Daño por nivel de slot
+    const damageAtSlot = {};
+    let damageType = "";
+    if (apiSpell.damage) {
+        if (apiSpell.damage.damage_type?.name) {
+            damageType = await translateDamageType(apiSpell.damage.damage_type.name);
+        }
+        if (apiSpell.damage.damage_at_slot_level) {
+            for (const [k, v] of Object.entries(apiSpell.damage.damage_at_slot_level)) {
+                damageAtSlot[k] = v;
+            }
+        }
+        if (apiSpell.damage.damage_at_character_level) {
+            for (const [k, v] of Object.entries(apiSpell.damage.damage_at_character_level)) {
+                damageAtSlot[`char${k}`] = v;
+            }
+        }
+    }
+
+    // Clases que pueden lanzarlo
+    const classes = Array.isArray(apiSpell.classes)
+        ? apiSpell.classes.map(c => c.name) // ya vienen en inglés y coinciden con nuestros enums
+        : [];
+
+    return {
+        name: translated.name,
+        nameOriginal: apiSpell.name,
+        description: translated.description,
+        atHigherLevels: translated.atHigherLevels,
+        level: apiSpell.level ?? 0,
+        school: translateSchool(apiSpell.school?.name),
+        castingTime: apiSpell.casting_time || "1 acción",
+        range: apiSpell.range || "30 pies",
+        duration: apiSpell.duration || "Instantáneo",
+        concentration: !!apiSpell.concentration,
+        ritual: !!apiSpell.ritual,
+        components,
+        damageType,
+        damageAtSlot,
+        classes
+    };
+};
+
+const importSpellsFromAPI = async (token) => {
+    console.log("\n📥 Descargando catálogo de hechizos de la API D&D 5e...");
+    const listRes = await fetchWithRetry(`${DND_API}/spells`);
+    const { results } = await listRes.json();
+    console.log(`   ${results.length} hechizos disponibles`);
+
+    const statsBefore = await getCacheStats();
+    console.log(`   📚 Caché actual: ${statsBefore.spells} hechizos ya traducidos\n`);
+
+    let inserted = 0, skipped = 0, failed = 0, newlyTranslated = 0;
+
+    for (let i = 0; i < results.length; i++) {
+        const item = results[i];
+        try {
+            if (i > 0) await sleep(800);
+            const detailRes = await fetchWithRetry(`https://www.dnd5eapi.co${item.url}`);
+            const detail = await detailRes.json();
+
+            const cacheBefore = await getCacheStats();
+            const mapped = await mapAndTranslateSpell(detail);
+            const cacheAfter = await getCacheStats();
+
+            if (cacheAfter.spells > cacheBefore.spells) newlyTranslated++;
+
+            const { res, json } = await post("/api/spells", mapped, token);
+            if (res.ok) {
+                inserted++;
+                process.stdout.write(`\r   ✓ ${i + 1}/${results.length} - ${mapped.name} (Nv ${mapped.level})`.padEnd(80) + " ");
+            } else if (
+                res.status === 409 ||
+                (json.message || "").toLowerCase().includes("ya existe") ||
+                (json.message || "").toLowerCase().includes("duplicate")
+            ) {
+                skipped++;
+                process.stdout.write(`\r   · ${i + 1}/${results.length} - ${mapped.name} (ya en BD)`.padEnd(80) + " ");
+            } else {
+                failed++;
+                console.warn(`\n   ✗ ${item.name}: ${json.message || "error desconocido"}`);
+            }
+        } catch (err) {
+            failed++;
+            console.warn(`\n   ✗ ${item.name}: ${err.message}`);
+        }
+    }
+
+    console.log(`\n\n   📊 ${inserted} insertados | ${skipped} ya estaban en BD | ${failed} fallidos`);
+    console.log(`   🌐 ${newlyTranslated} traducciones nuevas | ${results.length - newlyTranslated} desde caché\n`);
+};
+
+/* ─────────────── PERSONAJES ─────────────── */
 
 const findObjectIdByName = async (name, token) => {
     try {
@@ -224,6 +344,7 @@ const main = async () => {
     }
 
     await importCatalogFromAPI(token);
+    await importSpellsFromAPI(token);
 
     const characters = [
         {
