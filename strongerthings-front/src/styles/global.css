@@ -480,3 +480,75 @@ form textarea:focus {
     color: var(--ink-faded, #8b6f47);
     font-size: 0.8rem;
 }
+/* ═══════════════════════════════════════════════════════════════════
+   FASE 3: NARRATIVA — campos de texto con edición inline
+   Pega este bloque al FINAL de tu src/styles/global.css
+   ═══════════════════════════════════════════════════════════════════ */
+
+.narrative-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.narrative-field__label {
+    font-family: "Cinzel", serif;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--ink-faded, #8b6f47);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.narrative-field__display {
+    padding: 0.6rem 0.8rem;
+    border: 1px dashed var(--parchment-shadow, #c4a878);
+    border-radius: 3px;
+    cursor: text;
+    background: rgba(255, 255, 255, 0.2);
+    transition: all 0.15s;
+    line-height: 1.5;
+}
+
+.narrative-field__display:hover {
+    border-color: var(--gold, #b8860b);
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.narrative-field__text {
+    color: var(--ink, #3d2817);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.narrative-field__placeholder {
+    color: var(--ink-faded, #8b6f47);
+    font-style: italic;
+    opacity: 0.7;
+}
+
+.narrative-field__textarea {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 2px solid var(--gold, #b8860b);
+    border-radius: 3px;
+    background: var(--parchment, #f5e9d4);
+    color: var(--ink, #3d2817);
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: 1.5;
+    resize: vertical;
+    box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.15);
+    box-sizing: border-box;
+}
+
+.narrative-field__textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(184, 134, 11, 0.25);
+}
+
+@media (max-width: 768px) {
+    .scroll-card .narrative-field {
+        font-size: 0.95rem;
+    }
+}

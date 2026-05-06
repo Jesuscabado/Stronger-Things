@@ -7,7 +7,7 @@ import Tabs from "../components/Tabs.jsx";
 import GeneralSection from "../components/character/GeneralSection.jsx";
 import StatsSection from "../components/character/StatsSection.jsx";
 import CombatSection from "../components/character/CombatSection.jsx";
-/* import PersonalitySection from "../components/character/PersonalitySection.jsx"; */
+import PersonalitySection from "../components/character/PersonalitySection.jsx";
 
 const formatFileSize = (bytes) => {
     if (!bytes) return "0 KB";
