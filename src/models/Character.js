@@ -85,9 +85,8 @@ const proficienciesSchema = new mongoose.Schema(
             stealth:          { type: Boolean, default: false },
             survival:         { type: Boolean, default: false }
         },
-        // ───── NUEVO en Fase 5 ─────
-        languages: { type: [String], default: [] },        // ["Common", "Elvish", "Draconic"]
-        other: { type: [String], default: [] }              // ["Espadas largas", "Útiles de ladrón", "Caballos"]
+        languages: { type: [String], default: [] },
+        other: { type: [String], default: [] }
     },
     { _id: false }
 );
@@ -115,6 +114,59 @@ const physicalSchema = new mongoose.Schema(
         eyes: { type: String, default: "" },
         skin: { type: String, default: "" },
         hair: { type: String, default: "" }
+    },
+    { _id: false }
+);
+
+/**
+ * Hechizo conocido por el personaje. Referencia al catálogo Spell + flag preparado.
+ */
+const knownSpellSchema = new mongoose.Schema(
+    {
+        spell: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Spell",
+            required: true
+        },
+        prepared: { type: Boolean, default: false },
+        notes: { type: String, default: "" }
+    },
+    { _id: true, timestamps: false }
+);
+
+/**
+ * Lanzamiento de conjuros del personaje.
+ * - ability: atributo de aptitud (intelligence/wisdom/charisma)
+ * - attackBonus / saveDC: campos editables (en la 6c lo calcularemos automáticamente)
+ * - spellSlots: slots por nivel 1-9 con total y usados
+ * - spellsKnown: lista de hechizos conocidos (referencias al catálogo)
+ */
+const spellSlotsSchema = new mongoose.Schema(
+    {
+        level1: { total: { type: Number, default: 0 }, used: { type: Number, default: 0 } },
+        level2: { total: { type: Number, default: 0 }, used: { type: Number, default: 0 } },
+        level3: { total: { type: Number, default: 0 }, used: { type: Number, default: 0 } },
+        level4: { total: { type: Number, default: 0 }, used: { type: Number, default: 0 } },
+        level5: { total: { type: Number, default: 0 }, used: { type: Number, default: 0 } },
+        level6: { total: { type: Number, default: 0 }, used: { type: Number, default: 0 } },
+        level7: { total: { type: Number, default: 0 }, used: { type: Number, default: 0 } },
+        level8: { total: { type: Number, default: 0 }, used: { type: Number, default: 0 } },
+        level9: { total: { type: Number, default: 0 }, used: { type: Number, default: 0 } }
+    },
+    { _id: false }
+);
+
+const spellcastingSchema = new mongoose.Schema(
+    {
+        ability: {
+            type: String,
+            enum: ["", "intelligence", "wisdom", "charisma"],
+            default: ""
+        },
+        attackBonus: { type: Number, default: 0 },
+        saveDC: { type: Number, default: 8 },
+        spellSlots: { type: spellSlotsSchema, default: () => ({}) },
+        spellsKnown: { type: [knownSpellSchema], default: [] }
     },
     { _id: false }
 );
@@ -175,6 +227,9 @@ const characterSchema = new mongoose.Schema(
         proficiencies: { type: proficienciesSchema, default: () => ({}) },
         personality: { type: personalitySchema, default: () => ({}) },
         physical: { type: physicalSchema, default: () => ({}) },
+
+        // ───── NUEVO Fase 6b ─────
+        spellcasting: { type: spellcastingSchema, default: () => ({}) },
 
         inventory: [inventoryItemSchema],
         characterSheet: characterSheetSchema,

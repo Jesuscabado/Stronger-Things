@@ -109,3 +109,34 @@ export const deleteAvatar = async (req, res, next) => {
         res.status(200).json(result);
     } catch (e) { handleStatusError(e, res, next); }
 };
+
+/* ───────── Hechizos (NUEVO Fase 6b) ───────── */
+
+export const addSpellToCharacter = async (req, res, next) => {
+    try {
+        const { spell, prepared, notes } = req.body;
+        if (!spell) return res.status(400).json({ message: "Falta el campo 'spell' (id del hechizo)" });
+        const character = await characterService.learnSpell(
+            req.params.id, { spell, prepared, notes }, req.user._id
+        );
+        res.status(201).json(character);
+    } catch (error) { handleStatusError(error, res, next); }
+};
+
+export const updateCharacterSpell = async (req, res, next) => {
+    try {
+        const character = await characterService.updateLearnedSpell(
+            req.params.id, req.params.spellId, req.body, req.user._id
+        );
+        res.status(200).json(character);
+    } catch (error) { handleStatusError(error, res, next); }
+};
+
+export const removeCharacterSpell = async (req, res, next) => {
+    try {
+        const character = await characterService.forgetSpell(
+            req.params.id, req.params.spellId, req.user._id
+        );
+        res.status(200).json(character);
+    } catch (error) { handleStatusError(error, res, next); }
+};

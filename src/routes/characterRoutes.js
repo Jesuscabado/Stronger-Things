@@ -13,7 +13,10 @@ import {
     downloadCharacterSheet,
     deleteCharacterSheet,
     uploadAvatar,
-    deleteAvatar
+    deleteAvatar,
+    addSpellToCharacter,
+    updateCharacterSpell,
+    removeCharacterSpell
 } from "../controllers/characterController.js";
 import { validateBody, validateObjectId } from "../middlewares/validateBody.js";
 import { authRequired } from "../middlewares/authRequired.js";
@@ -42,5 +45,9 @@ router.delete("/:id/sheet", validateObjectId(), deleteCharacterSheet);
 // Avatar (imagen)
 router.post("/:id/avatar", validateObjectId(), avatarUpload.single("avatar"), uploadAvatar);
 router.delete("/:id/avatar", validateObjectId(), deleteAvatar);
+
+router.post("/:id/spells", validateObjectId(),addSpellToCharacter);
+router.patch("/:id/spells/:spellId", validateObjectId(),updateCharacterSpell);
+router.delete("/:id/spells/:spellId", validateObjectId(),removeCharacterSpell);
 
 export default router;

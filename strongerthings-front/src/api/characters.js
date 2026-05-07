@@ -12,6 +12,11 @@ export const charactersApi = {
     updateItem: (id, itemId, data) => api.put(`/api/characters/${id}/inventory/${itemId}`, data),
     removeItem: (id, itemId) => api.del(`/api/characters/${id}/inventory/${itemId}`),
 
+    // hechizos
+    addSpell: (id, data) => api.post(`/api/characters/${id}/spells`, data),
+    updateSpell: (id, knownId, data) => api.patch(`/api/characters/${id}/spells/${knownId}`, data),
+    removeSpell: (id, knownId) => api.del(`/api/characters/${id}/spells/${knownId}`),
+
     // hoja PDF
     uploadSheet: (id, file) => {
         const fd = new FormData();
@@ -20,11 +25,12 @@ export const charactersApi = {
     },
     downloadSheet: (id) => api.download(`/api/characters/${id}/sheet`),
     deleteSheet: (id) => api.del(`/api/characters/${id}/sheet`),
-    uploadAvatar: (id, file) => {
-    const fd = new FormData();
-    fd.append("avatar", file);
-    return api.upload(`/api/characters/${id}/avatar`, fd);
-},
-deleteAvatar: (id) => api.del(`/api/characters/${id}/avatar`)
-};
 
+    // avatar
+    uploadAvatar: (id, file) => {
+        const fd = new FormData();
+        fd.append("avatar", file);
+        return api.upload(`/api/characters/${id}/avatar`, fd);
+    },
+    deleteAvatar: (id) => api.del(`/api/characters/${id}/avatar`)
+};
