@@ -8,6 +8,7 @@ import GeneralSection from "../components/character/GeneralSection.jsx";
 import StatsSection from "../components/character/StatsSection.jsx";
 import CombatSection from "../components/character/CombatSection.jsx";
 import PersonalitySection from "../components/character/PersonalitySection.jsx";
+import SpellsSection from "../components/character/SpellsSection.jsx";
 
 const formatFileSize = (bytes) => {
     if (!bytes) return "0 KB";
@@ -169,6 +170,31 @@ export default function CharacterDetailPage() {
         } catch (err) { setError(err.message); }
     };
 
+    /* ─── Hechizos (NUEVO 6b) ─── */
+    const handleAddSpell = async (data) => {
+        try {
+            await charactersApi.addSpell(id, data);
+            flash("Hechizo aprendido");
+            load();
+        } catch (err) { setError(err.message); }
+    };
+
+    const handleUpdateSpell = async (knownId, data) => {
+        try {
+            await charactersApi.updateSpell(id, knownId, data);
+            load();
+        } catch (err) { setError(err.message); }
+    };
+
+    const handleRemoveSpell = async (knownId) => {
+        if (!confirm("¿Olvidar este hechizo?")) return;
+        try {
+            await charactersApi.removeSpell(id, knownId);
+            flash("Hechizo olvidado");
+            load();
+        } catch (err) { setError(err.message); }
+    };
+
     if (loading) return <div className="loading">Consultando los pergaminos...</div>;
     if (!character) return <div className="container"><div className="alert">{error || "Personaje no encontrado"}</div></div>;
 
@@ -176,6 +202,15 @@ export default function CharacterDetailPage() {
     const statsTab = <StatsSection character={character} onUpdate={updateField} />;
     const combatTab = <CombatSection character={character} onUpdate={updateField} />;
     const personalityTab = <PersonalitySection character={character} onUpdate={updateField} />;
+    const spellsTab = (
+        <SpellsSection
+            character={character}
+            onUpdate={updateField}
+            onAddSpell={handleAddSpell}
+            onUpdateSpell={handleUpdateSpell}
+            onRemoveSpell={handleRemoveSpell}
+        />
+    );
 
     const inventoryTab = (
         <div className="scroll-card">
@@ -264,16 +299,6 @@ export default function CharacterDetailPage() {
                     ))}
                 </ul>
             )}
-        </div>
-    );
-
-    const spellsTab = (
-        <div className="scroll-card">
-            <div className="tab-placeholder">
-                <span className="tab-placeholder-emoji">✨</span>
-                <h3>Conjuros</h3>
-                <p>Próximamente: aptitud mágica, espacios de conjuro, trucos y hechizos conocidos/preparados.</p>
-            </div>
         </div>
     );
 
