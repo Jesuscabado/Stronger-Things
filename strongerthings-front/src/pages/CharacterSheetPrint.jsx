@@ -79,7 +79,7 @@ export default function CharacterSheetPrint() {
             <div className="sheet-page">
                 <div className="sheet-header">
                     <div className="sheet-title">
-                        <div className="sheet-logo">⚔ DUNGEONS &amp; DRAGONS</div>
+                        <div className="sheet-logo">⚔ StrongerThings</div>
                         <div className="sheet-charname">{character.name}</div>
                     </div>
                     <div className="sheet-meta">
@@ -277,7 +277,7 @@ export default function CharacterSheetPrint() {
             <div className="sheet-page">
                 <div className="sheet-header">
                     <div className="sheet-title">
-                        <div className="sheet-logo">⚔ DUNGEONS &amp; DRAGONS</div>
+                        <div className="sheet-logo">⚔ StrongerThings</div>
                         <div className="sheet-charname">{character.name}</div>
                     </div>
                     <div className="sheet-meta">
@@ -340,7 +340,7 @@ export default function CharacterSheetPrint() {
                 <div className="sheet-page">
                     <div className="sheet-header">
                         <div className="sheet-title">
-                            <div className="sheet-logo">⚔ DUNGEONS &amp; DRAGONS</div>
+                            <div className="sheet-logo">⚔ StrongerThings</div>
                             <div className="sheet-charname">{character.name}</div>
                         </div>
                         <div className="sheet-meta">
