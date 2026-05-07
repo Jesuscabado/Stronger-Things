@@ -123,29 +123,37 @@ Cloudinary aloja los PDFs de las hojas de personaje. El plan gratuito da 25 GB d
 #### Backend — crea `.env` en la raíz del proyecto Backend
 
 ```env
-# Servidor
+# ── Servidor ──
 APP_HOST=StrongerThings
 APP_PORT=3001
 
-# MongoDB (entorno local con Docker)
+# ── MongoDB ──
+# Para desarrollo local con Docker:
 MONGO_HOST=localhost
 MONGO_PORT=27027
-MONGO_USER=Mike
-MONGO_PASSWORD=TheCakeIsALie
+MONGO_USER=tu_usuario_mongo
+MONGO_PASSWORD=tu_password_mongo
 MONGO_DB=StrongerThingsDB
+
+# Sólo si usas Docker para arrancar la app:
 MONGO_CONTAINER_NAME=monger_things
 MONGO_INTERNAL_PORT=27017
 
-# Autenticación
+# ── Autenticación JWT ──
+# IMPORTANTE: usa una cadena larga, aleatoria y secreta.
+# Puedes generarla con:  node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 JWT_SECRET=cambia_esto_por_una_cadena_larga_y_aleatoria
 JWT_EXPIRES_IN=1d
 
-# Cloudinary (sustituye por tus valores reales)
+# ── Cloudinary (almacenamiento de PDFs) ──
+# Obtén estos valores en https://cloudinary.com → Dashboard
 CLOUDINARY_CLOUD_NAME=dxxxxxxxx
-CLOUDINARY_API_KEY=123456789012345
+CLOUDINARY_API_KEY=000000000000000
 CLOUDINARY_API_SECRET=tu_api_secret_aqui
 
-# Front (para CORS)
+#ANTHROPIC
+ANTHROPIC_API_KEY=
+# ── CORS / Front ──
 FRONTEND_URL=http://localhost:5173
 ```
 
