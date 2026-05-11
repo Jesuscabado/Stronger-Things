@@ -50,7 +50,12 @@ const combatStatsSchema = new mongoose.Schema(
         deathSaves: {
             successes: { type: Number, default: 0, min: 0, max: 3 },
             failures: { type: Number, default: 0, min: 0, max: 3 }
-        }
+        },
+
+        // Overrides manuales (si null, se calcula automáticamente)
+        proficiencyBonusOverride: { type: Number, default: null },
+        passivePerceptionOverride: { type: Number, default: null },
+        passivePerceptionBonus: { type: Number, default: 0 }
     },
     { _id: false }
 );
@@ -118,9 +123,6 @@ const physicalSchema = new mongoose.Schema(
     { _id: false }
 );
 
-/**
- * Hechizo conocido por el personaje. Referencia al catálogo Spell + flag preparado.
- */
 const knownSpellSchema = new mongoose.Schema(
     {
         spell: {
@@ -134,13 +136,6 @@ const knownSpellSchema = new mongoose.Schema(
     { _id: true, timestamps: false }
 );
 
-/**
- * Lanzamiento de conjuros del personaje.
- * - ability: atributo de aptitud (intelligence/wisdom/charisma)
- * - attackBonus / saveDC: campos editables (en la 6c lo calcularemos automáticamente)
- * - spellSlots: slots por nivel 1-9 con total y usados
- * - spellsKnown: lista de hechizos conocidos (referencias al catálogo)
- */
 const spellSlotsSchema = new mongoose.Schema(
     {
         level1: { total: { type: Number, default: 0 }, used: { type: Number, default: 0 } },
@@ -227,8 +222,6 @@ const characterSchema = new mongoose.Schema(
         proficiencies: { type: proficienciesSchema, default: () => ({}) },
         personality: { type: personalitySchema, default: () => ({}) },
         physical: { type: physicalSchema, default: () => ({}) },
-
-        // ───── NUEVO Fase 6b ─────
         spellcasting: { type: spellcastingSchema, default: () => ({}) },
 
         inventory: [inventoryItemSchema],

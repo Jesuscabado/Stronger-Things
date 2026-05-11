@@ -1646,3 +1646,49 @@ form textarea:focus {
         page-break-inside: avoid;
     }
 }
+
+/* Popover de overrides en cabecera de Atributos */
+
+.override-popover {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 0.5rem;
+    z-index: 20;
+    background: var(--parchment, #f5e9d4);
+    border: 2px solid var(--gold, #b8860b);
+    border-radius: 4px;
+    padding: 0.8rem;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    min-width: 220px;
+    text-align: left;
+}
+
+.override-popover::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-bottom-color: var(--gold, #b8860b);
+}
+
+.override-popover input[type="number"] {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--parchment-shadow, #c4a878);
+    border-radius: 3px;
+    background: white;
+    color: var(--ink, #3d2817);
+    font-size: 0.95rem;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.override-popover input[type="number"]:focus {
+    outline: none;
+    border-color: var(--gold, #b8860b);
+    box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.15);
+}
