@@ -1,18 +1,36 @@
 import { useState } from "react";
+import {
+    CLASS_OPTIONS,
+    RACE_OPTIONS,
+    ALIGNMENT_OPTIONS,
+    translateClass,
+    translateRace,
+    translateAlignment
+} from "../../utils/dndLabels.js";
 
-const DND_CLASSES = ["Barbarian", "Bard", "Cleric", "Druid", "Fighter", "Monk", "Paladin", "Ranger", "Rogue", "Sorcerer", "Warlock", "Wizard", "Artificer"];
-const DND_RACES = ["Human", "Elf", "Dwarf", "Halfling", "Gnome", "Half-Elf", "Half-Orc", "Tiefling", "Dragonborn", "Aasimar", "Goliath"];
-const ALIGNMENTS = [
-    "Lawful Good", "Neutral Good", "Chaotic Good",
-    "Lawful Neutral", "True Neutral", "Chaotic Neutral",
-    "Lawful Evil", "Neutral Evil", "Chaotic Evil",
-    "Unaligned"
-];
 const BACKGROUNDS = [
     "Acolyte", "Charlatan", "Criminal", "Entertainer", "Folk Hero",
     "Guild Artisan", "Hermit", "Noble", "Outlander", "Sage",
     "Sailor", "Soldier", "Urchin", "Custom"
 ];
+
+const BACKGROUND_LABELS = {
+    Acolyte:        "Acólito",
+    Charlatan:      "Charlatán",
+    Criminal:       "Criminal",
+    Entertainer:    "Artista",
+    "Folk Hero":    "Héroe del pueblo",
+    "Guild Artisan":"Artesano gremial",
+    Hermit:         "Ermitaño",
+    Noble:          "Noble",
+    Outlander:      "Forastero",
+    Sage:           "Sabio",
+    Sailor:         "Marinero",
+    Soldier:        "Soldado",
+    Urchin:         "Pilluelo",
+    Custom:         "Personalizado"
+};
+const translateBackground = (en) => BACKGROUND_LABELS[en] || en;
 
 /**
  * Pestaña GENERAL — identidad básica del personaje.
@@ -73,13 +91,13 @@ export default function GeneralSection({ character, onUpdate }) {
                         <div className="field">
                             <label>Clase</label>
                             <select value={draft.charClass} onChange={(e) => setDraft({ ...draft, charClass: e.target.value })}>
-                                {DND_CLASSES.map(c => <option key={c}>{c}</option>)}
+                                {CLASS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
                         </div>
                         <div className="field">
                             <label>Raza</label>
                             <select value={draft.race} onChange={(e) => setDraft({ ...draft, race: e.target.value })}>
-                                {DND_RACES.map(r => <option key={r}>{r}</option>)}
+                                {RACE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
                         </div>
                         <div className="field">
@@ -93,13 +111,13 @@ export default function GeneralSection({ character, onUpdate }) {
                         <div className="field">
                             <label>Alineamiento</label>
                             <select value={draft.alignment} onChange={(e) => setDraft({ ...draft, alignment: e.target.value })}>
-                                {ALIGNMENTS.map(a => <option key={a}>{a}</option>)}
+                                {ALIGNMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
                         </div>
                         <div className="field">
                             <label>Trasfondo</label>
                             <select value={draft.background} onChange={(e) => setDraft({ ...draft, background: e.target.value })}>
-                                {BACKGROUNDS.map(b => <option key={b}>{b}</option>)}
+                                {BACKGROUNDS.map(b => <option key={b} value={b}>{translateBackground(b)}</option>)}
                             </select>
                         </div>
                         <div className="field">
@@ -129,18 +147,18 @@ export default function GeneralSection({ character, onUpdate }) {
 
             <div className="grid grid-2">
                 <InfoRow label="Nombre" value={character.name} />
-                <InfoRow label="Clase" value={`${character.charClass} ${character.level}`} />
-                <InfoRow label="Raza" value={character.race} />
-                <InfoRow label="Alineamiento" value={character.alignment || "Sin definir"} />
-                <InfoRow label="Trasfondo" value={character.background || "Sin definir"} />
-                <InfoRow label="Experiencia" value={`${character.experiencePoints || 0} XP`} />
+                <InfoRow label="Clase" value={`${translateClass(character.charClass)} ${character.level}`} />
+                <InfoRow label="Raza" value={translateRace(character.race)} />
+                <InfoRow label="Alineamiento" value={translateAlignment(character.alignment) || "Sin definir"} />
+                <InfoRow label="Trasfondo" value={translateBackground(character.background) || "Sin definir"} />
+                <InfoRow label="Experiencia" value={`${character.experiencePoints || 0} PX`} />
             </div>
 
             <div style={{ marginTop: "1.5rem", padding: "1rem", background: "rgba(184, 134, 11, 0.08)", borderRadius: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                     <strong style={{ fontFamily: "Cinzel", fontSize: "0.9rem" }}>✨ INSPIRACIÓN</strong>
                     <p style={{ margin: "0.3rem 0 0", fontSize: "0.85rem", color: "var(--ink-faded)" }}>
-                        Otorgada por el DM por buen roleplay. Permite repetir una tirada.
+                        Otorgada por el Director de Juego por buen roleplay. Permite repetir una tirada.
                     </p>
                 </div>
                 <button

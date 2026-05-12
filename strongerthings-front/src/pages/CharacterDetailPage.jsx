@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { charactersApi } from "../api/characters.js";
 import { objectsApi } from "../api/objects.js";
+import { translateClass, translateRace, translateAlignment } from "../utils/dndLabels.js";
 import PDFPreviewModal from "../components/PDFPreviewModal.jsx";
 import Tabs from "../components/Tabs.jsx";
 import GeneralSection from "../components/character/GeneralSection.jsx";
@@ -67,7 +68,6 @@ export default function CharacterDetailPage() {
         if (updatedCharacter && updatedCharacter._id) {
             setCharacter(updatedCharacter);
         } else if (fallbackOnFail) {
-            // Fallback: recargar personaje (sin el catálogo)
             try {
                 const fresh = await charactersApi.get(id);
                 setCharacter(fresh);
@@ -153,8 +153,6 @@ export default function CharacterDetailPage() {
         if (!file) return;
         try {
             await charactersApi.uploadSheet(id, file);
-            // El endpoint de subida devuelve { message, characterSheet }, no el personaje completo.
-            // Hay que refrescar.
             const fresh = await charactersApi.get(id);
             setCharacter(fresh);
             flash("Hoja de personaje subida");
@@ -429,10 +427,10 @@ export default function CharacterDetailPage() {
                     <div style={{ flex: 1 }}>
                         <h1 style={{ fontFamily: "MedievalSharp", fontSize: "2.5rem", margin: 0 }}>{character.name}</h1>
                         <div style={{ marginBottom: "0.8rem" }}>
-                            <span className="class-badge">{character.charClass}</span>{" "}
+                            <span className="class-badge">{translateClass(character.charClass)}</span>{" "}
                             <span style={{ color: "var(--ink-faded)" }}>
-                                {character.race} • Nivel {character.level}
-                                {character.alignment && ` • ${character.alignment}`}
+                                {translateRace(character.race)} • Nivel {character.level}
+                                {character.alignment && ` • ${translateAlignment(character.alignment)}`}
                             </span>
                         </div>
                         {character.inspiration && (

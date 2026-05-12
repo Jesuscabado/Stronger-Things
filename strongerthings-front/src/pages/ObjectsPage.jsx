@@ -1,8 +1,20 @@
 import { useEffect, useState } from "react";
 import { objectsApi } from "../api/objects.js";
+import { translateCategory } from "../utils/categoryLabels.js";
 
 const CATEGORIES = ["weapon", "armor", "shield", "potion", "scroll", "wondrous", "tool", "gear", "ammunition"];
 const RARITIES = ["common", "uncommon", "rare", "very rare", "legendary", "artifact"];
+
+const RARITY_LABELS = {
+    common:      "Común",
+    uncommon:    "Poco común",
+    rare:        "Raro",
+    "very rare": "Muy raro",
+    legendary:   "Legendario",
+    artifact:    "Artefacto"
+};
+
+const translateRarity = (en) => RARITY_LABELS[en?.toLowerCase()] || en || "Común";
 
 const rarityColor = {
     common: "#666",
@@ -86,7 +98,9 @@ export default function ObjectsPage() {
                             <div className="field">
                                 <label>Categoría</label>
                                 <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                                    {CATEGORIES.map(c => (
+                                        <option key={c} value={c}>{translateCategory(c)}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="field" style={{ gridColumn: "1 / -1" }}>
@@ -107,7 +121,7 @@ export default function ObjectsPage() {
                             </div>
                             <div className="field">
                                 <label>Tipo daño</label>
-                                <input value={form.damageType} onChange={(e) => setForm({ ...form, damageType: e.target.value })} placeholder="slashing" />
+                                <input value={form.damageType} onChange={(e) => setForm({ ...form, damageType: e.target.value })} placeholder="cortante" />
                             </div>
                             <div className="field">
                                 <label>CA (armadura)</label>
@@ -116,7 +130,9 @@ export default function ObjectsPage() {
                             <div className="field">
                                 <label>Rareza</label>
                                 <select value={form.rarity} onChange={(e) => setForm({ ...form, rarity: e.target.value })}>
-                                    {RARITIES.map(r => <option key={r}>{r}</option>)}
+                                    {RARITIES.map(r => (
+                                        <option key={r} value={r}>{translateRarity(r)}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -128,7 +144,13 @@ export default function ObjectsPage() {
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1rem" }}>
                 <button className={`btn btn-small ${filter === "all" ? "btn-gold" : ""}`} onClick={() => setFilter("all")}>Todos</button>
                 {CATEGORIES.map(c => (
-                    <button key={c} className={`btn btn-small ${filter === c ? "btn-gold" : ""}`} onClick={() => setFilter(c)}>{c}</button>
+                    <button
+                        key={c}
+                        className={`btn btn-small ${filter === c ? "btn-gold" : ""}`}
+                        onClick={() => setFilter(c)}
+                    >
+                        {translateCategory(c)}
+                    </button>
                 ))}
             </div>
 
@@ -143,9 +165,11 @@ export default function ObjectsPage() {
                             <h3 style={{ marginBottom: "0.3rem" }}>{o.name}</h3>
                             <div style={{ marginBottom: "0.5rem" }}>
                                 <span className="class-badge" style={{ color: rarityColor[o.stats?.rarity] }}>
-                                    {o.stats?.rarity || "common"}
+                                    {translateRarity(o.stats?.rarity)}
                                 </span>{" "}
-                                <span style={{ color: "var(--ink-faded)", fontSize: "0.85rem" }}>{o.category}</span>
+                                <span style={{ color: "var(--ink-faded)", fontSize: "0.85rem" }}>
+                                    {translateCategory(o.category)}
+                                </span>
                             </div>
                             {o.description && <p style={{ fontSize: "0.9rem", marginBottom: "0.6rem" }}>{o.description}</p>}
                             <div style={{ fontSize: "0.85rem", color: "var(--ink-faded)" }}>
