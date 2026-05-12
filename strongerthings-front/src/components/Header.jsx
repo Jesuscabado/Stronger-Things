@@ -22,6 +22,7 @@ export default function Header() {
                         <>
                             <Link to="/characters">Personajes</Link>
                             <Link to="/objects">Catálogo</Link>
+                             <Link to="/spells">Hechizos</Link>
                             {user.role === "admin" && <Link to="/admin">⚜ Admin</Link>}
                             <span style={{ opacity: 0.7 }}>{user.username}</span>
                             <button className="btn btn-small" onClick={handleLogout}>Salir</button>

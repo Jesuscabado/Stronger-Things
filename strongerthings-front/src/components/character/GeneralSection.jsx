@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
     CLASS_OPTIONS,
     RACE_OPTIONS,
@@ -35,9 +36,16 @@ const translateBackground = (en) => BACKGROUND_LABELS[en] || en;
 /**
  * Pestaña GENERAL — identidad básica del personaje.
  * Recibe el personaje y un callback onUpdate(field, value) que el padre maneja.
+ *
+ * Si la URL trae ?edit=1, arranca directamente en modo edición.
+ * Esto permite que el botón "Editar" de la lista de personajes (que enlaza
+ * a /characters/:id?edit=1) abra el form ya desplegado.
  */
 export default function GeneralSection({ character, onUpdate }) {
-    const [editing, setEditing] = useState(false);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const editFromUrl = searchParams.get("edit") === "1";
+
+    const [editing, setEditing] = useState(editFromUrl);
     const [draft, setDraft] = useState({
         name: character.name || "",
         charClass: character.charClass || "Fighter",
@@ -48,6 +56,22 @@ export default function GeneralSection({ character, onUpdate }) {
         experiencePoints: character.experiencePoints || 0
     });
 
+    // Si el query param ?edit=1 aparece después de montar (p.ej. el usuario
+    // navega desde la lista mientras ya está en /characters/:id), activamos
+    // el modo edición también.
+    useEffect(() => {
+        if (editFromUrl) setEditing(true);
+    }, [editFromUrl]);
+
+    // Limpia el query param ?edit sin recargar ni añadir entrada al historial.
+    const clearEditParam = () => {
+        if (searchParams.has("edit")) {
+            const next = new URLSearchParams(searchParams);
+            next.delete("edit");
+            setSearchParams(next, { replace: true });
+        }
+    };
+
     const handleSave = (e) => {
         e.preventDefault();
         const payload = {
@@ -57,6 +81,7 @@ export default function GeneralSection({ character, onUpdate }) {
         };
         onUpdate(payload);
         setEditing(false);
+        clearEditParam();
     };
 
     const handleCancel = () => {
@@ -70,6 +95,7 @@ export default function GeneralSection({ character, onUpdate }) {
             experiencePoints: character.experiencePoints || 0
         });
         setEditing(false);
+        clearEditParam();
     };
 
     if (editing) {
