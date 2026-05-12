@@ -1963,6 +1963,56 @@ form textarea:focus {
         url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0 0.7 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+   Modo oscuro · Header
+   El header usaba var(--parchment) para el texto. En tema oscuro esa
+   variable cambia a un tono oscuro, dejando texto invisible sobre
+   fondo oscuro. Fijamos colores claros explícitos.
+   ───────────────────────────────────────────────────────────────────── */
+:root[data-theme="dark"] .app-header {
+    background: linear-gradient(180deg, #100a06 0%, #050302 100%);
+    border-bottom-color: var(--gold-bright);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+}
+
+:root[data-theme="dark"] .app-header__brand,
+:root[data-theme="dark"] .app-header__brand a {
+    color: var(--gold-bright);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+:root[data-theme="dark"] .app-header nav a {
+    color: #e8d8b8;
+}
+
+:root[data-theme="dark"] .app-header nav a:hover {
+    color: var(--gold-bright);
+}
+
+/* El span del username (lleva opacity inline en el JSX) */
+:root[data-theme="dark"] .app-header nav span {
+    color: #e8d8b8;
+}
+
+/* El botón "Salir" hereda .btn — en navbar oscura queda raro. Outline claro. */
+:root[data-theme="dark"] .app-header .btn {
+    background: transparent;
+    color: #e8d8b8;
+    border-color: #e8d8b8;
+    box-shadow: 2px 2px 0 rgba(232, 216, 184, 0.3);
+}
+
+:root[data-theme="dark"] .app-header .btn:hover {
+    background: var(--gold-bright);
+    color: #100a06;
+    border-color: var(--gold-bright);
+    box-shadow: 3px 3px 0 rgba(232, 216, 184, 0.4);
+}
+
+:root[data-theme="dark"] .app-header .btn:active {
+    box-shadow: 1px 1px 0 rgba(232, 216, 184, 0.3);
+}
+
 :root[data-theme="dark"] .scroll-card {
     background: var(--parchment-dark);
     border-color: var(--parchment-shadow);
