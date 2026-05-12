@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { charactersApi } from "../api/characters.js";
 import { objectsApi } from "../api/objects.js";
+import { translateClass, translateRace, translateAlignment } from "../utils/dndLabels.js";
 import PDFPreviewModal from "../components/PDFPreviewModal.jsx";
 import Tabs from "../components/Tabs.jsx";
 import GeneralSection from "../components/character/GeneralSection.jsx";
@@ -29,104 +30,132 @@ export default function CharacterDetailPage() {
     const [editingItem, setEditingItem] = useState(null);
     const [showPreview, setShowPreview] = useState(false);
 
-    const load = async () => {
-        try {
-            setLoading(true);
-            const [charData, catData] = await Promise.all([
-                charactersApi.get(id),
-                objectsApi.list()
-            ]);
-            setCharacter(charData);
-            setCatalog(catData);
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { load(); }, [id]);
+    /* Carga inicial: solo se ejecuta una vez al montar.
+       Después, todas las modificaciones aplican el personaje devuelto
+       por el backend directamente al estado, sin recargar. */
+    useEffect(() => {
+        let cancelled = false;
+        const initialLoad = async () => {
+            try {
+                const [charData, catData] = await Promise.all([
+                    charactersApi.get(id),
+                    objectsApi.list()
+                ]);
+                if (cancelled) return;
+                setCharacter(charData);
+                setCatalog(catData);
+            } catch (err) {
+                if (!cancelled) setError(err.message);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+        initialLoad();
+        return () => { cancelled = true; };
+    }, [id]);
 
     const flash = (msg) => {
         setSuccess(msg);
-        setTimeout(() => setSuccess(""), 2500);
+        setTimeout(() => setSuccess(""), 2000);
     };
 
+    /**
+     * Aplica el personaje devuelto por el backend al estado.
+     * Si el backend no devuelve el personaje completo (algunos endpoints
+     * devuelven solo el cambio), recargamos como fallback.
+     */
+    const applyUpdate = async (updatedCharacter, fallbackOnFail = true) => {
+        if (updatedCharacter && updatedCharacter._id) {
+            setCharacter(updatedCharacter);
+        } else if (fallbackOnFail) {
+            try {
+                const fresh = await charactersApi.get(id);
+                setCharacter(fresh);
+            } catch (err) {
+                setError(err.message);
+            }
+        }
+    };
+
+    /* ─── Update genérico de campos ─── */
     const updateField = async (fieldOrPayload, value) => {
         const payload = typeof fieldOrPayload === "string"
             ? { [fieldOrPayload]: value }
             : fieldOrPayload;
         try {
-            await charactersApi.update(id, payload);
+            const updated = await charactersApi.update(id, payload);
+            await applyUpdate(updated);
             flash("Guardado");
-            load();
         } catch (err) {
             setError(err.message);
         }
     };
 
+    /* ─── Inventario ─── */
     const handleAddItem = async (e) => {
         e.preventDefault();
         try {
-            await charactersApi.addItem(id, {
+            const updated = await charactersApi.addItem(id, {
                 baseObject: newItem.baseObject,
                 customName: newItem.customName || undefined,
                 quantity: Number(newItem.quantity),
                 durability: Number(newItem.durability)
             });
+            await applyUpdate(updated);
             setNewItem({ baseObject: "", customName: "", quantity: 1, durability: 100 });
             setShowAddItem(false);
             flash("Item añadido");
-            load();
         } catch (err) { setError(err.message); }
     };
 
     const handleToggleEquipped = async (itemId, current) => {
         try {
-            await charactersApi.updateItem(id, itemId, { equipped: !current });
-            load();
+            const updated = await charactersApi.updateItem(id, itemId, { equipped: !current });
+            await applyUpdate(updated);
         } catch (err) { setError(err.message); }
     };
 
     const handleUpdateDurability = async (itemId, newValue) => {
         try {
-            await charactersApi.updateItem(id, itemId, { durability: Number(newValue) });
-            load();
+            const updated = await charactersApi.updateItem(id, itemId, { durability: Number(newValue) });
+            await applyUpdate(updated);
         } catch (err) { setError(err.message); }
     };
 
     const handleDeleteItem = async (itemId) => {
         if (!confirm("¿Dropear este item?")) return;
         try {
-            await charactersApi.removeItem(id, itemId);
+            const updated = await charactersApi.removeItem(id, itemId);
+            await applyUpdate(updated);
             flash("Item eliminado");
-            load();
         } catch (err) { setError(err.message); }
     };
 
     const handleSaveItemEdit = async (e) => {
         e.preventDefault();
         try {
-            await charactersApi.updateItem(id, editingItem._id, {
+            const updated = await charactersApi.updateItem(id, editingItem._id, {
                 customName: editingItem.customName || "",
                 quantity: Number(editingItem.quantity),
                 durability: Number(editingItem.durability),
                 equipped: editingItem.equipped,
                 notes: editingItem.notes || ""
             });
+            await applyUpdate(updated);
             setEditingItem(null);
             flash("Item actualizado");
-            load();
         } catch (err) { setError(err.message); }
     };
 
+    /* ─── Hoja PDF ─── */
     const handleUploadSheet = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         try {
             await charactersApi.uploadSheet(id, file);
+            const fresh = await charactersApi.get(id);
+            setCharacter(fresh);
             flash("Hoja de personaje subida");
-            load();
         } catch (err) { setError(err.message); }
     };
 
@@ -146,18 +175,21 @@ export default function CharacterDetailPage() {
         if (!confirm("¿Eliminar la hoja de personaje?")) return;
         try {
             await charactersApi.deleteSheet(id);
+            const fresh = await charactersApi.get(id);
+            setCharacter(fresh);
             flash("Hoja eliminada");
-            load();
         } catch (err) { setError(err.message); }
     };
 
+    /* ─── Avatar ─── */
     const handleUploadAvatar = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         try {
             await charactersApi.uploadAvatar(id, file);
+            const fresh = await charactersApi.get(id);
+            setCharacter(fresh);
             flash("Avatar actualizado");
-            load();
         } catch (err) { setError(err.message); }
     };
 
@@ -165,33 +197,34 @@ export default function CharacterDetailPage() {
         if (!confirm("¿Eliminar el avatar?")) return;
         try {
             await charactersApi.deleteAvatar(id);
+            const fresh = await charactersApi.get(id);
+            setCharacter(fresh);
             flash("Avatar eliminado");
-            load();
         } catch (err) { setError(err.message); }
     };
 
-    /* ─── Hechizos (NUEVO 6b) ─── */
+    /* ─── Hechizos ─── */
     const handleAddSpell = async (data) => {
         try {
-            await charactersApi.addSpell(id, data);
+            const updated = await charactersApi.addSpell(id, data);
+            await applyUpdate(updated);
             flash("Hechizo aprendido");
-            load();
         } catch (err) { setError(err.message); }
     };
 
     const handleUpdateSpell = async (knownId, data) => {
         try {
-            await charactersApi.updateSpell(id, knownId, data);
-            load();
+            const updated = await charactersApi.updateSpell(id, knownId, data);
+            await applyUpdate(updated);
         } catch (err) { setError(err.message); }
     };
 
     const handleRemoveSpell = async (knownId) => {
         if (!confirm("¿Olvidar este hechizo?")) return;
         try {
-            await charactersApi.removeSpell(id, knownId);
+            const updated = await charactersApi.removeSpell(id, knownId);
+            await applyUpdate(updated);
             flash("Hechizo olvidado");
-            load();
         } catch (err) { setError(err.message); }
     };
 
@@ -394,10 +427,10 @@ export default function CharacterDetailPage() {
                     <div style={{ flex: 1 }}>
                         <h1 style={{ fontFamily: "MedievalSharp", fontSize: "2.5rem", margin: 0 }}>{character.name}</h1>
                         <div style={{ marginBottom: "0.8rem" }}>
-                            <span className="class-badge">{character.charClass}</span>{" "}
+                            <span className="class-badge">{translateClass(character.charClass)}</span>{" "}
                             <span style={{ color: "var(--ink-faded)" }}>
-                                {character.race} • Nivel {character.level}
-                                {character.alignment && ` • ${character.alignment}`}
+                                {translateRace(character.race)} • Nivel {character.level}
+                                {character.alignment && ` • ${translateAlignment(character.alignment)}`}
                             </span>
                         </div>
                         {character.inspiration && (

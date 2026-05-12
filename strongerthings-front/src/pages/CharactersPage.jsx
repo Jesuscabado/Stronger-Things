@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { charactersApi } from "../api/characters.js";
-
-const DND_CLASSES = ["Barbarian", "Bard", "Cleric", "Druid", "Fighter", "Monk", "Paladin", "Ranger", "Rogue", "Sorcerer", "Warlock", "Wizard", "Artificer"];
-const DND_RACES = ["Human", "Elf", "Dwarf", "Halfling", "Gnome", "Half-Elf", "Half-Orc", "Tiefling", "Dragonborn", "Aasimar", "Goliath"];
+import {
+    translateClass,
+    translateRace,
+    translateAlignment,
+    CLASS_OPTIONS,
+    RACE_OPTIONS
+} from "../utils/dndLabels.js";
 
 const emptyForm = { name: "", charClass: "Fighter", race: "Human", level: 1, gold: 0 };
 
@@ -101,13 +105,17 @@ export default function CharactersPage() {
                             <div className="field">
                                 <label>Clase</label>
                                 <select value={form.charClass} onChange={(e) => setForm({ ...form, charClass: e.target.value })}>
-                                    {DND_CLASSES.map(c => <option key={c}>{c}</option>)}
+                                    {CLASS_OPTIONS.map(o => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="field">
                                 <label>Raza</label>
                                 <select value={form.race} onChange={(e) => setForm({ ...form, race: e.target.value })}>
-                                    {DND_RACES.map(r => <option key={r}>{r}</option>)}
+                                    {RACE_OPTIONS.map(o => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="field">
@@ -162,15 +170,17 @@ export default function CharactersPage() {
                                 <div>
                                     <h2 style={{ margin: 0, marginBottom: "0.2rem" }}>{c.name}</h2>
                                     <div>
-                                        <span className="class-badge">{c.charClass}</span>{" "}
-                                        <span style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>{c.race} • Nv {c.level}</span>
+                                        <span className="class-badge">{translateClass(c.charClass)}</span>{" "}
+                                        <span style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>
+                                            {translateRace(c.race)} • Nv {c.level}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                             <div style={{ display: "flex", gap: "1rem", color: "var(--ink-faded)", fontSize: "0.9rem", marginBottom: "1rem" }}>
                                 <span>❤ {c.hitPoints?.current}/{c.hitPoints?.max} PG</span>
                                 <span>💰 {c.gold} oro</span>
-                                <span>🎒 {c.inventory?.length || 0} items</span>
+                                <span>🎒 {c.inventory?.length || 0} objetos</span>
                             </div>
                             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                                 <Link to={`/characters/${c._id}`} className="btn btn-small">Ver hoja</Link>

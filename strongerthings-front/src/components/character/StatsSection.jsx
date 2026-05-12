@@ -7,7 +7,9 @@ import {
     savingThrowMod,
     skillMod,
     passivePerception,
-    proficiencyBonus
+    proficiencyBonus,
+    isProficiencyBonusOverridden,
+    isPassivePerceptionOverridden
 } from "../../utils/dndCalc.js";
 import { COMMON_LANGUAGES, COMMON_OTHER_PROFICIENCIES } from "../../utils/dndConstants.js";
 import ChipList from "../ChipList.jsx";
@@ -19,7 +21,12 @@ import ChipList from "../ChipList.jsx";
 export default function StatsSection({ character, onUpdate }) {
     const stats = character.abilityScores || {};
     const profs = character.proficiencies || { savingThrows: {}, skills: {}, languages: [], other: [] };
-    const pb = proficiencyBonus(character.level);
+    const combat = character.combatStats || {};
+
+    const pb = proficiencyBonus(character);
+    const pbOverridden = isProficiencyBonusOverridden(character);
+    const ppOverridden = isPassivePerceptionOverridden(character);
+    const ppBonus = Number(combat.passivePerceptionBonus || 0);
 
     const toggleSavingThrow = (abilityKey) => {
         const current = profs.savingThrows?.[abilityKey] || false;
@@ -52,34 +59,35 @@ export default function StatsSection({ character, onUpdate }) {
     };
 
     const updateLanguages = (next) => {
-        onUpdate({
-            proficiencies: { ...profs, languages: next }
-        });
+        onUpdate({ proficiencies: { ...profs, languages: next } });
     };
 
     const updateOtherProfs = (next) => {
-        onUpdate({
-            proficiencies: { ...profs, other: next }
-        });
+        onUpdate({ proficiencies: { ...profs, other: next } });
+    };
+
+    const updateCombat = (field, value) => {
+        onUpdate({ combatStats: { ...combat, [field]: value } });
     };
 
     return (
         <>
-            {/* Bonus por competencia y percepción pasiva */}
+            {/* Cabecera con dos cajas grandes editables */}
             <div className="scroll-card">
                 <div style={{ display: "flex", gap: "1rem", justifyContent: "space-around", flexWrap: "wrap" }}>
-                    <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: "2rem", fontFamily: "Cinzel", color: "var(--gold)" }}>+{pb}</div>
-                        <div style={{ fontSize: "0.75rem", color: "var(--ink-faded)", textTransform: "uppercase", fontFamily: "Cinzel" }}>
-                            Bonificador<br />por competencia
-                        </div>
-                    </div>
-                    <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: "2rem", fontFamily: "Cinzel", color: "var(--gold)" }}>{passivePerception(character)}</div>
-                        <div style={{ fontSize: "0.75rem", color: "var(--ink-faded)", textTransform: "uppercase", fontFamily: "Cinzel" }}>
-                            Percepción<br />pasiva
-                        </div>
-                    </div>
+                    <ProficiencyBonusBox
+                        value={pb}
+                        overridden={pbOverridden}
+                        characterLevel={character.level}
+                        onSetOverride={(v) => updateCombat("proficiencyBonusOverride", v)}
+                    />
+                    <PassivePerceptionBox
+                        value={passivePerception(character)}
+                        overridden={ppOverridden}
+                        bonus={ppBonus}
+                        onSetOverride={(v) => updateCombat("passivePerceptionOverride", v)}
+                        onSetBonus={(v) => updateCombat("passivePerceptionBonus", v)}
+                    />
                 </div>
             </div>
 
@@ -155,7 +163,7 @@ export default function StatsSection({ character, onUpdate }) {
                 </div>
             </div>
 
-            {/* ───── NUEVO Fase 5: Idiomas ───── */}
+            {/* Idiomas */}
             <div className="scroll-card">
                 <h2>🗣 Idiomas</h2>
                 <p style={{ fontSize: "0.85rem", color: "var(--ink-faded)", marginTop: "-0.5rem", marginBottom: "1rem" }}>
@@ -170,7 +178,7 @@ export default function StatsSection({ character, onUpdate }) {
                 />
             </div>
 
-            {/* ───── NUEVO Fase 5: Otras competencias ───── */}
+            {/* Otras competencias */}
             <div className="scroll-card">
                 <h2>🛡 Otras competencias</h2>
                 <p style={{ fontSize: "0.85rem", color: "var(--ink-faded)", marginTop: "-0.5rem", marginBottom: "1rem" }}>
@@ -185,6 +193,233 @@ export default function StatsSection({ character, onUpdate }) {
                 />
             </div>
         </>
+    );
+}
+
+/**
+ * Caja de Bonificador por competencia con botón ⚙ para override manual.
+ */
+function ProficiencyBonusBox({ value, overridden, characterLevel, onSetOverride }) {
+    const [editing, setEditing] = useState(false);
+    const [draft, setDraft] = useState(value);
+
+    useEffect(() => { setDraft(value); }, [value, editing]);
+
+    const save = () => {
+        const n = Number(draft);
+        if (Number.isFinite(n)) onSetOverride(n);
+        setEditing(false);
+    };
+
+    const reset = () => {
+        onSetOverride(null);
+        setEditing(false);
+    };
+
+    const autoValue = Math.ceil((characterLevel || 1) / 4) + 1;
+
+    return (
+        <div style={{ textAlign: "center", position: "relative", minWidth: "180px" }}>
+            <div style={{
+                fontSize: "2rem",
+                fontFamily: "Cinzel",
+                color: overridden ? "var(--blood, #8b1a1a)" : "var(--gold)"
+            }}>
+                +{value}
+            </div>
+            <div style={{
+                fontSize: "0.75rem",
+                color: "var(--ink-faded)",
+                textTransform: "uppercase",
+                fontFamily: "Cinzel"
+            }}>
+                Bonificador<br />por competencia
+            </div>
+            {overridden && (
+                <div style={{
+                    fontSize: "0.7rem",
+                    color: "var(--blood, #8b1a1a)",
+                    marginTop: "0.2rem",
+                    fontStyle: "italic"
+                }}>
+                    Manual (auto: +{autoValue})
+                </div>
+            )}
+            <button
+                className="btn btn-small"
+                onClick={() => setEditing(!editing)}
+                style={{ marginTop: "0.4rem", fontSize: "0.7rem", padding: "0.2rem 0.5rem" }}
+                title="Editar manualmente"
+            >
+                ⚙ Ajustar
+            </button>
+
+            {editing && (
+                <div className="override-popover">
+                    <div style={{ fontSize: "0.85rem", marginBottom: "0.5rem", color: "var(--ink-faded)" }}>
+                        Valor automático: <strong>+{autoValue}</strong> (nivel {characterLevel})
+                    </div>
+                    <label style={{ display: "block", fontSize: "0.8rem", marginBottom: "0.3rem" }}>
+                        Sobrescribir con:
+                    </label>
+                    <input
+                        type="number"
+                        autoFocus
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") save();
+                            if (e.key === "Escape") setEditing(false);
+                        }}
+                        style={{ width: "100%", padding: "0.4rem", marginBottom: "0.5rem" }}
+                    />
+                    <div style={{ display: "flex", gap: "0.3rem", justifyContent: "space-between" }}>
+                        <button className="btn btn-small btn-primary" onClick={save}>Guardar</button>
+                        {overridden && (
+                            <button className="btn btn-small" onClick={reset} title="Volver al cálculo automático">
+                                ↻ Auto
+                            </button>
+                        )}
+                        <button className="btn btn-small" onClick={() => setEditing(false)}>Cerrar</button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/**
+ * Caja de Percepción pasiva con botón ⚙ para añadir bonus o sobrescribir.
+ */
+function PassivePerceptionBox({ value, overridden, bonus, onSetOverride, onSetBonus }) {
+    const [editing, setEditing] = useState(false);
+    const [draftBonus, setDraftBonus] = useState(bonus);
+    const [draftOverride, setDraftOverride] = useState(value);
+
+    useEffect(() => {
+        setDraftBonus(bonus);
+        setDraftOverride(value);
+    }, [bonus, value, editing]);
+
+    const saveBonus = () => {
+        const n = Number(draftBonus);
+        if (Number.isFinite(n)) onSetBonus(n);
+        // No cerramos para que vea el efecto
+    };
+
+    const saveOverride = () => {
+        const n = Number(draftOverride);
+        if (Number.isFinite(n)) onSetOverride(n);
+        setEditing(false);
+    };
+
+    const resetOverride = () => {
+        onSetOverride(null);
+        setEditing(false);
+    };
+
+    return (
+        <div style={{ textAlign: "center", position: "relative", minWidth: "180px" }}>
+            <div style={{
+                fontSize: "2rem",
+                fontFamily: "Cinzel",
+                color: overridden ? "var(--blood, #8b1a1a)" : "var(--gold)"
+            }}>
+                {value}
+            </div>
+            <div style={{
+                fontSize: "0.75rem",
+                color: "var(--ink-faded)",
+                textTransform: "uppercase",
+                fontFamily: "Cinzel"
+            }}>
+                Percepción<br />pasiva
+            </div>
+            {overridden && (
+                <div style={{
+                    fontSize: "0.7rem",
+                    color: "var(--blood, #8b1a1a)",
+                    marginTop: "0.2rem",
+                    fontStyle: "italic"
+                }}>
+                    Manual (override total)
+                </div>
+            )}
+            {!overridden && bonus !== 0 && (
+                <div style={{
+                    fontSize: "0.7rem",
+                    color: "var(--gold)",
+                    marginTop: "0.2rem",
+                    fontStyle: "italic"
+                }}>
+                    Incluye bonus {bonus >= 0 ? "+" : ""}{bonus}
+                </div>
+            )}
+            <button
+                className="btn btn-small"
+                onClick={() => setEditing(!editing)}
+                style={{ marginTop: "0.4rem", fontSize: "0.7rem", padding: "0.2rem 0.5rem" }}
+                title="Editar manualmente"
+            >
+                ⚙ Ajustar
+            </button>
+
+            {editing && (
+                <div className="override-popover" style={{ minWidth: "260px" }}>
+                    {!overridden && (
+                        <>
+                            <div style={{ fontSize: "0.8rem", marginBottom: "0.5rem", textAlign: "left" }}>
+                                <strong>Bonus extra</strong>
+                                <div style={{ fontSize: "0.7rem", color: "var(--ink-faded)", fontWeight: "normal" }}>
+                                    Se suma al cálculo automático. Ej: +5 por la dote "Observador atento".
+                                </div>
+                            </div>
+                            <div style={{ display: "flex", gap: "0.3rem", marginBottom: "0.8rem" }}>
+                                <input
+                                    type="number"
+                                    value={draftBonus}
+                                    onChange={(e) => setDraftBonus(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") saveBonus();
+                                        if (e.key === "Escape") setEditing(false);
+                                    }}
+                                    style={{ flex: 1, padding: "0.4rem" }}
+                                    placeholder="0"
+                                />
+                                <button className="btn btn-small btn-primary" onClick={saveBonus}>Guardar bonus</button>
+                            </div>
+                            <hr style={{ margin: "0.8rem 0", border: "none", borderTop: "1px dashed var(--parchment-shadow)" }} />
+                        </>
+                    )}
+
+                    <div style={{ fontSize: "0.8rem", marginBottom: "0.5rem", textAlign: "left" }}>
+                        <strong>Override total</strong>
+                        <div style={{ fontSize: "0.7rem", color: "var(--ink-faded)", fontWeight: "normal" }}>
+                            Sobrescribe el cálculo entero. Úsalo solo si quieres un valor fijo.
+                        </div>
+                    </div>
+                    <input
+                        type="number"
+                        value={draftOverride}
+                        onChange={(e) => setDraftOverride(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") saveOverride();
+                            if (e.key === "Escape") setEditing(false);
+                        }}
+                        style={{ width: "100%", padding: "0.4rem", marginBottom: "0.5rem" }}
+                    />
+                    <div style={{ display: "flex", gap: "0.3rem", justifyContent: "space-between" }}>
+                        <button className="btn btn-small btn-primary" onClick={saveOverride}>Sobrescribir</button>
+                        {overridden && (
+                            <button className="btn btn-small" onClick={resetOverride} title="Volver al cálculo automático">
+                                ↻ Auto
+                            </button>
+                        )}
+                        <button className="btn btn-small" onClick={() => setEditing(false)}>Cerrar</button>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
 

@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import ThemeToggle from "./ThemeToggle.jsx";
 
 export default function Header() {
     const { user, logout } = useAuth();
@@ -31,6 +32,7 @@ export default function Header() {
                             <Link to="/register">Registrarse</Link>
                         </>
                     )}
+                    <ThemeToggle />
                 </nav>
             </div>
         </header>

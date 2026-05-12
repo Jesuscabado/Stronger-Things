@@ -1,19 +1,38 @@
 /**
- * Helpers de cálculo de D&D 5e.
+ * Helpers de cálculo de D&D 5e con soporte para overrides manuales.
  */
 
-/** Modificador a partir de la puntuación de atributo (1-30). */
 export const abilityMod = (score) => Math.floor(((score ?? 10) - 10) / 2);
 
-/** Formato del modificador con signo (+3, -1, +0). */
 export const formatMod = (n) => (n >= 0 ? `+${n}` : `${n}`);
 
-/** Bonificador por competencia según el nivel del personaje. */
-export const proficiencyBonus = (level) => Math.ceil((level || 1) / 4) + 1;
+/**
+ * Bonificador por competencia.
+ * - Si el personaje tiene un override manual, devuelve ese.
+ * - Si no, lo calcula a partir del nivel: ceil(nivel / 4) + 1.
+ */
+export const proficiencyBonus = (levelOrCharacter) => {
+    // Permite llamarla con un número (nivel) o con un objeto character (compatibilidad)
+    if (typeof levelOrCharacter === "number") {
+        return Math.ceil((levelOrCharacter || 1) / 4) + 1;
+    }
+
+    const character = levelOrCharacter || {};
+    const override = character.combatStats?.proficiencyBonusOverride;
+    if (override !== null && override !== undefined && override !== "") {
+        return Number(override);
+    }
+    return Math.ceil((character.level || 1) / 4) + 1;
+};
 
 /**
- * Lista de las 18 habilidades de D&D 5e en español + atributo asociado + clave del modelo.
+ * Indica si el bonificador por competencia está siendo sobrescrito manualmente.
  */
+export const isProficiencyBonusOverridden = (character) => {
+    const override = character?.combatStats?.proficiencyBonusOverride;
+    return override !== null && override !== undefined && override !== "";
+};
+
 export const SKILL_LIST = [
     { key: "acrobatics",      label: "Acrobacias",       ability: "dexterity",    abbr: "Des" },
     { key: "animalHandling",  label: "T. con Animales",  ability: "wisdom",       abbr: "Sab" },
@@ -44,31 +63,37 @@ export const ABILITY_LIST = [
     { key: "charisma",     label: "Carisma",      short: "CAR" }
 ];
 
-/**
- * Calcula el bonificador final de una salvación.
- * Es: modificador del atributo + (bonus por competencia si tiene proficiencia).
- */
 export const savingThrowMod = (character, abilityKey) => {
     const score = character.abilityScores?.[abilityKey] ?? 10;
     const isProf = character.proficiencies?.savingThrows?.[abilityKey];
-    const pb = proficiencyBonus(character.level);
+    const pb = proficiencyBonus(character);
     return abilityMod(score) + (isProf ? pb : 0);
 };
 
-/**
- * Calcula el bonificador final de una habilidad.
- */
 export const skillMod = (character, skill) => {
     const score = character.abilityScores?.[skill.ability] ?? 10;
     const isProf = character.proficiencies?.skills?.[skill.key];
-    const pb = proficiencyBonus(character.level);
+    const pb = proficiencyBonus(character);
     return abilityMod(score) + (isProf ? pb : 0);
 };
 
 /**
- * Percepción pasiva = 10 + bonificador de Percepción.
+ * Percepción pasiva.
+ * - Si el personaje tiene un override total, devuelve ese.
+ * - Si no, calcula 10 + skillMod(Percepción) + bonus extra.
  */
 export const passivePerception = (character) => {
+    const override = character?.combatStats?.passivePerceptionOverride;
+    if (override !== null && override !== undefined && override !== "") {
+        return Number(override);
+    }
     const perception = SKILL_LIST.find(s => s.key === "perception");
-    return 10 + skillMod(character, perception);
+    const base = 10 + skillMod(character, perception);
+    const extraBonus = Number(character?.combatStats?.passivePerceptionBonus || 0);
+    return base + extraBonus;
+};
+
+export const isPassivePerceptionOverridden = (character) => {
+    const override = character?.combatStats?.passivePerceptionOverride;
+    return override !== null && override !== undefined && override !== "";
 };
