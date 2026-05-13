@@ -1612,7 +1612,8 @@ form textarea:focus {
     }
 
     .no-print,
-    .sheet-controls {
+    .sheet-controls,
+    .app-header {
         display: none !important;
     }
 
