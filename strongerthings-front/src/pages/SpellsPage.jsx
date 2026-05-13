@@ -54,7 +54,7 @@ export default function SpellsPage() {
     const [filterClass, setFilterClass] = useState("");
     const [filterSchool, setFilterSchool] = useState("");
 
-    // Ordenación: "level" agrupa por nivel; "name" muestra una lista plana A-Z
+    // Ordenación
     const [sortBy, setSortBy] = useState("level");
 
     // Creación
@@ -82,28 +82,22 @@ export default function SpellsPage() {
         }
     };
 
-   
-    // Si el usuario está escribiendo en "Buscar" pero aún no llega a 3 caracteres,
-    // no lanzamos petición. Con 0 caracteres sí cargamos (catálogo completo).
-   useEffect(() => {
-    const trimmed = search.trim();
-    if (trimmed.length > 0 && trimmed.length < 3) return;
+    useEffect(() => {
+        const trimmed = search.trim();
+        if (trimmed.length > 0 && trimmed.length < 3) return;
 
-    const handle = setTimeout(load, 250);
-    return () => clearTimeout(handle);
-}, [search, filterLevel, filterClass]);
+        const handle = setTimeout(load, 250);
+        return () => clearTimeout(handle);
+    }, [search, filterLevel, filterClass]);
 
-    // El filtro por escuela se aplica en cliente (no hay query param en el backend)
     const filtered = filterSchool
         ? spells.filter(s => s.school === filterSchool)
         : spells;
 
-    // Orden alfabético: copia ordenada por nombre con localeCompare en español.
     const alphabetical = [...filtered].sort((a, b) =>
         (a.name || "").localeCompare(b.name || "", "es", { sensitivity: "base" })
     );
 
-    // Agrupado por nivel: dentro de cada nivel también se ordena alfabéticamente.
     const byLevel = {};
     for (const s of filtered) {
         const lvl = s.level ?? 0;
@@ -117,7 +111,6 @@ export default function SpellsPage() {
     }
     const sortedLevels = Object.keys(byLevel).map(Number).sort((a, b) => a - b);
 
-    /* ─── Crear ─── */
     const toggleClassInForm = (cls) => {
         setForm(prev => ({
             ...prev,
@@ -133,7 +126,6 @@ export default function SpellsPage() {
             const payload = {
                 ...form,
                 level: Number(form.level),
-                // Limpia campos vacíos opcionales
                 nameOriginal: form.nameOriginal || undefined,
                 atHigherLevels: form.atHigherLevels || undefined,
                 damageType: form.damageType || undefined
@@ -171,7 +163,6 @@ export default function SpellsPage() {
             {error && <div className="alert" onClick={() => setError("")} style={{ cursor: "pointer" }}>{error}</div>}
             {success && <div className="alert alert-success">{success}</div>}
 
-            {/* Formulario de creación */}
             {showForm && (
                 <div className="scroll-card">
                     <h2>Inscribir nuevo hechizo</h2>
@@ -252,7 +243,6 @@ export default function SpellsPage() {
                             </div>
                         </div>
 
-                        {/* Flags */}
                         <div className="field" style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
                             <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", textTransform: "none", letterSpacing: "normal" }}>
                                 <input
@@ -274,7 +264,6 @@ export default function SpellsPage() {
                             </label>
                         </div>
 
-                        {/* Componentes V/S/M */}
                         <div className="field">
                             <label>Componentes</label>
                             <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
@@ -315,7 +304,6 @@ export default function SpellsPage() {
                             )}
                         </div>
 
-                        {/* Clases compatibles */}
                         <div className="field">
                             <label>Clases que pueden lanzarlo</label>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
@@ -367,14 +355,15 @@ export default function SpellsPage() {
 
             {/*
                 Filtros y ordenación.
-                Lo envolvemos en <form> para que los inputs y selects hereden los
-                estilos globales (`form input`, `form select`, `form label`) y
-                queden coherentes con el resto de la app. onSubmit se neutraliza
-                porque los filtros se aplican en vivo al cambiar, no al enviar.
+                Clases relevantes:
+                - filters-bar: marca del bloque para el CSS responsive.
+                - field--search: marca del campo principal para que ocupe
+                  todo el ancho disponible en cada breakpoint.
+                Las columnas las gestiona el CSS según el tamaño de pantalla.
             */}
             <form className="scroll-card filters-bar" onSubmit={(e) => e.preventDefault()}>
-                <div className="grid grid-3" style={{ gap: "1rem" }}>
-                    <div className="field" style={{ marginBottom: 0, gridColumn: "span 2" }}>
+                <div className="grid" style={{ gap: "1rem" }}>
+                    <div className="field field--search" style={{ marginBottom: 0 }}>
                         <label>Buscar</label>
                         <input
                             value={search}
@@ -418,7 +407,6 @@ export default function SpellsPage() {
                 </div>
             </form>
 
-            {/* Listado */}
             {loading ? (
                 <div className="loading">Hojeando grimorios...</div>
             ) : filtered.length === 0 ? (
@@ -433,7 +421,6 @@ export default function SpellsPage() {
                     </p>
 
                     {sortBy === "level" ? (
-                        // Agrupado por nivel con cabeceras
                         sortedLevels.map(lvl => (
                             <div key={lvl} style={{ marginBottom: "1.5rem" }}>
                                 <h2 style={{ borderBottom: "2px solid var(--gold)", paddingBottom: "0.3rem", marginBottom: "0.8rem" }}>
@@ -453,7 +440,6 @@ export default function SpellsPage() {
                             </div>
                         ))
                     ) : (
-                        // Lista plana alfabética
                         <div className="grid grid-2">
                             {alphabetical.map(spell => (
                                 <SpellCard
@@ -473,11 +459,6 @@ export default function SpellsPage() {
     );
 }
 
-/**
- * Tarjeta de un hechizo. Click sobre la cabecera para expandir/contraer.
- * En el modo alfabético se añade un badge con el nivel del hechizo, ya
- * que sin cabeceras de grupo esa información se perdería visualmente.
- */
 function SpellCard({ spell, expanded, onToggle, onDelete, showLevelBadge }) {
     const schoolColor = SCHOOL_COLORS[spell.school] || "#666";
 

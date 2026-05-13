@@ -2273,3 +2273,294 @@ textarea {
         --ink: #2b1810;
     }
 }
+
+/* =========================================================================
+   RESPONSIVE — Tablet y móvil
+   -------------------------------------------------------------------------
+   Pegar este bloque al final de global.css. Está organizado de mayor a
+   menor breakpoint para que el cascading funcione correctamente.
+   ========================================================================= */
+
+/* ─── Botón hamburguesa ──────────────────────────────────────────────────
+   Por defecto está oculto. Solo se muestra en pantallas <900px.
+   El nav por defecto se ve siempre; en móvil se oculta hasta que la
+   clase --open lo despliega.
+   ───────────────────────────────────────────────────────────────────── */
+.app-header__burger {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 32px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 110;
+}
+
+.app-header__burger span {
+    display: block;
+    height: 3px;
+    width: 100%;
+    background: var(--gold-bright, #daa520);
+    border-radius: 2px;
+    transition: transform 0.25s, opacity 0.2s;
+    transform-origin: center;
+}
+
+.app-header__burger--open span:nth-child(1) {
+    transform: translateY(11px) rotate(45deg);
+}
+.app-header__burger--open span:nth-child(2) {
+    opacity: 0;
+}
+.app-header__burger--open span:nth-child(3) {
+    transform: translateY(-11px) rotate(-45deg);
+}
+
+/* El nav en desktop hereda los estilos originales (.app-header nav).
+   En móvil cambiará vía media query. */
+.app-header__nav {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.app-header__nav a {
+    color: var(--parchment);
+    border: none;
+    font-family: "Cinzel", serif;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.app-header__nav a:hover {
+    color: var(--gold-bright);
+}
+
+/* ─── Tablet apaisado y desktop pequeño (≤ 1024px) ───────────────────── */
+@media (max-width: 1024px) {
+    .container {
+        padding: 1.2rem;
+    }
+
+    .app-header {
+        padding: 0.8rem 1.2rem;
+    }
+
+    .app-header__brand {
+        font-size: 1.5rem;
+    }
+
+    .app-header__nav {
+        gap: 1rem;
+    }
+
+    h1 { font-size: 2.1rem; }
+    h2 { font-size: 1.5rem; }
+
+    /* Filtros del catálogo de hechizos */
+    .filters-bar .grid {
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    }
+}
+
+/* ─── Móvil apaisado / tablet vertical (≤ 900px) ─────────────────────── */
+/* En este punto activamos la hamburguesa */
+@media (max-width: 900px) {
+    .app-header__burger {
+        display: flex;
+    }
+
+    .app-header__inner {
+        /* El brand a la izquierda, el burger a la derecha; el nav pasa a
+           posicionarse en absoluto debajo del header. */
+        position: relative;
+    }
+
+    .app-header__nav {
+        /* Panel desplegable bajo el header */
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.4rem;
+        background: linear-gradient(180deg, var(--leather) 0%, #2a1a0c 100%);
+        border-bottom: 4px double var(--gold);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        max-height: 0;
+        overflow: hidden;
+        padding: 0 1.5rem;
+        transition: max-height 0.25s ease, padding 0.25s ease;
+        z-index: 100;
+    }
+
+    .app-header__nav--open {
+        max-height: 80vh;
+        padding: 1rem 1.5rem 1.2rem;
+        overflow-y: auto;
+    }
+
+    .app-header__nav a {
+        padding: 0.6rem 0.4rem;
+        border-bottom: 1px dashed rgba(218, 165, 32, 0.25);
+        font-size: 1rem;
+    }
+    .app-header__nav a:last-of-type {
+        border-bottom: none;
+    }
+
+    .app-header__nav span {
+        padding: 0.4rem;
+        font-style: italic;
+        color: var(--gold-bright, #daa520);
+        border-top: 1px solid rgba(218, 165, 32, 0.2);
+        margin-top: 0.4rem;
+    }
+
+    .app-header__nav .btn {
+        margin-top: 0.3rem;
+        align-self: flex-start;
+    }
+
+    .app-header__nav .theme-toggle {
+        margin-left: 0;
+        margin-top: 0.5rem;
+        align-self: flex-start;
+    }
+
+    /* Modo oscuro: el panel hereda el fondo oscuro de la cabecera dark */
+    :root[data-theme="dark"] .app-header__nav {
+        background: linear-gradient(180deg, #100a06 0%, #050302 100%);
+        border-bottom-color: var(--gold-bright);
+    }
+    :root[data-theme="dark"] .app-header__nav a {
+        color: #e8d8b8;
+        border-bottom-color: rgba(245, 194, 82, 0.2);
+    }
+}
+
+/* ─── Móvil vertical / móvil apaisado pequeño (≤ 768px) ──────────────── */
+@media (max-width: 768px) {
+    body { font-size: 16px; }
+
+    .container {
+        padding: 1rem;
+    }
+
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.4rem; }
+    h3 { font-size: 1.15rem; }
+
+    /* Atributos: de 6 columnas a 3 */
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    /* Filtros del catálogo de hechizos: dos filas */
+    .filters-bar .grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    /* El campo "Buscar" ya no necesita ocupar 2 columnas; lo dejamos a 1 */
+    .filters-bar .field--search {
+        grid-column: span 2;
+    }
+
+    /* Inventario: el grid de 4 columnas se rompe en móvil */
+    .inventory-item {
+        grid-template-columns: 1fr auto;
+        gap: 0.5rem 1rem;
+    }
+
+    /* Pestañas del personaje: reducir padding y fuente */
+    .tab-btn {
+        padding: 0.5rem 0.7rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* ─── Móvil pequeño (≤ 480px) ────────────────────────────────────────── */
+@media (max-width: 480px) {
+    body { font-size: 15px; }
+
+    .container {
+        padding: 0.8rem;
+    }
+
+    .app-header {
+        padding: 0.7rem 1rem;
+    }
+
+    .app-header__brand {
+        font-size: 1.3rem;
+        letter-spacing: 0.05em;
+    }
+
+    h1 { font-size: 1.55rem; }
+    h2 { font-size: 1.25rem; }
+
+    /* Cards más estrechas */
+    .scroll-card {
+        padding: 1rem 1.2rem;
+    }
+
+    /* Atributos: de 3 columnas a 2 */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Filtros: una columna */
+    .filters-bar .grid {
+        grid-template-columns: 1fr;
+    }
+    .filters-bar .field--search {
+        grid-column: span 1;
+    }
+
+    /* Grid genérico de 2 columnas pasa a 1 (las cards de personajes,
+       hechizos, etc.) */
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    /* Pestañas del personaje en móvil pequeño */
+    .tab-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.7rem;
+    }
+    .tab-icon {
+        margin-right: 0.2rem;
+    }
+
+    /* Botones de la app en móvil: padding más generoso para tap targets */
+    .btn {
+        padding: 0.7rem 1.2rem;
+    }
+    .btn-small {
+        padding: 0.4rem 0.8rem;
+    }
+}
+
+/* ─── Hoja de personaje imprimible en pantalla pequeña ───────────────────
+   La hoja es A4 (210mm) por diseño y no debe reflowarse: si la encogemos
+   el contenido queda ilegible. En su lugar permitimos scroll horizontal
+   en el wrapper para que el usuario pueda explorarla en pantalla.
+   En impresión el A4 se respeta tal cual (eso lo gestiona @media print).
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .sheet-wrapper {
+        overflow-x: auto;
+        align-items: flex-start;
+        padding: 1rem 0.5rem;
+    }
+
+    .sheet-controls {
+        width: auto;
+        flex-wrap: wrap;
+        padding: 0 0.5rem;
+        justify-content: flex-start;
+    }
+}
