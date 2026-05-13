@@ -81,7 +81,7 @@ export default function CombatSection({ character, onUpdate }) {
             {/* Stats principales: CA, Iniciativa, Velocidad */}
             <div className="scroll-card">
                 <h2>Estadísticas de combate</h2>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem" }}>
+                <div className="combat-stats-row">
                     <BigStat
                         label="Clase de Armadura"
                         value={combat.armorClass ?? 10}
@@ -118,7 +118,7 @@ export default function CombatSection({ character, onUpdate }) {
             {/* Puntos de golpe */}
             <div className="scroll-card">
                 <h2>❤ Puntos de golpe</h2>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem" }}>
+                <div className="combat-stats-row">
                     <BigStat
                         label="PG actuales"
                         value={hp.current ?? 0}
@@ -143,7 +143,7 @@ export default function CombatSection({ character, onUpdate }) {
 
             {/* Dados de golpe + Salvaciones contra muerte */}
             <div className="scroll-card">
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+                <div className="combat-two-cols">
                     <div>
                         <h2 style={{ marginTop: 0 }}>🎲 Dados de golpe</h2>
                         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.5rem" }}>

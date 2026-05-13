@@ -14,11 +14,24 @@ import {
 
 const SLOT_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
+// Marcador visual usado cuando se imprime la hoja en blanco.
+// Espacio + raya baja larga: queda como una línea discreta para rellenar a bolígrafo.
+const BLANK = "____";
+
 export default function CharacterSheetPrint() {
     const { id } = useParams();
     const [character, setCharacter] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    // Toggle 1: vacía los campos numéricos / mecánicos.
+    // Identidad textual, narrativa, físico, inventario, hechizos siempre se imprimen rellenos.
+    const [blank, setBlank] = useState(false);
+
+    // Toggle 2: muestra el avatar (en pantalla y al imprimir).
+    // Por defecto desactivado: la versión "imprimir/guardar PDF" sale como antes (sin avatar).
+    // Al activarlo, la previsualización en pantalla incluye el avatar y también la impresión.
+    const [showAvatar, setShowAvatar] = useState(false);
 
     useEffect(() => {
         charactersApi.get(id)
@@ -66,9 +79,41 @@ export default function CharacterSheetPrint() {
         knownByLevel[lvl].push(k);
     }
 
+    // Helper: devuelve `value` si estamos en modo lleno, o BLANK si estamos vaciando.
+    const v = (value) => (blank ? BLANK : value);
+
+    const checkboxLabelStyle = {
+        display: "flex",
+        alignItems: "center",
+        gap: "0.4rem",
+        fontFamily: "'Cinzel', serif",
+        fontSize: "0.85rem",
+        color: "#3d2817",
+        cursor: "pointer",
+        userSelect: "none"
+    };
+
     return (
         <div className="sheet-wrapper">
             <div className="sheet-controls no-print">
+                <label style={{ ...checkboxLabelStyle, marginRight: "auto" }}>
+                    <input
+                        type="checkbox"
+                        checked={blank}
+                        onChange={(e) => setBlank(e.target.checked)}
+                        style={{ width: "auto", margin: 0, cursor: "pointer" }}
+                    />
+                    Vacía para rellenar a mano
+                </label>
+                <label style={checkboxLabelStyle}>
+                    <input
+                        type="checkbox"
+                        checked={showAvatar}
+                        onChange={(e) => setShowAvatar(e.target.checked)}
+                        style={{ width: "auto", margin: 0, cursor: "pointer" }}
+                    />
+                    Incluir avatar al imprimir
+                </label>
                 <button onClick={() => window.print()} className="btn btn-primary">
                     🖨 Imprimir / Guardar como PDF
                 </button>
@@ -78,6 +123,9 @@ export default function CharacterSheetPrint() {
             {/* ═══════════════ PÁGINA 1: STATS & COMBATE ═══════════════ */}
             <div className="sheet-page">
                 <div className="sheet-header">
+                    {/* Avatar opcional a la izquierda del título */}
+                    {showAvatar && <SheetAvatar character={character} />}
+
                     <div className="sheet-title">
                         <div className="sheet-logo">⚔ StrongerThings</div>
                         <div className="sheet-charname">{character.name}</div>
@@ -86,7 +134,9 @@ export default function CharacterSheetPrint() {
                         <div className="meta-row">
                             <div className="meta-cell">
                                 <div className="meta-label">CLASE Y NIVEL</div>
-                                <div className="meta-value">{character.charClass} {character.level}</div>
+                                <div className="meta-value">
+                                    {character.charClass} {blank ? BLANK : character.level}
+                                </div>
                             </div>
                             <div className="meta-cell">
                                 <div className="meta-label">RAZA</div>
@@ -102,7 +152,9 @@ export default function CharacterSheetPrint() {
                             </div>
                             <div className="meta-cell">
                                 <div className="meta-label">EXPERIENCIA</div>
-                                <div className="meta-value">{character.experiencePoints || 0} XP</div>
+                                <div className="meta-value">
+                                    {blank ? `${BLANK} XP` : `${character.experiencePoints || 0} XP`}
+                                </div>
                             </div>
                             <div className="meta-cell">
                                 <div className="meta-label">JUGADOR</div>
@@ -121,8 +173,8 @@ export default function CharacterSheetPrint() {
                             return (
                                 <div key={a.key} className="ability-box">
                                     <div className="ability-label">{a.label.toUpperCase()}</div>
-                                    <div className="ability-mod">{formatMod(m)}</div>
-                                    <div className="ability-score">{score}</div>
+                                    <div className="ability-mod">{blank ? BLANK : formatMod(m)}</div>
+                                    <div className="ability-score">{blank ? "" : score}</div>
                                 </div>
                             );
                         })}
@@ -132,7 +184,7 @@ export default function CharacterSheetPrint() {
                     <div className="sheet-col-center">
                         <div className="prof-bonus">
                             <div className="prof-label">BONIFICADOR POR COMPETENCIA</div>
-                            <div className="prof-value">+{pb}</div>
+                            <div className="prof-value">{blank ? BLANK : `+${pb}`}</div>
                         </div>
 
                         {character.inspiration && (
@@ -147,7 +199,7 @@ export default function CharacterSheetPrint() {
                                 return (
                                     <div key={a.key} className={`skill-row ${isProf ? "skill-row--prof" : ""}`}>
                                         <span className="skill-circle">{isProf ? "●" : "○"}</span>
-                                        <span className="skill-mod">{formatMod(total)}</span>
+                                        <span className="skill-mod">{blank ? BLANK : formatMod(total)}</span>
                                         <span className="skill-name">{a.label}</span>
                                     </div>
                                 );
@@ -162,7 +214,7 @@ export default function CharacterSheetPrint() {
                                 return (
                                     <div key={s.key} className={`skill-row ${isProf ? "skill-row--prof" : ""}`}>
                                         <span className="skill-circle">{isProf ? "●" : "○"}</span>
-                                        <span className="skill-mod">{formatMod(total)}</span>
+                                        <span className="skill-mod">{blank ? BLANK : formatMod(total)}</span>
                                         <span className="skill-name">{s.label} <span className="skill-attr">({s.abbr})</span></span>
                                     </div>
                                 );
@@ -170,7 +222,7 @@ export default function CharacterSheetPrint() {
                         </div>
 
                         <div className="passive-box">
-                            <div className="passive-value">{passivePerception(character)}</div>
+                            <div className="passive-value">{blank ? BLANK : passivePerception(character)}</div>
                             <div className="passive-label">PERCEPCIÓN PASIVA (SAB)</div>
                         </div>
                     </div>
@@ -179,15 +231,15 @@ export default function CharacterSheetPrint() {
                     <div className="sheet-col-right">
                         <div className="combat-stats">
                             <div className="combat-cell">
-                                <div className="combat-value">{combat.armorClass ?? 10}</div>
+                                <div className="combat-value">{v(combat.armorClass ?? 10)}</div>
                                 <div className="combat-label">CLASE DE ARMADURA</div>
                             </div>
                             <div className="combat-cell">
-                                <div className="combat-value">{formatMod((combat.initiative ?? 0) + dexMod)}</div>
+                                <div className="combat-value">{blank ? BLANK : formatMod((combat.initiative ?? 0) + dexMod)}</div>
                                 <div className="combat-label">INICIATIVA</div>
                             </div>
                             <div className="combat-cell">
-                                <div className="combat-value">{combat.speed ?? 30}</div>
+                                <div className="combat-value">{v(combat.speed ?? 30)}</div>
                                 <div className="combat-label">VELOCIDAD (FT)</div>
                             </div>
                         </div>
@@ -195,10 +247,16 @@ export default function CharacterSheetPrint() {
                         <div className="hp-box">
                             <div className="hp-label">PUNTOS DE GOLPE</div>
                             <div className="hp-current">
-                                {character.hitPoints?.current ?? 0} / {character.hitPoints?.max ?? 0}
+                                {blank
+                                    ? `${BLANK} / ${BLANK}`
+                                    : `${character.hitPoints?.current ?? 0} / ${character.hitPoints?.max ?? 0}`
+                                }
                             </div>
-                            {character.hitPoints?.temporary > 0 && (
+                            {!blank && character.hitPoints?.temporary > 0 && (
                                 <div className="hp-temp">+{character.hitPoints.temporary} temporales</div>
+                            )}
+                            {blank && (
+                                <div className="hp-temp">Temporales: {BLANK}</div>
                             )}
                         </div>
 
@@ -206,23 +264,41 @@ export default function CharacterSheetPrint() {
                             <div className="combat-mini-cell">
                                 <span className="mini-label">Dados de golpe</span>
                                 <span className="mini-value">
-                                    {Math.max(0, (combat.hitDice?.total ?? character.level) - (combat.hitDice?.used ?? 0))}
-                                    /{combat.hitDice?.total ?? character.level}{combat.hitDice?.type ?? "d8"}
+                                    {blank ? (
+                                        <>{BLANK}/{BLANK}{combat.hitDice?.type ?? "d8"}</>
+                                    ) : (
+                                        <>
+                                            {Math.max(0, (combat.hitDice?.total ?? character.level) - (combat.hitDice?.used ?? 0))}
+                                            /{combat.hitDice?.total ?? character.level}{combat.hitDice?.type ?? "d8"}
+                                        </>
+                                    )}
                                 </span>
                             </div>
                             <div className="combat-mini-cell">
                                 <span className="mini-label">Salv. muerte</span>
                                 <span className="mini-value">
-                                    <span style={{ color: "var(--gold)" }}>✓ {combat.deathSaves?.successes ?? 0}</span>
-                                    {" / "}
-                                    <span style={{ color: "#8b1a1a" }}>✗ {combat.deathSaves?.failures ?? 0}</span>
+                                    {blank ? (
+                                        <>
+                                            <span style={{ color: "var(--gold)" }}>✓ ○○○</span>
+                                            {" / "}
+                                            <span style={{ color: "#8b1a1a" }}>✗ ○○○</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span style={{ color: "var(--gold)" }}>✓ {combat.deathSaves?.successes ?? 0}</span>
+                                            {" / "}
+                                            <span style={{ color: "#8b1a1a" }}>✗ {combat.deathSaves?.failures ?? 0}</span>
+                                        </>
+                                    )}
                                 </span>
                             </div>
                         </div>
 
                         <div className="gold-box">
                             <span className="gold-label">💰 ORO:</span>
-                            <span className="gold-value">{character.gold ?? 0} po</span>
+                            <span className="gold-value">
+                                {blank ? `${BLANK} po` : `${character.gold ?? 0} po`}
+                            </span>
                         </div>
 
                         <div className="attacks-section">
@@ -239,8 +315,11 @@ export default function CharacterSheetPrint() {
                                     {equippedWeapons.length > 0 ? equippedWeapons.map(w => (
                                         <tr key={w._id}>
                                             <td>{w.customName || w.baseObject?.name}</td>
-                                            <td>{formatMod(computeAttackBonus(w))}</td>
-                                            <td>{w.baseObject?.stats?.damage} <span className="attack-type">{w.baseObject?.stats?.damageType}</span></td>
+                                            <td>{blank ? BLANK : formatMod(computeAttackBonus(w))}</td>
+                                            <td>
+                                                {blank ? BLANK : w.baseObject?.stats?.damage}{" "}
+                                                <span className="attack-type">{w.baseObject?.stats?.damageType}</span>
+                                            </td>
                                         </tr>
                                     )) : (
                                         <tr><td colSpan="3" className="empty-row">Sin armas equipadas</td></tr>
@@ -357,11 +436,11 @@ export default function CharacterSheetPrint() {
                                 </div>
                                 <div className="meta-cell">
                                     <div className="meta-label">CD SALVACIÓN</div>
-                                    <div className="meta-value">{sc.saveDC ?? 8}</div>
+                                    <div className="meta-value">{blank ? BLANK : (sc.saveDC ?? 8)}</div>
                                 </div>
                                 <div className="meta-cell">
                                     <div className="meta-label">BONO DE ATAQUE</div>
-                                    <div className="meta-value">{formatMod(sc.attackBonus ?? 0)}</div>
+                                    <div className="meta-value">{blank ? BLANK : formatMod(sc.attackBonus ?? 0)}</div>
                                 </div>
                             </div>
                         </div>
@@ -379,11 +458,18 @@ export default function CharacterSheetPrint() {
                                         <div className="slot-print__level">Nv {lvl}</div>
                                         <div className="slot-print__circles">
                                             {Array.from({ length: slot.total }).map((_, i) => (
-                                                <span key={i} className={`slot-circle ${i < slot.used ? "slot-circle--used" : ""}`}>○</span>
+                                                <span
+                                                    key={i}
+                                                    className={`slot-circle ${!blank && i < slot.used ? "slot-circle--used" : ""}`}
+                                                >○</span>
                                             ))}
                                             {slot.total === 0 && <span className="slot-print__empty">—</span>}
                                         </div>
-                                        <div className="slot-print__count">{remaining}/{slot.total}</div>
+                                        <div className="slot-print__count">
+                                            {blank
+                                                ? (slot.total > 0 ? `${BLANK}/${slot.total}` : "")
+                                                : `${remaining}/${slot.total}`}
+                                        </div>
                                     </div>
                                 );
                             })}
@@ -392,7 +478,6 @@ export default function CharacterSheetPrint() {
 
                     {/* Hechizos por nivel */}
                     <div className="spells-section">
-                        {/* Trucos */}
                         {knownByLevel[0] && (
                             <SpellLevelGroup level={0} spells={knownByLevel[0]} />
                         )}
@@ -410,6 +495,59 @@ export default function CharacterSheetPrint() {
                     <div className="sheet-footer">Página 3 — StrongerThings</div>
                 </div>
             )}
+        </div>
+    );
+}
+
+/**
+ * Avatar circular en la cabecera de la página 1.
+ * Solo se renderiza si el toggle "Incluir avatar al imprimir" está activo.
+ * Si el personaje no tiene avatar subido se renderiza un placeholder
+ * vacío con borde discontinuo (sirve también como hueco para pegar
+ * una foto/recorte al imprimir en papel).
+ */
+function SheetAvatar({ character }) {
+    const url = character.avatar?.cloudinaryUrl;
+    const baseStyle = {
+        width: "26mm",
+        height: "26mm",
+        borderRadius: "50%",
+        flexShrink: 0,
+        marginRight: "3mm",
+        background: "rgba(255, 255, 255, 0.4)"
+    };
+
+    if (url) {
+        return (
+            <img
+                src={url}
+                alt={character.name}
+                style={{
+                    ...baseStyle,
+                    objectFit: "cover",
+                    border: "2px solid #b8860b",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.3)"
+                }}
+            />
+        );
+    }
+
+    return (
+        <div
+            style={{
+                ...baseStyle,
+                border: "2px dashed #8b6f47",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10pt",
+                color: "#8b6f47",
+                fontStyle: "italic",
+                textAlign: "center",
+                lineHeight: 1.1
+            }}
+        >
+            Sin<br />avatar
         </div>
     );
 }

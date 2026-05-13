@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { charactersApi } from "../api/characters.js";
 import {
     translateClass,
     translateRace,
-    translateAlignment,
     CLASS_OPTIONS,
     RACE_OPTIONS
 } from "../utils/dndLabels.js";
@@ -15,9 +14,9 @@ export default function CharactersPage() {
     const [characters, setCharacters] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [showForm, setShowForm] = useState(false);
+    const [showCreate, setShowCreate] = useState(false);
     const [form, setForm] = useState(emptyForm);
-    const [editingId, setEditingId] = useState(null);
+    const navigate = useNavigate();
 
     const load = async () => {
         try {
@@ -33,26 +32,12 @@ export default function CharactersPage() {
     useEffect(() => { load(); }, []);
 
     const startCreate = () => {
-        setEditingId(null);
         setForm(emptyForm);
-        setShowForm(true);
+        setShowCreate(true);
     };
 
-    const startEdit = (char) => {
-        setEditingId(char._id);
-        setForm({
-            name: char.name,
-            charClass: char.charClass,
-            race: char.race || "Human",
-            level: char.level,
-            gold: char.gold || 0
-        });
-        setShowForm(true);
-    };
-
-    const cancelForm = () => {
-        setShowForm(false);
-        setEditingId(null);
+    const cancelCreate = () => {
+        setShowCreate(false);
         setForm(emptyForm);
     };
 
@@ -60,13 +45,15 @@ export default function CharactersPage() {
         e.preventDefault();
         const payload = { ...form, level: Number(form.level), gold: Number(form.gold) };
         try {
-            if (editingId) {
-                await charactersApi.update(editingId, payload);
+            const created = await charactersApi.create(payload);
+            cancelCreate();
+            // Tras crear, llevamos al usuario directo a la página de detalle
+            // en modo edición para que termine de definir al personaje.
+            if (created?._id) {
+                navigate(`/characters/${created._id}?edit=1`);
             } else {
-                await charactersApi.create(payload);
+                load();
             }
-            cancelForm();
-            load();
         } catch (err) {
             setError(err.message);
         }
@@ -86,25 +73,32 @@ export default function CharactersPage() {
         <div className="container">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
                 <h1>Mis personajes</h1>
-                {!showForm && (
+                {!showCreate && (
                     <button className="btn btn-primary" onClick={startCreate}>+ Nuevo héroe</button>
                 )}
             </div>
 
             {error && <div className="alert">{error}</div>}
 
-            {showForm && (
+            {showCreate && (
                 <div className="scroll-card">
-                    <h2>{editingId ? "Editar personaje" : "Forjar nuevo personaje"}</h2>
+                    <h2>Forjar nuevo héroe</h2>
                     <form onSubmit={handleSubmit}>
                         <div className="grid grid-2">
                             <div className="field">
                                 <label>Nombre</label>
-                                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                                <input
+                                    required
+                                    value={form.name}
+                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                />
                             </div>
                             <div className="field">
                                 <label>Clase</label>
-                                <select value={form.charClass} onChange={(e) => setForm({ ...form, charClass: e.target.value })}>
+                                <select
+                                    value={form.charClass}
+                                    onChange={(e) => setForm({ ...form, charClass: e.target.value })}
+                                >
                                     {CLASS_OPTIONS.map(o => (
                                         <option key={o.value} value={o.value}>{o.label}</option>
                                     ))}
@@ -112,7 +106,10 @@ export default function CharactersPage() {
                             </div>
                             <div className="field">
                                 <label>Raza</label>
-                                <select value={form.race} onChange={(e) => setForm({ ...form, race: e.target.value })}>
+                                <select
+                                    value={form.race}
+                                    onChange={(e) => setForm({ ...form, race: e.target.value })}
+                                >
                                     {RACE_OPTIONS.map(o => (
                                         <option key={o.value} value={o.value}>{o.label}</option>
                                     ))}
@@ -120,20 +117,24 @@ export default function CharactersPage() {
                             </div>
                             <div className="field">
                                 <label>Nivel</label>
-                                <input type="number" min="1" max="20" value={form.level}
-                                    onChange={(e) => setForm({ ...form, level: e.target.value })} />
+                                <input
+                                    type="number" min="1" max="20"
+                                    value={form.level}
+                                    onChange={(e) => setForm({ ...form, level: e.target.value })}
+                                />
                             </div>
                             <div className="field">
-                                <label>Oro</label>
-                                <input type="number" min="0" value={form.gold}
-                                    onChange={(e) => setForm({ ...form, gold: e.target.value })} />
+                                <label>Oro inicial</label>
+                                <input
+                                    type="number" min="0"
+                                    value={form.gold}
+                                    onChange={(e) => setForm({ ...form, gold: e.target.value })}
+                                />
                             </div>
                         </div>
                         <div style={{ display: "flex", gap: "0.5rem" }}>
-                            <button className="btn btn-primary" type="submit">
-                                {editingId ? "Guardar cambios" : "Crear"}
-                            </button>
-                            <button type="button" className="btn" onClick={cancelForm}>Cancelar</button>
+                            <button type="submit" className="btn btn-primary">Crear</button>
+                            <button type="button" className="btn" onClick={cancelCreate}>Cancelar</button>
                         </div>
                     </form>
                 </div>
@@ -184,7 +185,7 @@ export default function CharactersPage() {
                             </div>
                             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                                 <Link to={`/characters/${c._id}`} className="btn btn-small">Ver hoja</Link>
-                                <button className="btn btn-small" onClick={() => startEdit(c)}>Editar</button>
+                                <Link to={`/characters/${c._id}?edit=1`} className="btn btn-small">Editar</Link>
                                 <button className="btn btn-small btn-danger" onClick={() => handleDelete(c._id)}>Eliminar</button>
                             </div>
                         </div>

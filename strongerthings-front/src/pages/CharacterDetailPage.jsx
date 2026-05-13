@@ -10,6 +10,7 @@ import StatsSection from "../components/character/StatsSection.jsx";
 import CombatSection from "../components/character/CombatSection.jsx";
 import PersonalitySection from "../components/character/PersonalitySection.jsx";
 import SpellsSection from "../components/character/SpellsSection.jsx";
+import DiarySection from "../components/character/DiarySection.jsx";
 
 const formatFileSize = (bytes) => {
     if (!bytes) return "0 KB";
@@ -228,6 +229,31 @@ export default function CharacterDetailPage() {
         } catch (err) { setError(err.message); }
     };
 
+    /* ─── Diario ─── */
+const handleAddDiaryEntry = async (data) => {
+    try {
+        const updated = await charactersApi.addDiaryEntry(id, data);
+        await applyUpdate(updated);
+        flash("Entrada añadida al diario");
+    } catch (err) { setError(err.message); }
+};
+
+const handleUpdateDiaryEntry = async (entryId, data) => {
+    try {
+        const updated = await charactersApi.updateDiaryEntry(id, entryId, data);
+        await applyUpdate(updated);
+        flash("Entrada actualizada");
+    } catch (err) { setError(err.message); }
+};
+
+const handleRemoveDiaryEntry = async (entryId) => {
+    try {
+        const updated = await charactersApi.removeDiaryEntry(id, entryId);
+        await applyUpdate(updated);
+        flash("Entrada eliminada");
+    } catch (err) { setError(err.message); }
+};
+
     if (loading) return <div className="loading">Consultando los pergaminos...</div>;
     if (!character) return <div className="container"><div className="alert">{error || "Personaje no encontrado"}</div></div>;
 
@@ -243,6 +269,14 @@ export default function CharacterDetailPage() {
             onUpdateSpell={handleUpdateSpell}
             onRemoveSpell={handleRemoveSpell}
         />
+    );
+    const diaryTab = (
+    <DiarySection
+        character={character}
+        onAddEntry={handleAddDiaryEntry}
+        onUpdateEntry={handleUpdateDiaryEntry}
+        onRemoveEntry={handleRemoveDiaryEntry}
+    />
     );
 
     const inventoryTab = (
@@ -375,6 +409,7 @@ export default function CharacterDetailPage() {
         { id: "inventory", label: "Inventario", icon: "🎒", content: inventoryTab },
         { id: "personality", label: "Personalidad", icon: "📖", content: personalityTab },
         { id: "spells", label: "Conjuros", icon: "✨", content: spellsTab },
+        { id: "diary",       label: "Diario",      icon: "📔", content: diaryTab }, 
         { id: "sheet", label: "Hoja PDF", icon: "📜", content: sheetTab }
     ];
 

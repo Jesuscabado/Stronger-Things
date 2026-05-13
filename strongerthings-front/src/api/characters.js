@@ -32,5 +32,10 @@ export const charactersApi = {
         fd.append("avatar", file);
         return api.upload(`/api/characters/${id}/avatar`, fd);
     },
-    deleteAvatar: (id) => api.del(`/api/characters/${id}/avatar`)
+    deleteAvatar: (id) => api.del(`/api/characters/${id}/avatar`),
+
+    // diario
+    addDiaryEntry: (id, data) => api.post(`/api/characters/${id}/diary`, data),
+    updateDiaryEntry: (id, entryId, data) => api.put(`/api/characters/${id}/diary/${entryId}`, data),
+    removeDiaryEntry: (id, entryId) => api.del(`/api/characters/${id}/diary/${entryId}`),
 };
