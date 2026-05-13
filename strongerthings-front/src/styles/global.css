@@ -344,8 +344,53 @@ form textarea:focus {
     margin: 1.5rem 0 1rem;
     border-bottom: 2px solid var(--ink, #3d2817);
     flex-wrap: wrap;
+
+    /* Sticky: al hacer scroll, las pestañas se quedan ancladas arriba
+       del viewport para poder cambiar de sección sin volver al inicio. */
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--parchment, #f4e8d0);
+    /* Una sombra suave para separar visualmente de la card de abajo
+       cuando hay scroll. */
+    box-shadow: 0 2px 6px rgba(43, 24, 16, 0.15);
+
+    /* El margin-top original empujaba la barra hacia abajo cuando
+       estaba pegada arriba, dejando un hueco feo. Lo movemos a un
+       padding-top equivalente para que la sticky se pegue limpia. */
+    margin-top: 0;
+    padding-top: 1.5rem;
 }
 
+/* En tema oscuro, el fondo debe ser el del modo dark */
+:root[data-theme="dark"] .tabs-nav {
+    background: var(--parchment, #2a2520);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* Móvil: la barra de pestañas no hace wrap; se desplaza horizontalmente
+   con el dedo. Así se queda siempre en una sola fila, el sticky se
+   comporta limpio y las 7 pestañas siguen siendo accesibles. */
+@media (max-width: 768px) {
+    .tabs-nav {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        /* Evita que las pestañas se encojan: cada una conserva su ancho
+           natural y se desplazan en horizontal cuando no caben todas. */
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        /* Pequeño "fade" a la derecha que sugiere visualmente que hay
+           más contenido al que llegar deslizando. */
+        mask-image: linear-gradient(to right, black 90%, transparent 100%);
+        -webkit-mask-image: linear-gradient(to right, black 90%, transparent 100%);
+    }
+
+    .tab-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+}
 .tab-btn {
     background: transparent;
     border: 2px solid transparent;
@@ -383,8 +428,8 @@ form textarea:focus {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* Sección "próximamente" para tabs aún sin implementar */
@@ -2562,5 +2607,34 @@ textarea {
         flex-wrap: wrap;
         padding: 0 0.5rem;
         justify-content: flex-start;
+    }
+}
+
+/* Grids del CombatSection (CA / Iniciativa / Velocidad y PG) */
+.combat-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.combat-two-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+/* En móvil pequeño, apilar para que la caja con "30 ft" no sobresalga */
+@media (max-width: 600px) {
+    .combat-stats-row {
+        grid-template-columns: 1fr 1fr;
+    }
+    .combat-two-cols {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 420px) {
+    .combat-stats-row {
+        grid-template-columns: 1fr;
     }
 }
