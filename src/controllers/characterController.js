@@ -140,3 +140,32 @@ export const removeCharacterSpell = async (req, res, next) => {
         res.status(200).json(character);
     } catch (error) { handleStatusError(error, res, next); }
 };
+
+/* ───────── Diario ───────── */
+
+export const addDiaryEntryToCharacter = async (req, res, next) => {
+    try {
+        const character = await characterService.addDiaryEntry(
+            req.params.id, req.body, req.user._id
+        );
+        res.status(201).json(character);
+    } catch (error) { handleStatusError(error, res, next); }
+};
+
+export const updateCharacterDiaryEntry = async (req, res, next) => {
+    try {
+        const character = await characterService.updateDiaryEntry(
+            req.params.id, req.params.entryId, req.body, req.user._id
+        );
+        res.status(200).json(character);
+    } catch (error) { handleStatusError(error, res, next); }
+};
+
+export const removeCharacterDiaryEntry = async (req, res, next) => {
+    try {
+        const character = await characterService.removeDiaryEntry(
+            req.params.id, req.params.entryId, req.user._id
+        );
+        res.status(200).json(character);
+    } catch (error) { handleStatusError(error, res, next); }
+};

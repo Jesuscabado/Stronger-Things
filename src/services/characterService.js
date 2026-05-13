@@ -284,3 +284,90 @@ export const forgetSpell = async (characterId, knownId, userId) => {
     await character.save();
     return loadFullCharacter(character._id);
 };
+
+/* =========================================================================
+   AÑADIR estas funciones al final de src/services/characterService.js
+   -------------------------------------------------------------------------
+   Patrón idéntico al de los hechizos (learnSpell, updateLearnedSpell,
+   forgetSpell): usar el _id del subdocumento dentro del array, validar
+   ownership con userId, devolver el personaje completo cargado.
+   ========================================================================= */
+
+/* ───────── Diario ───────── */
+
+/**
+ * Añade una nueva entrada de diario al personaje.
+ * @param {string} characterId  - _id del personaje
+ * @param {Object} entryData    - { title, date, content }
+ * @param {string} userId       - usuario actual (para validar ownership)
+ * @returns el personaje completo actualizado
+ */
+export const addDiaryEntry = async (characterId, entryData, userId) => {
+    const character = await Character.findById(characterId);
+    if (!character) throw notFound();
+    if (character.user.toString() !== userId.toString()) throw forbidden();
+
+    const { title, date, content } = entryData;
+    if (!content || !content.trim()) {
+        const err = new Error("El contenido de la entrada no puede estar vacío");
+        err.status = 400;
+        throw err;
+    }
+
+    character.diary.push({
+        title: title?.trim() || "",
+        // Si el cliente envía una fecha, la respetamos; si no, se aplica
+        // el default del schema (Date.now). Las fechas vienen como ISO string.
+        ...(date ? { date: new Date(date) } : {}),
+        content
+    });
+
+    await character.save();
+    return loadFullCharacter(character._id);
+};
+
+/**
+ * Actualiza una entrada existente del diario.
+ * @param {string} characterId
+ * @param {string} entryId     - _id del subdocumento dentro de diary[]
+ * @param {Object} updateData  - { title?, date?, content? }
+ * @param {string} userId
+ */
+export const updateDiaryEntry = async (characterId, entryId, updateData, userId) => {
+    const character = await Character.findById(characterId);
+    if (!character) throw notFound();
+    if (character.user.toString() !== userId.toString()) throw forbidden();
+
+    const entry = character.diary.id(entryId);
+    if (!entry) throw notFound("Entrada de diario no encontrada");
+
+    if ("title" in updateData) entry.title = (updateData.title || "").trim();
+    if ("date" in updateData && updateData.date) entry.date = new Date(updateData.date);
+    if ("content" in updateData) {
+        if (!updateData.content || !updateData.content.trim()) {
+            const err = new Error("El contenido de la entrada no puede estar vacío");
+            err.status = 400;
+            throw err;
+        }
+        entry.content = updateData.content;
+    }
+
+    await character.save();
+    return loadFullCharacter(character._id);
+};
+
+/**
+ * Elimina una entrada del diario.
+ */
+export const removeDiaryEntry = async (characterId, entryId, userId) => {
+    const character = await Character.findById(characterId);
+    if (!character) throw notFound();
+    if (character.user.toString() !== userId.toString()) throw forbidden();
+
+    const entry = character.diary.id(entryId);
+    if (!entry) throw notFound("Entrada de diario no encontrada");
+
+    entry.deleteOne();
+    await character.save();
+    return loadFullCharacter(character._id);
+};

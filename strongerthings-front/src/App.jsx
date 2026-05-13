@@ -10,6 +10,7 @@ import SpellsPage from "./pages/SpellsPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
 import CharacterSheetPrint from "./pages/CharacterSheetPrint.jsx";
+import DiaryPage from "./pages/DiaryPage.jsx";
 
 export default function App() {
     return (
@@ -32,6 +33,9 @@ export default function App() {
                 <Route path="/objects" element={
                     <ProtectedRoute><ObjectsPage /></ProtectedRoute>
                 } />
+                <Route path="/diary" element={
+    <ProtectedRoute><DiaryPage /></ProtectedRoute>
+} />
                 <Route path="/spells" element={
                     <ProtectedRoute><SpellsPage /></ProtectedRoute>
                 } />

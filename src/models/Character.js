@@ -37,6 +37,24 @@ const avatarSchema = new mongoose.Schema(
     { _id: false }
 );
 
+const diaryEntrySchema = new mongoose.Schema(
+    {
+        title: { type: String, trim: true, default: "" },
+        // Fecha real de la entrada. Por defecto el momento de creación.
+        date: { type: Date, default: Date.now },
+        // El contenido es el cuerpo del diario; sin límite estricto.
+        content: { type: String, default: "", required: true }
+    },
+    {
+        // _id: true → cada entrada tiene su propio ObjectId, que usamos
+        // para identificarla en las rutas PUT/DELETE.
+        _id: true,
+        // timestamps: crea automáticamente createdAt y updatedAt en cada
+        // entrada. Útil para ordenar y mostrar "editado el X" si en
+        // algún momento quieres distinguir creación y última edición.
+        timestamps: true
+    }
+);
 const combatStatsSchema = new mongoose.Schema(
     {
         armorClass: { type: Number, default: 10 },
@@ -225,6 +243,7 @@ const characterSchema = new mongoose.Schema(
         spellcasting: { type: spellcastingSchema, default: () => ({}) },
 
         inventory: [inventoryItemSchema],
+        diary: { type: [diaryEntrySchema], default: [] },
         characterSheet: characterSheetSchema,
         avatar: avatarSchema
     },
