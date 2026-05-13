@@ -9,9 +9,9 @@ services:
       - ${APP_PORT}:3000
     environment:
       APP_PORT: 3000
-      MONGO_HOST: ${MONGO_CONTAINER_NAME}    # 👈 aquí
-      MONGO_PORT: ${MONGO_INTERNAL_PORT}     # 👈 aquí
-      USE_DRIVE_STORAGE: "true"        # 👈 añade esto
+      MONGO_HOST: ${MONGO_CONTAINER_NAME}    
+      MONGO_PORT: ${MONGO_INTERNAL_PORT}     
+      USE_DRIVE_STORAGE: "true"       
       GOOGLE_DRIVE_FOLDER_ID: "176ccWPfs5cWqqbypskPnoaTcpNPIogNO"
       GOOGLE_CREDENTIALS_PATH: "/app/google-credentials.json"
       DRIVE_SHARE_PUBLIC: "true"
@@ -35,7 +35,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGO_DB}
     ports:
-      - ${MONGO_PORT}:${MONGO_INTERNAL_PORT}  # 27027:27017
+      - ${MONGO_PORT}:${MONGO_INTERNAL_PORT}  # *****:27017
     volumes:
       - mongo_data:/data/db
 

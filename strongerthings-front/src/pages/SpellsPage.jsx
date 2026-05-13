@@ -82,11 +82,16 @@ export default function SpellsPage() {
         }
     };
 
-    // Recargar cuando cambian los filtros con un pequeño debounce para la búsqueda
-    useEffect(() => {
-        const handle = setTimeout(load, 250);
-        return () => clearTimeout(handle);
-    }, [search, filterLevel, filterClass]);
+   
+    // Si el usuario está escribiendo en "Buscar" pero aún no llega a 3 caracteres,
+    // no lanzamos petición. Con 0 caracteres sí cargamos (catálogo completo).
+   useEffect(() => {
+    const trimmed = search.trim();
+    if (trimmed.length > 0 && trimmed.length < 3) return;
+
+    const handle = setTimeout(load, 250);
+    return () => clearTimeout(handle);
+}, [search, filterLevel, filterClass]);
 
     // El filtro por escuela se aplica en cliente (no hay query param en el backend)
     const filtered = filterSchool
@@ -360,15 +365,21 @@ export default function SpellsPage() {
                 </div>
             )}
 
-            {/* Filtros y ordenación */}
-            <div className="scroll-card" style={{ padding: "1rem 1.5rem" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: "0.8rem", alignItems: "end" }}>
-                    <div className="field" style={{ marginBottom: 0 }}>
+            {/*
+                Filtros y ordenación.
+                Lo envolvemos en <form> para que los inputs y selects hereden los
+                estilos globales (`form input`, `form select`, `form label`) y
+                queden coherentes con el resto de la app. onSubmit se neutraliza
+                porque los filtros se aplican en vivo al cambiar, no al enviar.
+            */}
+            <form className="scroll-card filters-bar" onSubmit={(e) => e.preventDefault()}>
+                <div className="grid grid-3" style={{ gap: "1rem" }}>
+                    <div className="field" style={{ marginBottom: 0, gridColumn: "span 2" }}>
                         <label>Buscar</label>
                         <input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Nombre del hechizo..."
+                            placeholder="Nombre del conjuro..."
                         />
                     </div>
                     <div className="field" style={{ marginBottom: 0 }}>
@@ -405,7 +416,7 @@ export default function SpellsPage() {
                         </select>
                     </div>
                 </div>
-            </div>
+            </form>
 
             {/* Listado */}
             {loading ? (

@@ -43,7 +43,7 @@ export default function SpellsSection({ character, onUpdate, onAddSpell, onUpdat
         onUpdateSpell(knownEntry._id, { prepared: !knownEntry.prepared });
     };
 
-    // Agrupa los hechizos conocidos por nivel
+    // Agrupa los conjuros conocidos por nivel
     const knownByLevel = {};
     for (const k of known) {
         const lvl = k.spell?.level ?? 0;
@@ -149,19 +149,19 @@ export default function SpellsSection({ character, onUpdate, onAddSpell, onUpdat
                 </div>
             </div>
 
-            {/* Hechizos conocidos */}
+            {/* conjuros conocidos */}
             <div className="scroll-card">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                    <h2 style={{ margin: 0 }}>📜 Hechizos conocidos</h2>
+                    <h2 style={{ margin: 0 }}>📜 conjuros conocidos</h2>
                     <button className="btn btn-primary" onClick={() => setShowSelector(true)}>
-                        + Añadir hechizo
+                        + Añadir conjuro
                     </button>
                 </div>
 
                 {known.length === 0 ? (
                     <div className="empty">
-                        Este personaje aún no conoce hechizos.
-                        Pulsa "+ Añadir hechizo" para buscar uno en el catálogo.
+                        Este personaje aún no conoce conjuros.
+                        Pulsa "+ Añadir conjuro" para buscar uno en el catálogo.
                     </div>
                 ) : (
                     <>
@@ -207,7 +207,7 @@ export default function SpellsSection({ character, onUpdate, onAddSpell, onUpdat
 }
 
 /**
- * Grupo de hechizos de un mismo nivel.
+ * Grupo de conjuros de un mismo nivel.
  */
 function SpellLevelGroup({ level, title, spells, onTogglePrepared, onRemove }) {
     const [expanded, setExpanded] = useState({});
@@ -223,7 +223,7 @@ function SpellLevelGroup({ level, title, spells, onTogglePrepared, onRemove }) {
                     return (
                         <li key={known._id} className={`spell-item ${known.prepared ? "spell-item--prepared" : ""}`}>
                             <div className="spell-item__row">
-                                {/* Checkbox preparado solo para hechizos > 0 */}
+                                {/* Checkbox preparado solo para conjuros > 0 */}
                                 {level > 0 ? (
                                     <input
                                         type="checkbox"
@@ -249,7 +249,7 @@ function SpellLevelGroup({ level, title, spells, onTogglePrepared, onRemove }) {
                                     </div>
                                 </div>
 
-                                <button className="btn btn-small btn-danger" onClick={() => onRemove(known._id)} title="Olvidar hechizo">×</button>
+                                <button className="btn btn-small btn-danger" onClick={() => onRemove(known._id)} title="Olvidar conjuro">×</button>
                             </div>
 
                             {isOpen && (
@@ -287,7 +287,7 @@ function SpellLevelGroup({ level, title, spells, onTogglePrepared, onRemove }) {
 }
 
 /**
- * Modal selector de hechizos con búsqueda y filtro por nivel.
+ * Modal selector de conjuros con búsqueda y filtro por nivel.
  */
 function SpellSelectorModal({ character, existingSpellIds, onClose, onAdd }) {
     const [spells, setSpells] = useState([]);
@@ -329,7 +329,7 @@ function SpellSelectorModal({ character, existingSpellIds, onClose, onAdd }) {
                 onClick={(e) => e.stopPropagation()}
             >
                 <button className="modal-close" onClick={onClose}>×</button>
-                <h2 style={{ marginTop: 0 }}>📜 Catálogo de hechizos</h2>
+                <h2 style={{ marginTop: 0 }}>📜 Catálogo de conjuros</h2>
 
                 {/* Filtros */}
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1rem", alignItems: "center" }}>
@@ -366,11 +366,11 @@ function SpellSelectorModal({ character, existingSpellIds, onClose, onAdd }) {
                 <div style={{ flex: 1, overflowY: "auto", border: "1px solid var(--parchment-shadow)", borderRadius: "3px", background: "rgba(255,255,255,0.2)" }}>
                     {loading ? (
                         <div style={{ padding: "2rem", textAlign: "center", color: "var(--ink-faded)" }}>
-                            Buscando hechizos...
+                            Buscando conjuros...
                         </div>
                     ) : spells.length === 0 ? (
                         <div style={{ padding: "2rem", textAlign: "center", color: "var(--ink-faded)" }}>
-                            No se encontraron hechizos con esos filtros.
+                            No se encontraron conjuros con esos filtros.
                         </div>
                     ) : (
                         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
@@ -408,7 +408,7 @@ function SpellSelectorModal({ character, existingSpellIds, onClose, onAdd }) {
                 </div>
 
                 <div style={{ marginTop: "0.8rem", fontSize: "0.8rem", color: "var(--ink-faded)", textAlign: "right" }}>
-                    Mostrando {spells.length} hechizos
+                    Mostrando {spells.length} conjuros
                 </div>
             </div>
         </div>
