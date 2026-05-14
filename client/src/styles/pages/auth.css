@@ -1,0 +1,9 @@
+/* =========================================================================
+   Páginas de autenticación (login y registro): el container se estrecha
+   para que el formulario quede centrado y manejable.
+   ========================================================================= */
+
+.auth-page {
+    max-width: 480px;
+    margin: 4rem auto;
+}

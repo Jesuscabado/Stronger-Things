@@ -1,0 +1,264 @@
+/* =========================================================================
+   Conjuros y hechizos: aptitud mágica (cabecera), espacios de conjuro,
+   lista de hechizos aprendidos con detalle expandible y el badge-tag
+   genérico usado en muchos sitios.
+   ========================================================================= */
+
+/* ─── Aptitud mágica (cabecera de la pestaña Conjuros) ─── */
+
+.spellcast-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    border: 2px solid var(--ink, #3d2817);
+    border-radius: 6px;
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.spellcast-stat__label {
+    font-family: "Cinzel", serif;
+    font-size: 0.75rem;
+    color: var(--ink-faded, #8b6f47);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+}
+
+.spellcast-stat__select,
+.spellcast-stat__input {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--parchment-shadow, #c4a878);
+    border-radius: 3px;
+    background: var(--parchment, #f5e9d4);
+    color: var(--ink, #3d2817);
+    font-family: inherit;
+    font-size: 1.1rem;
+    text-align: center;
+    font-weight: bold;
+}
+
+.spellcast-stat__select:focus,
+.spellcast-stat__input:focus {
+    outline: none;
+    border-color: var(--gold, #b8860b);
+    box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.15);
+}
+
+.spellcast-stat__hint {
+    font-size: 0.75rem;
+    color: var(--gold, #b8860b);
+    font-weight: bold;
+}
+
+/* ─── Espacios de conjuro ─── */
+
+.slot-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+}
+
+@media (max-width: 768px) {
+    .slot-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .slot-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.slot-cell {
+    border: 2px solid var(--ink, #3d2817);
+    border-radius: 4px;
+    padding: 0.6rem;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.slot-cell--empty {
+    opacity: 0.6;
+    border-style: dashed;
+}
+
+.slot-cell__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.slot-cell__level {
+    font-family: "Cinzel", serif;
+    font-weight: bold;
+    color: var(--ink, #3d2817);
+}
+
+.slot-cell__remaining {
+    font-family: "Cinzel", serif;
+    font-weight: bold;
+    color: var(--gold, #b8860b);
+    font-size: 0.95rem;
+}
+
+.slot-cell__inputs {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.slot-cell__inputs label {
+    flex: 1;
+    font-size: 0.7rem;
+    color: var(--ink-faded, #8b6f47);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    text-transform: uppercase;
+    font-family: "Cinzel", serif;
+    letter-spacing: 0.3px;
+}
+
+.slot-cell__inputs input {
+    padding: 0.3rem;
+    border: 1px solid var(--parchment-shadow, #c4a878);
+    border-radius: 3px;
+    background: var(--parchment, #f5e9d4);
+    color: var(--ink, #3d2817);
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+/* ─── Hechizos conocidos ─── */
+
+.spell-group {
+    margin-bottom: 1.2rem;
+}
+
+.spell-group__title {
+    font-family: "Cinzel", serif;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ink, #3d2817);
+    border-bottom: 2px solid var(--gold, #b8860b);
+    padding-bottom: 0.3rem;
+    margin: 0 0 0.6rem 0;
+}
+
+.spell-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.spell-item {
+    border: 1px solid var(--parchment-shadow, #c4a878);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    transition: all 0.15s;
+}
+
+.spell-item--prepared {
+    border-color: var(--gold, #b8860b);
+    background: rgba(184, 134, 11, 0.08);
+    border-width: 2px;
+}
+
+.spell-item__row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.8rem;
+}
+
+.spell-item__check {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin: 0;
+    accent-color: var(--gold, #b8860b);
+    flex-shrink: 0;
+}
+
+.spell-item__check-spacer {
+    width: 18px;
+    text-align: center;
+    color: var(--gold, #b8860b);
+    flex-shrink: 0;
+}
+
+.spell-item__info {
+    flex: 1;
+    cursor: pointer;
+    user-select: none;
+}
+
+.spell-item__info:hover {
+    color: var(--gold, #b8860b);
+}
+
+.spell-item__meta {
+    font-size: 0.85rem;
+    color: var(--ink-faded, #8b6f47);
+    margin-top: 0.1rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.spell-item__detail {
+    border-top: 1px dashed var(--parchment-shadow, #c4a878);
+    padding: 0.6rem 0.8rem;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.spell-item__props {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.6rem;
+    color: var(--ink-faded, #8b6f47);
+}
+
+.spell-item__props strong {
+    color: var(--ink, #3d2817);
+}
+
+.spell-item__desc {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    margin-bottom: 0.5rem;
+}
+
+.spell-item__higher {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    padding: 0.5rem;
+    background: rgba(184, 134, 11, 0.08);
+    border-left: 3px solid var(--gold, #b8860b);
+    border-radius: 2px;
+}
+
+/* ─── Badge-tag genérico (usado en hechizos, objetos, etc.) ─── */
+
+.badge-tag {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    background: rgba(184, 134, 11, 0.2);
+    color: var(--ink, #3d2817);
+    font-size: 0.7rem;
+    border-radius: 3px;
+    text-transform: uppercase;
+    font-family: "Cinzel", serif;
+    letter-spacing: 0.3px;
+}

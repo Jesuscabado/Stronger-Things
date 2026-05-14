@@ -1,0 +1,83 @@
+/* =========================================================================
+   Layout — container, grid genérico, scroll-card (la "carta de pergamino"
+   reusable) y la cabecera de la app.
+   ========================================================================= */
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+/* Grid genérico, usado en muchas pantallas */
+.grid { display: grid; gap: 1.5rem; }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+/* Cards (pergamino con bordes dorados) */
+.scroll-card {
+    background: var(--parchment-dark);
+    border: 1px solid var(--parchment-shadow);
+    border-radius: 4px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow:
+        0 1px 2px var(--shadow),
+        inset 0 0 30px rgba(201, 181, 142, 0.3);
+    position: relative;
+}
+.scroll-card::before,
+.scroll-card::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: linear-gradient(90deg, transparent, var(--gold) 20%, var(--gold) 80%, transparent);
+    opacity: 0.6;
+}
+.scroll-card::before { top: 0; }
+.scroll-card::after { bottom: 0; }
+
+/* Header de la app */
+.app-header {
+    background: linear-gradient(180deg, var(--leather) 0%, #2a1a0c 100%);
+    color: var(--parchment);
+    padding: 1rem 2rem;
+    border-bottom: 4px double var(--gold);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+.app-header__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.app-header__brand {
+    font-family: "MedievalSharp", serif;
+    font-size: 1.8rem;
+    color: var(--gold-bright);
+    letter-spacing: 0.1em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+.app-header__brand a {
+    color: var(--gold-bright);
+    border: none;
+}
+.app-header nav {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+.app-header nav a {
+    color: var(--parchment);
+    border: none;
+    font-family: "Cinzel", serif;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.app-header nav a:hover {
+    color: var(--gold-bright);
+}

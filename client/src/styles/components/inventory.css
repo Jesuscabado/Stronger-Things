@@ -1,0 +1,59 @@
+/* =========================================================================
+   Inventario del personaje, barra de durabilidad y badges (clase, equipado).
+   ========================================================================= */
+
+.inventory-list { list-style: none; }
+
+.inventory-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.8rem;
+    border-bottom: 1px dashed var(--parchment-shadow);
+}
+.inventory-item:last-child { border-bottom: none; }
+
+.inventory-item__name {
+    font-family: "Cinzel", serif;
+    font-size: 1.05rem;
+}
+.inventory-item__custom { color: var(--blood); font-style: italic; }
+
+.equipped-badge {
+    background: var(--gold);
+    color: var(--ink);
+    padding: 0.1rem 0.5rem;
+    font-size: 0.7rem;
+    font-family: "Cinzel", serif;
+    text-transform: uppercase;
+    border-radius: 2px;
+}
+
+/* ─── Durabilidad ─── */
+
+.durability-bar {
+    width: 100px;
+    height: 8px;
+    background: var(--parchment-shadow);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.durability-bar__fill {
+    height: 100%;
+    background: linear-gradient(90deg, #a02020, var(--gold), #2d6a2d);
+    background-size: 300px 100%;
+}
+
+/* ─── Badge de clase (usado también en cards de personajes/objetos) ─── */
+
+.class-badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    font-family: "Cinzel", serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    border-radius: 2px;
+    border: 1px solid currentColor;
+    background: rgba(255,255,255,0.3);
+}

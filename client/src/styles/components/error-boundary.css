@@ -1,0 +1,99 @@
+/* =========================================================================
+   ErrorBoundary global: pantalla de fallback cuando algo revienta en React.
+   ========================================================================= */
+
+.error-boundary {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: var(--parchment, #f5e9d4);
+}
+
+.error-boundary__content {
+    max-width: 600px;
+    background: white;
+    border: 2px solid var(--blood, #8b1a1a);
+    border-radius: 8px;
+    padding: 2.5rem;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.error-boundary__icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.error-boundary__title {
+    font-family: "MedievalSharp", "Cinzel", serif;
+    color: var(--blood, #8b1a1a);
+    margin: 0 0 0.5rem 0;
+}
+
+.error-boundary__subtitle {
+    color: var(--ink-faded, #8b6f47);
+    margin-bottom: 1.5rem;
+}
+
+.error-boundary__details {
+    background: #fbeeee;
+    border-left: 4px solid var(--blood, #8b1a1a);
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    text-align: left;
+    border-radius: 3px;
+    font-family: "Courier New", monospace;
+    font-size: 0.9rem;
+    color: var(--ink, #3d2817);
+}
+
+.error-boundary__stack {
+    text-align: left;
+    margin: 1rem 0;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.error-boundary__stack summary {
+    cursor: pointer;
+    user-select: none;
+    padding: 0.3rem;
+    font-weight: bold;
+    color: var(--ink-faded, #8b6f47);
+}
+
+.error-boundary__stack pre {
+    margin: 0.5rem 0 0 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 0.75rem;
+    color: var(--ink, #3d2817);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.error-boundary__actions {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+}
+
+/* Móvil: el toast-container queda a ancho completo en pantallas pequeñas */
+@media (max-width: 600px) {
+    .toast-container {
+        left: 1rem;
+        right: 1rem;
+        max-width: none;
+    }
+
+    .toast {
+        min-width: 0;
+    }
+}

@@ -1,0 +1,641 @@
+/* =========================================================================
+   Hoja de personaje imprimible (multi-página A4).
+   -------------------------------------------------------------------------
+   Estilos para la página /characters/:id/print, que se renderiza con
+   formato A4 fijo (210x297mm) en 3 páginas: stats+combate, personalidad,
+   hechizos. Toda la maquetación usa milímetros y puntos para que el
+   resultado impreso o exportado a PDF sea consistente.
+
+   La regla @media print general vive en print.css; este archivo solo
+   contiene los estilos en pantalla y de imposición.
+   ========================================================================= */
+
+/* ─── Wrapper general ─── */
+
+.sheet-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: "Cinzel", serif;
+    font-size: 1.5rem;
+    color: #5c4530;
+}
+
+.sheet-wrapper {
+    background: #d6c5a8;
+    min-height: 100vh;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* La hoja imprimible siempre se renderiza en modo claro: el tema oscuro
+   no le afecta. Bloqueamos también la transición global de tema. */
+.sheet-page,
+.sheet-wrapper {
+    transition: none;
+}
+
+.sheet-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    width: 210mm;
+    justify-content: flex-end;
+}
+
+.sheet-page {
+    width: 210mm;
+    min-height: 297mm;
+    background: #f5e9d4;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    padding: 10mm;
+    box-sizing: border-box;
+    color: #3d2817;
+    font-family: "EB Garamond", "Georgia", serif;
+    font-size: 9.5pt;
+    page-break-after: always;
+    page-break-inside: avoid;
+    display: flex;
+    flex-direction: column;
+}
+
+.sheet-page:last-child {
+    page-break-after: auto;
+}
+
+/* ─── Cabecera (común a las 3 páginas) ─── */
+
+.sheet-header {
+    display: flex;
+    border-bottom: 3px double #3d2817;
+    padding-bottom: 5mm;
+    margin-bottom: 4mm;
+    gap: 4mm;
+    flex-shrink: 0;
+}
+
+.sheet-title {
+    flex: 1;
+    border-right: 1px solid #8b6f47;
+    padding-right: 4mm;
+}
+
+.sheet-logo {
+    font-family: "MedievalSharp", "Cinzel", serif;
+    font-size: 12pt;
+    color: #8b1a1a;
+    margin-bottom: 2mm;
+    letter-spacing: 1px;
+}
+
+.sheet-charname {
+    font-family: "MedievalSharp", "Cinzel", serif;
+    font-size: 22pt;
+    line-height: 1;
+    color: #3d2817;
+}
+
+.sheet-meta { flex: 2; }
+
+.meta-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2mm;
+}
+
+.meta-cell {
+    border: 1px solid #8b6f47;
+    padding: 1.5mm 2mm;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.meta-label {
+    font-size: 6pt;
+    font-family: "Cinzel", serif;
+    text-transform: uppercase;
+    color: #6b5538;
+    letter-spacing: 0.4px;
+}
+
+.meta-value {
+    font-size: 10pt;
+    font-weight: bold;
+    margin-top: 0.5mm;
+}
+
+/* ─── Página 1: cuerpo de 3 columnas ─── */
+
+.sheet-body {
+    display: grid;
+    grid-template-columns: 32mm 65mm 1fr;
+    gap: 4mm;
+    flex: 1;
+}
+
+.sheet-col-left,
+.sheet-col-center,
+.sheet-col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 2mm;
+}
+
+/* Atributos (columna izquierda) */
+
+.ability-box {
+    border: 2px solid #3d2817;
+    border-radius: 3mm;
+    background: rgba(255, 255, 255, 0.3);
+    text-align: center;
+    padding: 2mm 1mm;
+    position: relative;
+}
+
+.ability-label {
+    font-family: "Cinzel", serif;
+    font-size: 7pt;
+    font-weight: bold;
+    letter-spacing: 0.4px;
+    color: #6b5538;
+}
+
+.ability-mod {
+    font-size: 18pt;
+    font-weight: bold;
+    line-height: 1;
+    margin: 1mm 0;
+    color: #3d2817;
+}
+
+.ability-score {
+    display: inline-block;
+    border: 2px solid #3d2817;
+    border-radius: 50%;
+    width: 8mm;
+    height: 8mm;
+    line-height: 8mm;
+    background: #f5e9d4;
+    font-size: 10pt;
+    font-weight: bold;
+}
+
+/* Bonus de competencia, inspiración y percepción pasiva */
+
+.prof-bonus,
+.passive-box {
+    border: 2px solid #3d2817;
+    border-radius: 2mm;
+    padding: 1.5mm;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.prof-label,
+.passive-label {
+    font-family: "Cinzel", serif;
+    font-size: 6pt;
+    color: #6b5538;
+}
+
+.prof-value,
+.passive-value {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-top: 0.5mm;
+}
+
+.passive-value { font-size: 16pt; }
+
+.inspiration-badge {
+    background: #b8860b;
+    color: white;
+    font-family: "Cinzel", serif;
+    font-size: 8pt;
+    text-align: center;
+    padding: 1.5mm;
+    border-radius: 2mm;
+    letter-spacing: 1px;
+    font-weight: bold;
+}
+
+/* Cabeceras tipo "TIRADAS DE SALVACIÓN", "HABILIDADES", etc. */
+
+.section-title {
+    font-family: "Cinzel", serif;
+    font-size: 7pt;
+    font-weight: bold;
+    text-align: center;
+    border-top: 1px solid #8b6f47;
+    border-bottom: 1px solid #8b6f47;
+    padding: 0.8mm 0;
+    margin: 1.5mm 0 1mm;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    background: rgba(139, 111, 71, 0.1);
+}
+
+/* Filas de habilidades y salvaciones */
+
+.skill-row {
+    display: grid;
+    grid-template-columns: 3mm 7mm 1fr;
+    gap: 0.8mm;
+    align-items: center;
+    font-size: 8pt;
+    padding: 0.2mm 0;
+}
+
+.skill-row--prof {
+    background: rgba(184, 134, 11, 0.1);
+    border-radius: 1mm;
+}
+
+.skill-circle {
+    color: #3d2817;
+    font-size: 7pt;
+    text-align: center;
+}
+
+.skill-row--prof .skill-circle {
+    color: #b8860b;
+}
+
+.skill-mod {
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 1px solid #8b6f47;
+    font-size: 8pt;
+}
+
+.skill-row--prof .skill-mod {
+    color: #b8860b;
+}
+
+.skill-name { font-size: 8pt; }
+.skill-attr { color: #8b6f47; font-size: 6pt; }
+
+/* ─── Combate (columna derecha) ─── */
+
+.combat-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5mm;
+}
+
+.combat-cell {
+    border: 2px solid #3d2817;
+    border-radius: 2mm;
+    padding: 1.5mm 1mm;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.combat-value {
+    font-size: 13pt;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.combat-label {
+    font-family: "Cinzel", serif;
+    font-size: 5.5pt;
+    color: #6b5538;
+    margin-top: 0.5mm;
+    line-height: 1.1;
+}
+
+.hp-box {
+    border: 2px solid #3d2817;
+    border-radius: 2mm;
+    padding: 2mm;
+    text-align: center;
+    background: rgba(139, 26, 26, 0.08);
+}
+
+.hp-label {
+    font-family: "Cinzel", serif;
+    font-size: 7pt;
+    color: #8b1a1a;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.hp-current {
+    font-size: 18pt;
+    font-weight: bold;
+    color: #8b1a1a;
+    margin: 0.5mm 0;
+}
+
+.hp-temp {
+    font-size: 7pt;
+    color: #6b5538;
+    font-style: italic;
+}
+
+.combat-mini-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5mm;
+}
+
+.combat-mini-cell {
+    border: 1px solid #8b6f47;
+    padding: 1.5mm;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 1.5mm;
+}
+
+.mini-label {
+    display: block;
+    font-family: "Cinzel", serif;
+    font-size: 6pt;
+    color: #6b5538;
+    text-transform: uppercase;
+}
+
+.mini-value {
+    font-weight: bold;
+    font-size: 9pt;
+}
+
+.gold-box {
+    border: 1px solid #b8860b;
+    border-radius: 2mm;
+    padding: 1.5mm 2mm;
+    background: rgba(184, 134, 11, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.gold-label {
+    font-family: "Cinzel", serif;
+    font-size: 8pt;
+    color: #6b5538;
+}
+
+.gold-value {
+    font-size: 11pt;
+    font-weight: bold;
+    color: #b8860b;
+}
+
+/* Tabla de ataques */
+
+.attacks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8pt;
+}
+
+.attacks-table th {
+    background: rgba(139, 111, 71, 0.2);
+    font-family: "Cinzel", serif;
+    font-size: 6pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 0.8mm 1.5mm;
+    border-bottom: 1px solid #8b6f47;
+    text-align: left;
+}
+
+.attacks-table td {
+    padding: 0.8mm 1.5mm;
+    border-bottom: 1px dotted #b8a070;
+}
+
+.attack-type {
+    color: #8b6f47;
+    font-size: 7pt;
+}
+
+.empty-row {
+    font-style: italic;
+    color: #8b6f47;
+    text-align: center;
+    font-size: 8pt;
+}
+
+/* Equipo */
+
+.equipment-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 8pt;
+    line-height: 1.4;
+}
+
+.equipment-list li {
+    padding: 0.5mm 0;
+    border-bottom: 1px dotted #c4a878;
+}
+
+.badge-eq {
+    color: #8b1a1a;
+    font-weight: bold;
+}
+
+/* Pie de página */
+
+.sheet-footer {
+    margin-top: auto;
+    padding-top: 2mm;
+    border-top: 1px solid #8b6f47;
+    text-align: center;
+    font-size: 6.5pt;
+    color: #8b6f47;
+    font-family: "Cinzel", serif;
+}
+
+/* ─── Página 2: personalidad y físico ─── */
+
+.physical-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5mm;
+}
+
+.page2-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4mm;
+    margin-bottom: 3mm;
+}
+
+.page2-col-left,
+.page2-col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 2mm;
+}
+
+.narrative-block {
+    border: 1px solid #8b6f47;
+    border-radius: 2mm;
+    padding: 2mm 3mm;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.narrative-block--flex {
+    flex: 1;
+    min-height: 60mm;
+}
+
+.narrative-block--small {
+    min-height: 18mm;
+}
+
+.narrative-block__title {
+    font-family: "Cinzel", serif;
+    font-size: 7pt;
+    font-weight: bold;
+    color: #6b5538;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #c4a878;
+    padding-bottom: 1mm;
+    margin-bottom: 1.5mm;
+}
+
+.narrative-block__content {
+    font-size: 9pt;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.narrative-block__empty {
+    color: #8b6f47;
+    font-style: italic;
+}
+
+.proficiency-section {
+    border: 1px solid #8b6f47;
+    border-radius: 2mm;
+    padding: 2mm 3mm;
+    background: rgba(255, 255, 255, 0.2);
+    margin-top: 2mm;
+}
+
+.prof-line {
+    font-size: 9pt;
+    line-height: 1.5;
+    margin: 0.5mm 0;
+}
+
+/* ─── Página 3: hechizos ─── */
+
+.spell-slots-section {
+    margin-bottom: 4mm;
+}
+
+.spell-slots-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2mm;
+}
+
+.slot-print {
+    border: 2px solid #3d2817;
+    border-radius: 2mm;
+    padding: 2mm;
+    background: rgba(255, 255, 255, 0.3);
+    text-align: center;
+}
+
+.slot-print--empty {
+    opacity: 0.4;
+    border-style: dashed;
+}
+
+.slot-print__level {
+    font-family: "Cinzel", serif;
+    font-weight: bold;
+    font-size: 9pt;
+    color: #3d2817;
+}
+
+.slot-print__circles {
+    margin: 1mm 0;
+    font-size: 12pt;
+    letter-spacing: 1px;
+    line-height: 1;
+    min-height: 4mm;
+}
+
+.slot-circle {
+    color: #b8860b;
+}
+
+.slot-circle--used {
+    color: #b8860b;
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+
+.slot-print__empty {
+    font-size: 10pt;
+    color: #8b6f47;
+}
+
+.slot-print__count {
+    font-size: 8pt;
+    font-weight: bold;
+    color: #8b6f47;
+}
+
+.spells-section {
+    flex: 1;
+}
+
+.spell-print-group {
+    margin-bottom: 3mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.spell-print-group__title {
+    font-family: "Cinzel", serif;
+    font-size: 9pt;
+    font-weight: bold;
+    color: #3d2817;
+    border-bottom: 1.5px solid #b8860b;
+    padding-bottom: 0.5mm;
+    margin-bottom: 1mm;
+    letter-spacing: 0.5px;
+}
+
+.spell-print-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.spell-print-list li {
+    padding: 0.6mm 0;
+    border-bottom: 1px dotted #c4a878;
+    font-size: 9pt;
+    display: flex;
+    align-items: center;
+    gap: 1.5mm;
+}
+
+.spell-print-mark {
+    color: #b8860b;
+    font-size: 9pt;
+    width: 4mm;
+    flex-shrink: 0;
+}
+
+.spell-print-meta {
+    color: #8b6f47;
+    font-size: 8pt;
+    margin-left: auto;
+}

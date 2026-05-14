@@ -1,0 +1,118 @@
+/* =========================================================================
+   Lista de chips: idiomas, otras competencias, etc. Editable con autocomplete.
+   ========================================================================= */
+
+.chip-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.chip-list__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    min-height: 2rem;
+    padding: 0.5rem;
+    border: 1px dashed var(--parchment-shadow, #c4a878);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.chip-list__empty {
+    font-style: italic;
+    color: var(--ink-faded, #8b6f47);
+    opacity: 0.7;
+    font-size: 0.9rem;
+    padding: 0.2rem 0.4rem;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.6rem;
+    background: var(--gold, #b8860b);
+    color: white;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.chip__remove {
+    background: rgba(255, 255, 255, 0.25);
+    border: none;
+    color: white;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    transition: background 0.15s;
+}
+
+.chip__remove:hover {
+    background: rgba(255, 255, 255, 0.45);
+}
+
+.chip-list__input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.chip-list__input {
+    flex: 1;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--parchment-shadow, #c4a878);
+    border-radius: 3px;
+    background: var(--parchment, #f5e9d4);
+    color: var(--ink, #3d2817);
+    font-family: inherit;
+    font-size: 0.95rem;
+}
+
+.chip-list__input:focus {
+    outline: none;
+    border-color: var(--gold, #b8860b);
+    box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.15);
+}
+
+.chip-list__suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    margin: 0.3rem 0 0;
+    padding: 0;
+    list-style: none;
+    background: var(--parchment, #f5e9d4);
+    border: 1px solid var(--gold, #b8860b);
+    border-radius: 3px;
+    max-height: 240px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.chip-list__suggestion {
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    transition: background 0.1s;
+    font-size: 0.95rem;
+    color: var(--ink, #3d2817);
+}
+
+.chip-list__suggestion:hover {
+    background: rgba(184, 134, 11, 0.15);
+}
+
+.chip-list__suggestion + .chip-list__suggestion {
+    border-top: 1px dotted var(--parchment-shadow, #c4a878);
+}
