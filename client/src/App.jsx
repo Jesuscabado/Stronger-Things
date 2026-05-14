@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import Header from "./components/Header.jsx";
-import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import Header from "./components/layout/Header.jsx";
+import ProtectedRoute from "./components/layout/ProtectedRoute.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import CharactersPage from "./pages/CharactersPage.jsx";
@@ -8,7 +8,7 @@ import CharacterDetailPage from "./pages/CharacterDetailPage.jsx";
 import ObjectsPage from "./pages/ObjectsPage.jsx";
 import SpellsPage from "./pages/SpellsPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
-import AdminRoute from "./components/AdminRoute.jsx";
+import AdminRoute from "./components/layout/AdminRoute.jsx";
 import CharacterSheetPrint from "./pages/CharacterSheetPrint.jsx";
 import DiaryPage from "./pages/DiaryPage.jsx";
 
