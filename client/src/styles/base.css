@@ -1,0 +1,57 @@
+/* =========================================================================
+   Base — reset, tipografía global, color de fondo del body con ruido
+   procedural y enlaces.
+   ========================================================================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "EB Garamond", "Times New Roman", serif;
+    color: var(--ink);
+    background: var(--parchment);
+    background-image:
+        radial-gradient(ellipse at top, rgba(184, 134, 11, 0.1) 0%, transparent 60%),
+        radial-gradient(ellipse at bottom, rgba(139, 0, 0, 0.08) 0%, transparent 60%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.15 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+    min-height: 100vh;
+    line-height: 1.6;
+    font-size: 18px;
+}
+
+h1, h2, h3, h4 {
+    font-family: "Cinzel", serif;
+    color: var(--ink);
+    letter-spacing: 0.05em;
+    margin-bottom: 0.6em;
+}
+
+h1 { font-size: 2.5rem; font-weight: 800; }
+h2 { font-size: 1.8rem; font-weight: 600; }
+h3 { font-size: 1.3rem; }
+
+a {
+    color: var(--blood);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--blood);
+    transition: all 0.2s;
+}
+a:hover { color: var(--blood-dark); border-bottom-style: solid; }
+
+/* Transición suave entre temas para los elementos más visibles al cambiar */
+body,
+.scroll-card,
+.btn,
+.stat,
+.modal-content,
+.tab-btn,
+.spell-item,
+.chip,
+input,
+select,
+textarea {
+    transition: background-color 0.25s, color 0.25s, border-color 0.25s;
+}

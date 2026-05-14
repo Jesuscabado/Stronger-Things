@@ -1,0 +1,87 @@
+/* =========================================================================
+   Pestañas del editor de personaje.
+   La barra es sticky para que al hacer scroll dentro de una pestaña larga
+   (Atributos, Inventario, etc.) la navegación siga visible.
+   ========================================================================= */
+
+.tabs-nav {
+    display: flex;
+    gap: 0.25rem;
+    margin: 1.5rem 0 1rem;
+    border-bottom: 2px solid var(--ink, #3d2817);
+    flex-wrap: wrap;
+
+    /* Sticky: al hacer scroll, las pestañas se quedan ancladas arriba
+       del viewport para poder cambiar de sección sin volver al inicio. */
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--parchment, #f4e8d0);
+    box-shadow: 0 2px 6px rgba(43, 24, 16, 0.15);
+
+    /* El margin-top original empujaba la barra hacia abajo cuando estaba
+       pegada arriba, dejando un hueco feo. Lo movemos a padding-top
+       para que el espacio forme parte del propio sticky. */
+    margin-top: 0;
+    padding-top: 1.5rem;
+}
+
+.tab-btn {
+    background: transparent;
+    border: 2px solid transparent;
+    border-bottom: none;
+    padding: 0.6rem 1.2rem;
+    font-family: "Cinzel", serif;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ink-faded, #8b6f47);
+    cursor: pointer;
+    border-radius: 4px 4px 0 0;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    color: var(--ink, #3d2817);
+    background: rgba(184, 134, 11, 0.08);
+}
+
+.tab-btn--active {
+    background: var(--parchment, #f5e9d4);
+    border-color: var(--ink, #3d2817);
+    color: var(--ink, #3d2817);
+    font-weight: bold;
+}
+
+.tab-icon {
+    margin-right: 0.4rem;
+}
+
+/* Animación de entrada al cambiar de pestaña.
+   IMPORTANTE: solo opacidad — añadir transform aquí rompería el
+   position: sticky de .tabs-nav porque ancestros con transform crean un
+   nuevo containing block que cancela el sticky.
+   Ver: https://developer.mozilla.org/en-US/docs/Web/CSS/position#sticky */
+.tab-content {
+    animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Placeholder para pestañas aún no implementadas */
+.tab-placeholder {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--ink-faded, #8b6f47);
+    font-style: italic;
+}
+
+.tab-placeholder-emoji {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+}

@@ -6,7 +6,7 @@ import { ToastProvider } from "./context/ToastContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
-import "./styles/global.css";
+import "./styles/index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>

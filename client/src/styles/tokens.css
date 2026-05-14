@@ -1,0 +1,18 @@
+/* =========================================================================
+   Tokens — paleta y variables de diseño (tema claro/pergamino).
+   El tema oscuro sobrescribe estas variables en themes/dark.css.
+   ========================================================================= */
+
+:root {
+    --parchment: #f4e8d0;
+    --parchment-dark: #e8d8b8;
+    --parchment-shadow: #c9b58e;
+    --ink: #2b1810;
+    --ink-faded: #5a4530;
+    --gold: #b8860b;
+    --gold-bright: #daa520;
+    --blood: #8b0000;
+    --blood-dark: #5a0000;
+    --leather: #3d2817;
+    --shadow: rgba(43, 24, 16, 0.4);
+}

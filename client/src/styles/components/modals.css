@@ -1,0 +1,24 @@
+/* =========================================================================
+   Modal overlay (oscurece el fondo) y contenido (la card central).
+   ========================================================================= */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 1rem;
+}
+
+.modal-content {
+    background: var(--parchment-dark);
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 12px 24px var(--shadow);
+}

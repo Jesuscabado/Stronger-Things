@@ -1,0 +1,67 @@
+/* =========================================================================
+   Reglas de impresión (@media print)
+   -------------------------------------------------------------------------
+   Se aplican cuando el usuario imprime o guarda como PDF desde el navegador.
+   Tres objetivos:
+     1. Ocultar elementos de UI no imprimibles (controles, header, no-print).
+     2. Forzar tamaño A4 sin márgenes.
+     3. Garantizar que la hoja se imprime siempre en modo claro, incluso si
+        la app está en modo oscuro.
+   ========================================================================= */
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 0;
+    }
+
+    body {
+        background: white !important;
+        margin: 0;
+    }
+
+    /* Ocultar elementos de UI que no deben aparecer en el papel/PDF */
+    .no-print,
+    .sheet-controls,
+    .app-header {
+        display: none !important;
+    }
+
+    .sheet-wrapper {
+        background: white !important;
+        padding: 0;
+        min-height: auto;
+        gap: 0;
+    }
+
+    .sheet-page {
+        box-shadow: none;
+        margin: 0;
+        width: 210mm;
+        height: 297mm;
+        min-height: 297mm;
+        page-break-after: always;
+    }
+
+    .sheet-page:last-child {
+        page-break-after: auto;
+    }
+
+    /* Evitar que estos bloques se partan entre páginas */
+    .sheet-header,
+    .meta-cell,
+    .ability-box,
+    .combat-cell,
+    .hp-box,
+    .narrative-block,
+    .spell-print-group {
+        page-break-inside: avoid;
+    }
+
+    /* Si la app está en modo oscuro, fuerza tokens claros para la
+       impresión. La hoja imprimible no debe salir oscura nunca. */
+    :root[data-theme="dark"] {
+        --parchment: #f4e8d0;
+        --ink: #2b1810;
+    }
+}

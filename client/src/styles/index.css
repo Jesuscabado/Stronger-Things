@@ -1,0 +1,44 @@
+/* =========================================================================
+   StrongerThings — punto de entrada de los estilos
+   -------------------------------------------------------------------------
+   Este es el ÚNICO archivo que main.jsx debe importar:
+       import "./styles/index.css";
+
+   El orden de los @import importa: lo de más arriba carga primero y puede
+   ser sobrescrito por lo de abajo. La cascada va:
+
+     1. Tokens (variables de diseño)
+     2. Base (reset, body, tipografía)
+     3. Layout (container, grid, header, scroll-card)
+     4. Formularios (input, select, label, btn, alert, field)
+     5. Componentes (uno por concepto)
+     6. Páginas (auth, hoja imprimible)
+     7. Tema oscuro (sobrescribe los estilos anteriores)
+     8. Responsive (media queries por breakpoint)
+     9. Print (media print)
+   ========================================================================= */
+
+@import "./tokens.css";
+@import "./base.css";
+@import "./layout.css";
+@import "./forms.css";
+
+@import "./components/stats.css";
+@import "./components/inventory.css";
+@import "./components/narrative.css";
+@import "./components/chips.css";
+@import "./components/spells.css";
+@import "./components/tabs.css";
+@import "./components/modals.css";
+@import "./components/toasts.css";
+@import "./components/error-boundary.css";
+@import "./components/override-popover.css";
+@import "./components/theme-toggle.css";
+
+@import "./pages/auth.css";
+@import "./pages/sheet-print.css";
+
+@import "./themes/dark.css";
+
+@import "./responsive.css";
+@import "./print.css";

@@ -1,0 +1,354 @@
+/* =========================================================================
+   Tema oscuro
+   -------------------------------------------------------------------------
+   Se activa cuando el <html> tiene atributo data-theme="dark". Lo gestiona
+   ThemeContext en el frontend. Sobrescribe los tokens y aplica ajustes
+   puntuales a los componentes que de otra forma quedarían ilegibles.
+
+   Estructura:
+     1. Sobrescritura de variables de diseño.
+     2. Body (fondo y ruido procedural).
+     3. Header (texto fijo claro, no usa --parchment).
+     4. Resto de componentes por orden (cards, forms, botones, tabs, etc).
+
+   Nota sobre el header: en tema claro el texto del header usa
+   var(--parchment) que es crema. En oscuro --parchment se vuelve oscuro,
+   y eso dejaría texto oscuro sobre fondo oscuro = invisible. Por eso
+   aquí forzamos colores explícitos (no variables) para los enlaces y el
+   botón "Salir" de la cabecera.
+   ========================================================================= */
+
+/* ─── 1. Sobrescritura de tokens ─── */
+
+:root[data-theme="dark"] {
+    --parchment:          #2a2520;
+    --parchment-dark:     #1f1b17;
+    --parchment-shadow:   #524439;
+    --ink:                #e8d8b8;
+    --ink-faded:          #9d8b6e;
+    --gold:               #d4a435;
+    --gold-bright:        #f5c252;
+    --blood:              #b85d5d;
+    --blood-dark:         #8b3a3a;
+    --leather:            #1a1410;
+    --shadow:             rgba(0, 0, 0, 0.6);
+}
+
+/* ─── 2. Body ─── */
+
+:root[data-theme="dark"] body {
+    background: var(--parchment);
+    background-image:
+        radial-gradient(ellipse at top, rgba(212, 164, 53, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at bottom, rgba(184, 93, 93, 0.06) 0%, transparent 60%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0 0.7 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ─── 3. Header ─── */
+
+:root[data-theme="dark"] .app-header {
+    background: linear-gradient(180deg, #100a06 0%, #050302 100%);
+    border-bottom-color: var(--gold-bright);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+}
+
+:root[data-theme="dark"] .app-header__brand,
+:root[data-theme="dark"] .app-header__brand a {
+    color: var(--gold-bright);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+:root[data-theme="dark"] .app-header nav a {
+    color: #e8d8b8;
+}
+
+:root[data-theme="dark"] .app-header nav a:hover {
+    color: var(--gold-bright);
+}
+
+/* El span del username (lleva opacity inline en el JSX) */
+:root[data-theme="dark"] .app-header nav span {
+    color: #e8d8b8;
+}
+
+/* El botón "Salir" hereda .btn — en navbar oscura queda raro. Outline claro. */
+:root[data-theme="dark"] .app-header .btn {
+    background: transparent;
+    color: #e8d8b8;
+    border-color: #e8d8b8;
+    box-shadow: 2px 2px 0 rgba(232, 216, 184, 0.3);
+}
+
+:root[data-theme="dark"] .app-header .btn:hover {
+    background: var(--gold-bright);
+    color: #100a06;
+    border-color: var(--gold-bright);
+    box-shadow: 3px 3px 0 rgba(232, 216, 184, 0.4);
+}
+
+:root[data-theme="dark"] .app-header .btn:active {
+    box-shadow: 1px 1px 0 rgba(232, 216, 184, 0.3);
+}
+
+/* ─── 4. Cards ─── */
+
+:root[data-theme="dark"] .scroll-card {
+    background: var(--parchment-dark);
+    border-color: var(--parchment-shadow);
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.4),
+        inset 0 0 30px rgba(0, 0, 0, 0.2);
+}
+
+/* ─── 5. Formularios ─── */
+
+:root[data-theme="dark"] form input,
+:root[data-theme="dark"] form select,
+:root[data-theme="dark"] form textarea {
+    background: rgba(0, 0, 0, 0.25);
+    border-color: var(--parchment-shadow);
+    color: var(--ink);
+}
+
+:root[data-theme="dark"] form input:focus,
+:root[data-theme="dark"] form select:focus,
+:root[data-theme="dark"] form textarea:focus {
+    background: rgba(0, 0, 0, 0.35);
+    border-color: var(--gold-bright);
+}
+
+:root[data-theme="dark"] form select option {
+    background: var(--parchment-dark);
+    color: var(--ink);
+}
+
+/* ─── 6. Botones ─── */
+
+:root[data-theme="dark"] .btn {
+    background: var(--parchment-dark);
+    color: var(--ink);
+    border-color: var(--parchment-shadow);
+    box-shadow: 2px 2px 0 #0a0805;
+}
+
+:root[data-theme="dark"] .btn:hover {
+    box-shadow: 3px 3px 0 #0a0805;
+}
+
+:root[data-theme="dark"] .btn-primary {
+    background: var(--blood);
+    color: white;
+    border-color: var(--blood-dark);
+    box-shadow: 2px 2px 0 var(--blood-dark);
+}
+
+:root[data-theme="dark"] .btn-gold {
+    background: var(--gold);
+    color: #1a1410;
+    border-color: #6b4f00;
+    box-shadow: 2px 2px 0 #6b4f00;
+}
+
+/* ─── 7. Stats y listas ─── */
+
+:root[data-theme="dark"] .stat {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: var(--parchment-shadow);
+}
+
+:root[data-theme="dark"] .dnd-list-row:hover {
+    background: rgba(212, 164, 53, 0.1);
+}
+
+:root[data-theme="dark"] .dnd-list-row--prof {
+    background: rgba(212, 164, 53, 0.15);
+}
+
+/* ─── 8. Modal ─── */
+
+:root[data-theme="dark"] .modal-content {
+    background: var(--parchment-dark);
+    border-color: var(--ink);
+}
+
+:root[data-theme="dark"] .modal-overlay {
+    background: rgba(0, 0, 0, 0.85);
+}
+
+/* ─── 9. Pestañas ─── */
+
+:root[data-theme="dark"] .tabs-nav {
+    background: var(--parchment, #2a2520);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="dark"] .tab-btn--active {
+    background: var(--parchment-dark);
+    color: var(--gold-bright);
+    border-color: var(--gold-bright);
+}
+
+:root[data-theme="dark"] .tab-btn:hover {
+    background: rgba(212, 164, 53, 0.08);
+}
+
+/* ─── 10. Chips ─── */
+
+:root[data-theme="dark"] .chip-list__chips {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: var(--parchment-shadow);
+}
+
+:root[data-theme="dark"] .chip {
+    background: var(--gold);
+    color: #1a1410;
+}
+
+:root[data-theme="dark"] .chip-list__input {
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--ink);
+}
+
+:root[data-theme="dark"] .chip-list__suggestions {
+    background: var(--parchment-dark);
+    border-color: var(--gold);
+}
+
+:root[data-theme="dark"] .chip-list__suggestion {
+    color: var(--ink);
+}
+
+:root[data-theme="dark"] .chip-list__suggestion:hover {
+    background: rgba(212, 164, 53, 0.15);
+}
+
+/* ─── 11. Conjuros ─── */
+
+:root[data-theme="dark"] .spell-item {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: var(--parchment-shadow);
+}
+
+:root[data-theme="dark"] .spell-item--prepared {
+    background: rgba(212, 164, 53, 0.1);
+    border-color: var(--gold-bright);
+}
+
+:root[data-theme="dark"] .spell-item__detail {
+    background: rgba(0, 0, 0, 0.25);
+    border-top-color: var(--parchment-shadow);
+}
+
+:root[data-theme="dark"] .slot-cell {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: var(--parchment-shadow);
+}
+
+:root[data-theme="dark"] .spellcast-stat {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: var(--parchment-shadow);
+}
+
+:root[data-theme="dark"] .spellcast-stat__select,
+:root[data-theme="dark"] .spellcast-stat__input {
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--ink);
+    border-color: var(--parchment-shadow);
+}
+
+/* ─── 12. Campos narrativos y físicos ─── */
+
+:root[data-theme="dark"] .narrative-field__display {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: var(--parchment-shadow);
+}
+
+:root[data-theme="dark"] .narrative-field__display:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: var(--gold);
+}
+
+:root[data-theme="dark"] .narrative-field__textarea {
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--ink);
+    border-color: var(--gold);
+}
+
+:root[data-theme="dark"] .physical-field__display {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: var(--parchment-shadow);
+}
+
+:root[data-theme="dark"] .physical-field__input {
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--ink);
+}
+
+/* ─── 13. Toasts ─── */
+
+:root[data-theme="dark"] .toast {
+    background: var(--parchment-dark);
+}
+
+:root[data-theme="dark"] .toast--success {
+    background: #1f3520;
+}
+
+:root[data-theme="dark"] .toast--error {
+    background: #3b1f1f;
+}
+
+:root[data-theme="dark"] .toast--warning {
+    background: #3b2f1a;
+}
+
+:root[data-theme="dark"] .toast--info {
+    background: #1a2b35;
+}
+
+:root[data-theme="dark"] .toast__message,
+:root[data-theme="dark"] .toast__title {
+    color: var(--ink);
+}
+
+/* ─── 14. Override popover ─── */
+
+:root[data-theme="dark"] .override-popover {
+    background: var(--parchment-dark);
+    border-color: var(--gold);
+}
+
+:root[data-theme="dark"] .override-popover::before {
+    border-bottom-color: var(--gold);
+}
+
+:root[data-theme="dark"] .override-popover input[type="number"] {
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--ink);
+    border-color: var(--parchment-shadow);
+}
+
+/* ─── 15. Alertas ─── */
+
+:root[data-theme="dark"] .alert {
+    background: rgba(184, 93, 93, 0.15);
+    color: #ffb3b3;
+    border-left-color: var(--blood);
+}
+
+:root[data-theme="dark"] .alert-success {
+    background: rgba(85, 170, 85, 0.15);
+    color: #b3ffb3;
+    border-left-color: #55aa55;
+}
+
+/* ─── 16. Badges varios ─── */
+
+:root[data-theme="dark"] .class-badge {
+    background: rgba(212, 164, 53, 0.15);
+    color: var(--gold-bright);
+}
+
+:root[data-theme="dark"] .inventory-item {
+    border-bottom-color: var(--parchment-shadow);
+}
