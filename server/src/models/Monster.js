@@ -48,8 +48,19 @@ const monsterSchema = new mongoose.Schema(
         user: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-            required: true,
+            required: false,
             index: true
+        },
+         isPublic: {
+            type: Boolean,
+            default: false,
+            index: true
+        },
+        srdIndex: {
+            type: String,
+            index: true,
+            sparse: true,    // sparse = el índice ignora los documentos sin este campo
+            unique: true     // unicidad global (solo afecta a los que sí lo tienen)
         },
 
         // ─── Identidad ───
