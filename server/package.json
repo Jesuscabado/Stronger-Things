@@ -7,8 +7,9 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "seed": "node --env-file=.env src/seed.js"
-  },
+    "seed": "node src/seed.js",
+    "seed:monsters": "node src/seed-monsters.js"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Jesuscabado/Stronger-Things-Backend.git"

@@ -139,6 +139,7 @@ function Bestiary() {
     const [filterType, setFilterType] = useState("");
     const [filterSize, setFilterSize] = useState("");
     const [filterCR, setFilterCR] = useState("");
+    const [filterSource, setFilterSource] = useState("");
 
     // Creación / edición
     const [showForm, setShowForm] = useState(false);
@@ -159,7 +160,8 @@ function Bestiary() {
                 search: search.trim().length >= 3 ? search.trim() : undefined,
                 type: filterType || undefined,
                 size: filterSize || undefined,
-                cr: filterCR || undefined
+                cr: filterCR || undefined,
+                source: filterSource || undefined
             });
             setMonsters(data);
         } catch (err) {
@@ -172,7 +174,7 @@ function Bestiary() {
     useEffect(() => {
         const handle = setTimeout(load, 250);
         return () => clearTimeout(handle);
-    }, [search, filterType, filterSize, filterCR]);
+    }, [search, filterType, filterSize, filterCR, filterSource]);
 
     const openCreate = () => {
         setForm(emptyMonster);
@@ -361,6 +363,14 @@ function Bestiary() {
                             {CR_OPTIONS.map(cr => <option key={cr} value={cr}>{cr}</option>)}
                         </select>
                     </div>
+                    <div className="field" style={{ marginBottom: 0 }}>
+    <label>Origen</label>
+    <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)}>
+        <option value="">Todos</option>
+        <option value="mine">Mis monstruos</option>
+        <option value="public">Catálogo SRD</option>
+    </select>
+</div>
                 </div>
             </form>
 
@@ -422,6 +432,11 @@ function MonsterCard({ monster, expanded, onToggle, onEdit, onDelete }) {
                         <span className="badge-tag" style={{ background: "rgba(160, 32, 32, 0.15)" }}>CR {monster.challengeRating}</span>
                         <span>·</span>
                         <span>{monster.alignment}</span>
+                        {monster.isPublic && (
+    <span className="badge-tag" style={{ background: "rgba(59, 109, 255, 0.15)", color: "#3b6dff" }}>
+        SRD
+    </span>
+)}
                     </div>
                 </div>
                 <span style={{ fontSize: "1.3rem", color: "var(--ink-faded)" }}>

@@ -7,6 +7,7 @@ export const monstersApi = {
         if (params.type)   qs.set("type",   params.type);
         if (params.size)   qs.set("size",   params.size);
         if (params.cr)     qs.set("cr",     params.cr);
+        if (params.source) qs.set("source", params.source);
         const query = qs.toString() ? `?${qs.toString()}` : "";
         return api.get(`/api/monsters${query}`);
     },
