@@ -1,25 +1,33 @@
-#!/usr/bin/env node
-/* =========================================================================
-   server/seed-monsters.js
-   -------------------------------------------------------------------------
-   Importa el catálogo de monstruos del SRD oficial desde dnd5eapi.co,
-   los traduce con Claude Haiku y los guarda en MongoDB como monstruos
-   PÚBLICOS (isPublic: true, user: null), accesibles para todos los DMs.
+/**
+ * Seed de monstruos del SRD oficial (dnd5eapi.co).
+ *
+ * A diferencia de seed.js (que va por HTTP porque items/hechizos/personajes
+ * pertenecen a un usuario), los monstruos del SRD son PÚBLICOS y de sistema
+ * (isPublic: true, user: null). No tienen dueño, así que se insertan
+ * directamente en Mongo igual que haría una migración.
+ *
+ * - Idempotente: si un monstruo ya existe (por srdIndex), no se re-importa.
+ * - Cacheado: las traducciones se guardan en data/translations.json.
+ * - Concurrencia controlada para no saturar la API de Anthropic.
+ * - Confirmación interactiva con coste estimado antes de empezar.
+ *
+ * UBICACIÓN: este archivo va en server/src/seed-monsters.js
+ *            (misma carpeta que seed.js).
+ *
+ * USO:  npm run seed:monsters
+ * =========================================================================
+ */
 
-   - Idempotente: si un monstruo ya existe (por srdIndex), no se re-importa.
-   - Cacheado: las traducciones se guardan localmente para reintentos.
-   - Concurrencia controlada: procesa N monstruos en paralelo.
-   - Confirmación interactiva: avisa del coste antes de empezar.
+// Cargar variables de entorno explícitamente. Robusto independientemente
+// de cómo se lance el script. dotenv ya es dependencia del proyecto.
+import dotenv from "dotenv";
+dotenv.config();
 
-   Uso:
-     npm run seed:monsters
-   ========================================================================= */
-
-import "./src/config/loadEnv.js";
 import mongoose from "mongoose";
-import readline from "readline";
+import readline from "node:readline";
 
-import Monster from "./src/models/Monster.js";
+import { connectMongo } from "./config/db.js";
+import Monster from "./models/Monster.js";
 import {
     translateSize,
     translateType,
@@ -29,18 +37,41 @@ import {
     translateLanguageList,
     translateSense,
     translateMonster
-} from "./src/services/translationService.js";
+} from "./services/translationService.js";
 
-const SRD_API = "https://www.dnd5eapi.co";
+const DND_API = "https://www.dnd5eapi.co";
 const CONCURRENCY = 3;
 const ESTIMATED_COST_EUR = "2-4";
 
-const connectDB = async () => {
-    const { MONGO_HOST, MONGO_PORT, MONGO_USER, MONGO_PASSWORD, MONGO_DB } = process.env;
-    const uri = `mongodb://${MONGO_USER}:${encodeURIComponent(MONGO_PASSWORD)}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}?authSource=admin`;
-    await mongoose.connect(uri);
-    console.log(`✅ Conectado a MongoDB (${MONGO_DB}@${MONGO_HOST})`);
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+/* ─── Fetch con retry (mismo patrón que tu seed.js) ─── */
+
+const fetchWithRetry = async (url, retries = 5, baseDelay = 2000) => {
+    let lastError;
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const res = await fetch(url);
+            if (res.ok) return res;
+            if (res.status === 429 || res.status >= 500) {
+                if (attempt < retries) {
+                    await sleep(baseDelay * attempt);
+                    continue;
+                }
+            }
+            return res;
+        } catch (err) {
+            lastError = err;
+            if (attempt < retries) {
+                await sleep(baseDelay * attempt);
+                continue;
+            }
+        }
+    }
+    throw lastError || new Error("Retries exhausted");
 };
+
+/* ─── Confirmación interactiva ─── */
 
 const confirm = (question) => new Promise(resolve => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -50,26 +81,10 @@ const confirm = (question) => new Promise(resolve => {
     });
 });
 
-const fetchSrdIndex = async () => {
-    const res = await fetch(`${SRD_API}/api/2014/monsters`);
-    if (!res.ok) throw new Error(`Error fetching SRD index: ${res.status}`);
-    const data = await res.json();
-    return data.results || [];
-};
+/* ─── Mapeo del SRD a nuestro modelo Monster ─── */
 
-const fetchSrdMonster = async (index) => {
-    const res = await fetch(`${SRD_API}/api/2014/monsters/${index}`);
-    if (!res.ok) throw new Error(`Error fetching ${index}: ${res.status}`);
-    return res.json();
-};
-
-/**
- * Mapea la respuesta cruda del SRD a un documento Monster usando los
- * diccionarios fijos. Los textos largos quedan en inglés; se traducen
- * después con Claude.
- */
 const mapMonsterFromSrd = (srd) => {
-    // Velocidad: el SRD da un objeto { walk: "30 ft.", fly: "60 ft." }
+    // Velocidad: el SRD da { walk: "30 ft.", fly: "60 ft." }
     const speed = [];
     if (srd.speed) {
         const labels = { walk: "", fly: "vuelo ", swim: "nadar ", climb: "trepar ", burrow: "excavar " };
@@ -111,15 +126,11 @@ const mapMonsterFromSrd = (srd) => {
         }
     }
 
-    // Acciones unificadas
+    // Acciones unificadas con kind
     const actions = [];
     const pushActions = (arr, kind) => {
         for (const a of arr || []) {
-            const action = {
-                kind,
-                name: a.name || "",
-                description: a.desc || ""
-            };
+            const action = { kind, name: a.name || "", description: a.desc || "" };
             if (Array.isArray(a.attack_bonus) && a.attack_bonus.length) {
                 action.attackBonus = a.attack_bonus[0];
             } else if (typeof a.attack_bonus === "number") {
@@ -140,7 +151,7 @@ const mapMonsterFromSrd = (srd) => {
     pushActions(srd.reactions, "reaction");
     pushActions(srd.legendary_actions, "legendary");
 
-    // CR como string
+    // CR a string
     const crMap = { 0: "0", 0.125: "1/8", 0.25: "1/4", 0.5: "1/2" };
     const cr = crMap[srd.challenge_rating] ?? String(srd.challenge_rating);
 
@@ -180,7 +191,7 @@ const mapMonsterFromSrd = (srd) => {
         damageVulnerabilities: translateDamageList(srd.damage_vulnerabilities),
         damageResistances:     translateDamageList(srd.damage_resistances),
         damageImmunities:      translateDamageList(srd.damage_immunities),
-        conditionImmunities:   translateConditionList((srd.condition_immunities || []).map(c => c.index)),
+        conditionImmunities:   translateConditionList((srd.condition_immunities || []).map(x => x.index)),
 
         senses,
         passivePerception,
@@ -196,17 +207,14 @@ const mapMonsterFromSrd = (srd) => {
     };
 };
 
-/**
- * Traduce el monstruo con Claude. Reemplaza los textos largos en su sitio.
- */
+/* ─── Traducción con Claude ─── */
+
 const translateMapped = async (mapped) => {
     const payload = {
         name: mapped.name,
         description: mapped.description,
         actions: mapped.actions.map(a => ({
-            kind: a.kind,
-            name: a.name,
-            description: a.description
+            kind: a.kind, name: a.name, description: a.description
         }))
     };
 
@@ -223,9 +231,10 @@ const translateMapped = async (mapped) => {
             mapped.actions[i].description = t.description || mapped.actions[i].description;
         }
     }
-
     return mapped;
 };
+
+/* ─── Pool de concurrencia ─── */
 
 const processInPool = async (items, worker, concurrency) => {
     const results = [];
@@ -251,6 +260,8 @@ const processInPool = async (items, worker, concurrency) => {
     return results;
 };
 
+/* ─── Main ─── */
+
 const main = async () => {
     console.log("🐉 SEED DE MONSTRUOS DEL SRD OFICIAL\n");
 
@@ -259,15 +270,17 @@ const main = async () => {
         process.exit(1);
     }
 
-    await connectDB();
+    await connectMongo();
 
     console.log("📡 Descargando índice del SRD...");
-    const srdIndex = await fetchSrdIndex();
-    console.log(`   ${srdIndex.length} monstruos disponibles.\n`);
+    const listRes = await fetchWithRetry(`${DND_API}/api/2014/monsters`);
+    const { results } = await listRes.json();
+    console.log(`   ${results.length} monstruos disponibles.\n`);
 
+    // Excluir los ya importados (idempotencia por srdIndex)
     const existing = await Monster.find({ srdIndex: { $exists: true } }, "srdIndex").lean();
     const existingIndices = new Set(existing.map(m => m.srdIndex));
-    const pending = srdIndex.filter(m => !existingIndices.has(m.index));
+    const pending = results.filter(m => !existingIndices.has(m.index));
 
     console.log(`✓ Ya importados: ${existingIndices.size}`);
     console.log(`→ Por importar:  ${pending.length}\n`);
@@ -288,18 +301,24 @@ const main = async () => {
         return;
     }
 
+    // Descargar detalles del SRD
     console.log("\n📥 Descargando datos del SRD...");
     const srdDetails = await processInPool(
         pending,
-        async (m) => fetchSrdMonster(m.index),
+        async (m) => {
+            const r = await fetchWithRetry(`${DND_API}${m.url}`);
+            return r.json();
+        },
         5
     );
 
+    // Mapear
     console.log("\n🗺️  Mapeando al modelo Monster...");
     const mapped = srdDetails
         .filter(d => d && !d.error)
         .map(mapMonsterFromSrd);
 
+    // Traducir
     console.log(`\n🤖 Traduciendo con Claude Haiku...`);
     const translated = await processInPool(mapped, translateMapped, CONCURRENCY);
 
@@ -311,6 +330,7 @@ const main = async () => {
         for (const e of errors) console.warn(`   - ${e.srdIndex}: ${e.error}`);
     }
 
+    // Insertar en Mongo
     console.log(`\n💾 Guardando ${okTranslations.length} monstruos en BD...`);
     let inserted = 0;
     for (const m of okTranslations) {
@@ -318,7 +338,7 @@ const main = async () => {
             await Monster.create(m);
             inserted++;
         } catch (err) {
-            if (err.code !== 11000) {
+            if (err.code !== 11000) {   // 11000 = duplicado, lo ignoramos
                 console.error(`   ❌ ${m.srdIndex}: ${err.message}`);
             }
         }
@@ -326,13 +346,15 @@ const main = async () => {
 
     console.log(`\n✅ ${inserted} monstruos insertados correctamente.`);
     if (errors.length) {
-        console.log(`   ⚠️ ${errors.length} fallaron — relanza el script para reintentar (la caché conserva los hechos).`);
+        console.log(`   ⚠️ ${errors.length} fallaron — relanza el script para reintentar (la caché conserva lo ya traducido).`);
     }
 
     await mongoose.disconnect();
+    console.log("\n🎉 Seed de monstruos completado.\n");
 };
 
-main().catch(err => {
+main().catch(async (err) => {
     console.error("❌ Error fatal:", err);
+    await mongoose.disconnect().catch(() => {});
     process.exit(1);
 });
