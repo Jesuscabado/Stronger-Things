@@ -55,6 +55,15 @@ export const me = async (req, res) => {
         } catch (err) { next(err); }
     };
 
+export const deleteMe = async (req, res, next) => {
+    try {
+        await authService.deleteAccount(req.user._id);
+        res.status(200).json({ deleted: true });
+    } catch (err) {
+        next(err);
+    }
+};
+
 export const googleLogin = async (req, res, next) => {
     try {
         const { credential } = req.body;

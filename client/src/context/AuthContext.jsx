@@ -36,6 +36,13 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem("user");
         setUser(null);
     };
+
+    const deleteAccount = async () => {
+        await authApi.deleteAccount();
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
+    };
     const updateUser = (newUserData) => {
         setUser(prev => {
             const updated = { ...prev, ...newUserData };
@@ -46,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
     return (
             
-       <AuthContext.Provider value={{ user, login, logout, register,loginWithCredentials, updateUser }}>
+       <AuthContext.Provider value={{ user, login, logout, register, loginWithCredentials, updateUser, deleteAccount }}>
             {children}
         </AuthContext.Provider>
     );

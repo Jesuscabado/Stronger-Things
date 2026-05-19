@@ -65,7 +65,7 @@ export default function Header() {
                             <Link to="/diary">Crónicas</Link> 
                             {user.isDM && <Link to="/bestiary">🐉 Bestiario</Link>}
                             {user.role === "admin" && <Link to="/admin">⚜ Admin</Link>}
-                            <span style={{ opacity: 0.7 }}>{user.username}</span>
+                            <Link to="/account" style={{ opacity: 0.7 }}>{user.username}</Link>
                             <button className="btn btn-small" onClick={handleLogout}>Salir</button>
                         </>
                     ) : (
