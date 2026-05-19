@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { spellsApi } from "../api/spells.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useNameCheck } from "../hooks/useNameCheck.js";
 import { CLASS_OPTIONS, translateClass } from "../utils/dndLabels.js";
 
 const SCHOOLS = [
@@ -60,6 +61,16 @@ export default function SpellsPage() {
     // Creación
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState(emptyForm);
+    const { nameError, nameChecking } = useNameCheck(spellsApi.checkName, form.name);
+
+    useEffect(() => {
+        if (showForm) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => { document.body.style.overflow = ""; };
+    }, [showForm]);
 
     const flash = (msg) => {
         setSuccess(msg);
@@ -164,9 +175,11 @@ export default function SpellsPage() {
             {success && <div className="alert alert-success">{success}</div>}
 
             {showForm && (
+                <div className="modal-overlay modal-overlay--form" onClick={() => { setShowForm(false); setForm(emptyForm); }}>
+                <div className="modal-content--form" onClick={(e) => e.stopPropagation()}>
                 <div className="scroll-card">
                     <h2>Inscribir nuevo hechizo</h2>
-                    <form onSubmit={handleCreate}>
+                    <form id="spell-form" onSubmit={handleCreate}>
                         <div className="grid grid-2">
                             <div className="field">
                                 <label>Nombre (español)</label>
@@ -175,7 +188,10 @@ export default function SpellsPage() {
                                     value={form.name}
                                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                                     placeholder="Bola de fuego"
+                                    style={nameError ? { borderColor: "var(--blood-dark)" } : undefined}
                                 />
+                                {nameChecking && <p className="field-hint field-hint--checking">Comprobando...</p>}
+                                {nameError && <p className="field-hint field-hint--error">{nameError}</p>}
                             </div>
                             <div className="field">
                                 <label>Nombre original (inglés, opcional)</label>
@@ -343,13 +359,13 @@ export default function SpellsPage() {
                             />
                         </div>
 
-                        <div style={{ display: "flex", gap: "0.5rem" }}>
-                            <button type="submit" className="btn btn-primary">Inscribir</button>
-                            <button type="button" className="btn" onClick={() => { setShowForm(false); setForm(emptyForm); }}>
-                                Cancelar
-                            </button>
-                        </div>
                     </form>
+                </div>
+                <div className="modal-form-footer">
+                    <button type="submit" form="spell-form" className="btn btn-primary" disabled={!!nameError}>Inscribir</button>
+                    <button type="button" className="btn" onClick={() => { setShowForm(false); setForm(emptyForm); }}>Cancelar</button>
+                </div>
+                </div>
                 </div>
             )}
 

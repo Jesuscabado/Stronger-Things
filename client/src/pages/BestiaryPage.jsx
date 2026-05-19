@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { monstersApi } from "../api/monsters.js";
 import { authApi } from "../api/auth.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useNameCheck } from "../hooks/useNameCheck.js";
 
 const SIZES = ["Diminuto", "Pequeño", "Mediano", "Grande", "Enorme", "Gargantuesco"];
 const TYPES = [
@@ -589,16 +590,31 @@ function ActionsGroup({ actions }) {
    ───────────────────────────────────────────────────────────────────── */
 function MonsterForm({ form, setForm, editingId, onSubmit, onCancel, helpers }) {
     const { updateStringList, addToStringList, removeFromStringList, addAction, updateAction, removeAction } = helpers;
+    const { nameError, nameChecking } = useNameCheck(monstersApi.checkName, form.name, editingId);
+
+    useEffect(() => {
+        document.body.style.overflow = "hidden";
+        return () => { document.body.style.overflow = ""; };
+    }, []);
 
     return (
+        <div className="modal-overlay modal-overlay--form" onClick={onCancel}>
+        <div className="modal-content--form" onClick={(e) => e.stopPropagation()}>
         <div className="scroll-card">
             <h2>{editingId ? "Editar monstruo" : "Forjar nuevo monstruo"}</h2>
-            <form onSubmit={onSubmit}>
+            <form id="monster-form" onSubmit={onSubmit}>
                 {/* Identidad básica */}
                 <div className="grid grid-2">
                     <div className="field">
                         <label>Nombre</label>
-                        <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                        <input
+                            required
+                            value={form.name}
+                            onChange={(e) => setForm({ ...form, name: e.target.value })}
+                            style={nameError ? { borderColor: "var(--blood-dark)" } : undefined}
+                        />
+                        {nameChecking && <p className="field-hint field-hint--checking">Comprobando...</p>}
+                        {nameError && <p className="field-hint field-hint--error">{nameError}</p>}
                     </div>
                     <div className="field">
                         <label>Subtipo (opcional)</label>
@@ -750,14 +766,16 @@ function MonsterForm({ form, setForm, editingId, onSubmit, onCancel, helpers }) 
                     <textarea rows="3" value={form.dmNotes} onChange={(e) => setForm({ ...form, dmNotes: e.target.value })} placeholder="Trucos, sorpresas para la mesa, ganchos narrativos..." />
                 </div>
 
-                {/* Submit */}
-                <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-                    <button type="submit" className="btn btn-primary">
-                        {editingId ? "Guardar cambios" : "Crear monstruo"}
-                    </button>
-                    <button type="button" className="btn" onClick={onCancel}>Cancelar</button>
-                </div>
             </form>
+        </div>
+
+        <div className="modal-form-footer">
+            <button type="submit" form="monster-form" className="btn btn-primary" disabled={!!nameError}>
+                {editingId ? "Guardar cambios" : "Crear monstruo"}
+            </button>
+            <button type="button" className="btn" onClick={onCancel}>Cancelar</button>
+        </div>
+        </div>
         </div>
     );
 }

@@ -15,5 +15,10 @@ export const monstersApi = {
     create: (data) => api.post("/api/monsters", data),
     update: (id, data) => api.put(`/api/monsters/${id}`, data),
     remove: (id) => api.del(`/api/monsters/${id}`),
-    clone:  (id) => api.post(`/api/monsters/${id}/clone`, {})
+    clone:  (id) => api.post(`/api/monsters/${id}/clone`, {}),
+    checkName: (name, excludeId) => {
+        const qs = new URLSearchParams({ name });
+        if (excludeId) qs.set("excludeId", excludeId);
+        return api.get(`/api/monsters/check-name?${qs}`);
+    }
 };

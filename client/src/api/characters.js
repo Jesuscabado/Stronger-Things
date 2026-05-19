@@ -34,6 +34,13 @@ export const charactersApi = {
     },
     deleteAvatar: (id) => api.del(`/api/characters/${id}/avatar`),
 
+    // validación de nombre
+    checkName: (name, excludeId) => {
+        const qs = new URLSearchParams({ name });
+        if (excludeId) qs.set("excludeId", excludeId);
+        return api.get(`/api/characters/check-name?${qs}`);
+    },
+
     // diario
     addDiaryEntry: (id, data) => api.post(`/api/characters/${id}/diary`, data),
     updateDiaryEntry: (id, entryId, data) => api.put(`/api/characters/${id}/diary/${entryId}`, data),
