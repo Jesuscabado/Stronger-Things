@@ -224,7 +224,7 @@ const processInPool = async (items, worker, concurrency) => {
 /* ─── Main ─── */
 
 const main = async () => {
-    console.log("🐉 SEED DE MONSTRUOS DEL SRD OFICIAL (modo local, sin APIs externas)\n");
+    console.log(" SEED DE MONSTRUOS DEL SRD OFICIAL (modo local, sin APIs externas)\n");
 
     await connectMongo();
 

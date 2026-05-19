@@ -60,7 +60,7 @@ export default function AdminPage() {
 
     return (
         <div className="container">
-            <h1>⚜ Panel de administración</h1>
+            <h1> Panel de administración</h1>
 
             {error && <div className="alert">{error}</div>}
             {success && <div className="alert alert-success">{success}</div>}

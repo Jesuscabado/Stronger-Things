@@ -143,7 +143,7 @@ export default function PersonalitySection({ character, onUpdate }) {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem" }}>
                     <NarrativeField
                         label="Aliados y organizaciones"
-                        icon="⚜"
+                        icon=""
                         placeholder="Gremios, facciones, mentores, contactos importantes... Quiénes apoyan a tu personaje."
                         value={personality.allies}
                         onSave={(v) => updatePersonality("allies", v)}

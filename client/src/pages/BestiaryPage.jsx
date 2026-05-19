@@ -96,7 +96,7 @@ function ActivateDM({ updateUser }) {
     return (
         <div className="container">
             <div className="scroll-card" style={{ textAlign: "center", padding: "3rem 2rem" }}>
-                <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🐉</div>
+                <div style={{ fontSize: "4rem", marginBottom: "1rem" }}></div>
                 <h1>Modo Director de Juego</h1>
                 <p style={{ color: "var(--ink-faded)", maxWidth: "520px", margin: "1rem auto" }}>
                     El bestiario es una herramienta para los Directores de Juego.
@@ -317,7 +317,7 @@ function Bestiary() {
         <div className="container">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
                 <div>
-                    <h1>🐉 Bestiario</h1>
+                    <h1> Bestiario</h1>
                     <p style={{ color: "var(--ink-faded)", margin: "0.2rem 0 0", fontSize: "0.9rem" }}>
                         Tu colección privada de monstruos. {monsters.length} {monsters.length === 1 ? "criatura" : "criaturas"} registradas.
                     </p>

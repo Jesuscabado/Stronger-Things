@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { authApi } from "../api/auth.js";
 
 const AuthContext = createContext();
@@ -8,6 +8,18 @@ export const AuthProvider = ({ children }) => {
         const stored = localStorage.getItem("user");
         return stored ? JSON.parse(stored) : null;
     });
+
+    // Sincroniza el perfil con el servidor al arrancar para que cambios
+    // de rol o isDM hechos en la DB se reflejen sin necesidad de re-login.
+    useEffect(() => {
+        if (!localStorage.getItem("token")) return;
+        authApi.me().then(fresh => {
+            localStorage.setItem("user", JSON.stringify(fresh));
+            setUser(fresh);
+        }).catch(() => {
+            // Token expirado o inválido — el interceptor de apiFetch ya limpia localStorage
+        });
+    }, []);
 
     const persist = (token, user) => {
         localStorage.setItem("token", token);
