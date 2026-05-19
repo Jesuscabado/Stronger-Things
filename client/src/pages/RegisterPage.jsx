@@ -65,6 +65,11 @@ export default function RegisterPage() {
                 <p style={{ textAlign: "center", marginTop: "1rem" }}>
                     ¿Ya tienes cuenta? <Link to="/login">Entrar</Link>
                 </p>
+                <p style={{ textAlign: "center", marginTop: "0.75rem", fontSize: "0.8rem", color: "var(--ink-faded)" }}>
+                    Al registrarte aceptas nuestros{" "}
+                    <Link to="/terms">Términos de uso</Link> y nuestra{" "}
+                    <Link to="/privacy">Política de privacidad</Link>.
+                </p>
             </div>
         </div>
     );

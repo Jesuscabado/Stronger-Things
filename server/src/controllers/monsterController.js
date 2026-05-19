@@ -5,6 +5,15 @@ const handleStatusError = (error, res, next) => {
     next(error);
 };
 
+export const checkName = async (req, res, next) => {
+    try {
+        const { name, excludeId } = req.query;
+        if (!name || !name.trim()) return res.json({ exists: false });
+        const exists = await monsterService.checkNameExists(name, excludeId || null);
+        res.json({ exists });
+    } catch (err) { handleStatusError(err, res, next); }
+};
+
 export const listMonsters = async (req, res, next) => {
     try {
         const monsters = await monsterService.list(req.user._id, req.query);
@@ -44,5 +53,20 @@ export const cloneMonster = async (req, res, next) => {
     try {
         const monster = await monsterService.cloneToMyBestiary(req.params.id, req.user._id);
         res.status(201).json(monster);
+    } catch (err) { handleStatusError(err, res, next); }
+};
+
+export const uploadMonsterImage = async (req, res, next) => {
+    try {
+        if (!req.file) return res.status(400).json({ message: "Falta la imagen" });
+        const monster = await monsterService.attachImage(req.params.id, req.file, req.user._id);
+        res.json({ image: monster.image });
+    } catch (err) { handleStatusError(err, res, next); }
+};
+
+export const deleteMonsterImage = async (req, res, next) => {
+    try {
+        const result = await monsterService.removeImage(req.params.id, req.user._id);
+        res.json(result);
     } catch (err) { handleStatusError(err, res, next); }
 };

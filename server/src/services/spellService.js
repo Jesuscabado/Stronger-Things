@@ -18,7 +18,23 @@ export const listSpells = async ({ charClass, level, search } = {}) => {
 
 export const getSpellById = (id) => Spell.findById(id);
 
-export const createSpell = (data) => Spell.create(data);
+export const checkNameExists = async (name, excludeId = null) => {
+    const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const query = { name: new RegExp(`^${escaped}$`, "i") };
+    if (excludeId) query._id = { $ne: excludeId };
+    return !!(await Spell.findOne(query).lean());
+};
+
+export const createSpell = async (data) => {
+    const escaped = data.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const existing = await Spell.findOne({ name: new RegExp(`^${escaped}$`, "i") });
+    if (existing) {
+        const err = new Error(`Ya existe un hechizo llamado "${data.name}"`);
+        err.status = 409;
+        throw err;
+    }
+    return Spell.create(data);
+};
 
 export const upsertSpellByName = async (data) => {
     return Spell.findOneAndUpdate(

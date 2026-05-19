@@ -87,10 +87,6 @@
         font-size: 1.5rem;
     }
 
-    .app-header__nav {
-        gap: 1rem;
-    }
-
     h1 { font-size: 2.1rem; }
     h2 { font-size: 1.5rem; }
 
@@ -100,22 +96,18 @@
     }
 }
 
-/* ─── Móvil apaisado / tablet vertical (≤ 900px) ─────────────────────── */
-/* En este punto activamos la hamburguesa */
+/* ─── Hamburguesa: se activa a ≤ 1100px para dar margen con bestiary + admin ─ */
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
     .app-header__burger {
         display: flex;
     }
 
     .app-header__inner {
-        /* El brand a la izquierda, el burger a la derecha; el nav pasa a
-           posicionarse en absoluto debajo del header. */
         position: relative;
     }
 
     .app-header__nav {
-        /* Panel desplegable bajo el header */
         position: absolute;
         top: 100%;
         right: 0;
@@ -167,7 +159,6 @@
         align-self: flex-start;
     }
 
-    /* Modo oscuro: el panel hereda el fondo oscuro de la cabecera dark */
     :root[data-theme="dark"] .app-header__nav {
         background: linear-gradient(180deg, #100a06 0%, #050302 100%);
         border-bottom-color: var(--gold-bright);
@@ -177,10 +168,6 @@
         border-bottom-color: rgba(245, 194, 82, 0.2);
     }
 
-    /* Hoja imprimible en pantalla pequeña: la hoja es A4 (210mm) por diseño
-       y no debe reflowarse. Permitimos scroll horizontal en el wrapper para
-       que el usuario pueda explorarla en pantalla. Al imprimir el A4 se
-       respeta tal cual (lo gestiona @media print). */
     .sheet-wrapper {
         overflow-x: auto;
         align-items: flex-start;
@@ -305,5 +292,49 @@
     }
     .btn-small {
         padding: 0.4rem 0.8rem;
+    }
+}
+
+/* ─── Modales de formulario responsive ───────────────────────────────── */
+
+@media (max-width: 768px) {
+    .modal-overlay--form {
+        padding: 0;
+        align-items: flex-end; /* el modal sube desde abajo en móvil */
+    }
+
+    .modal-content--form {
+        width: 100%;
+        border-radius: 12px 12px 0 0;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        max-height: 92dvh;
+        overflow-y: auto;
+        margin: 0;
+    }
+
+    .modal-content--form .scroll-card {
+        padding: 1rem 1rem 0.5rem;
+    }
+
+    .modal-form-footer {
+        padding: 0.75rem 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-content--form .scroll-card {
+        padding: 0.8rem 0.8rem 0.5rem;
+    }
+
+    .modal-form-footer {
+        padding: 0.6rem 0.8rem;
+        flex-wrap: wrap;
+    }
+
+    .modal-form-footer .btn {
+        flex: 1;
+        text-align: center;
     }
 }

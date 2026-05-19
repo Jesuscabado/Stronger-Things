@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { charactersApi } from "../api/characters.js";
+import { useNameCheck } from "../hooks/useNameCheck.js";
 import {
     translateClass,
     translateRace,
@@ -17,6 +18,7 @@ export default function CharactersPage() {
     const [showCreate, setShowCreate] = useState(false);
     const [form, setForm] = useState(emptyForm);
     const navigate = useNavigate();
+    const { nameError, nameChecking } = useNameCheck(charactersApi.checkName, form.name);
 
     const load = async () => {
         try {
@@ -30,6 +32,15 @@ export default function CharactersPage() {
     };
 
     useEffect(() => { load(); }, []);
+
+    useEffect(() => {
+        if (showCreate) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => { document.body.style.overflow = ""; };
+    }, [showCreate]);
 
     const startCreate = () => {
         setForm(emptyForm);
@@ -81,9 +92,11 @@ export default function CharactersPage() {
             {error && <div className="alert">{error}</div>}
 
             {showCreate && (
+                <div className="modal-overlay modal-overlay--form" onClick={cancelCreate}>
+                <div className="modal-content--form" onClick={(e) => e.stopPropagation()}>
                 <div className="scroll-card">
                     <h2>Forjar nuevo héroe</h2>
-                    <form onSubmit={handleSubmit}>
+                    <form id="character-form" onSubmit={handleSubmit}>
                         <div className="grid grid-2">
                             <div className="field">
                                 <label>Nombre</label>
@@ -91,14 +104,14 @@ export default function CharactersPage() {
                                     required
                                     value={form.name}
                                     onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                    style={nameError ? { borderColor: "var(--blood-dark)" } : undefined}
                                 />
+                                {nameChecking && <p className="field-hint field-hint--checking">Comprobando...</p>}
+                                {nameError && <p className="field-hint field-hint--error">{nameError}</p>}
                             </div>
                             <div className="field">
                                 <label>Clase</label>
-                                <select
-                                    value={form.charClass}
-                                    onChange={(e) => setForm({ ...form, charClass: e.target.value })}
-                                >
+                                <select value={form.charClass} onChange={(e) => setForm({ ...form, charClass: e.target.value })}>
                                     {CLASS_OPTIONS.map(o => (
                                         <option key={o.value} value={o.value}>{o.label}</option>
                                     ))}
@@ -106,10 +119,7 @@ export default function CharactersPage() {
                             </div>
                             <div className="field">
                                 <label>Raza</label>
-                                <select
-                                    value={form.race}
-                                    onChange={(e) => setForm({ ...form, race: e.target.value })}
-                                >
+                                <select value={form.race} onChange={(e) => setForm({ ...form, race: e.target.value })}>
                                     {RACE_OPTIONS.map(o => (
                                         <option key={o.value} value={o.value}>{o.label}</option>
                                     ))}
@@ -117,26 +127,20 @@ export default function CharactersPage() {
                             </div>
                             <div className="field">
                                 <label>Nivel</label>
-                                <input
-                                    type="number" min="1" max="20"
-                                    value={form.level}
-                                    onChange={(e) => setForm({ ...form, level: e.target.value })}
-                                />
+                                <input type="number" min="1" max="20" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} />
                             </div>
                             <div className="field">
                                 <label>Oro inicial</label>
-                                <input
-                                    type="number" min="0"
-                                    value={form.gold}
-                                    onChange={(e) => setForm({ ...form, gold: e.target.value })}
-                                />
+                                <input type="number" min="0" value={form.gold} onChange={(e) => setForm({ ...form, gold: e.target.value })} />
                             </div>
                         </div>
-                        <div style={{ display: "flex", gap: "0.5rem" }}>
-                            <button type="submit" className="btn btn-primary">Crear</button>
-                            <button type="button" className="btn" onClick={cancelCreate}>Cancelar</button>
-                        </div>
                     </form>
+                </div>
+                <div className="modal-form-footer">
+                    <button type="submit" form="character-form" className="btn btn-primary" disabled={!!nameError}>Crear</button>
+                    <button type="button" className="btn" onClick={cancelCreate}>Cancelar</button>
+                </div>
+                </div>
                 </div>
             )}
 

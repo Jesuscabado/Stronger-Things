@@ -1,4 +1,5 @@
 import Monster from "../models/Monster.js";
+import { uploadMonsterImage, deleteImageFromCloudinary } from "./cloudinaryService.js";
 
 const notFound = (msg = "Monstruo no encontrado") => {
     const err = new Error(msg);
@@ -69,15 +70,27 @@ export const getById = async (id, userId) => {
     return monster;
 };
 
+export const checkNameExists = async (name, excludeId = null) => {
+    const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const query = { name: new RegExp(`^${escaped}$`, "i") };
+    if (excludeId) query._id = { $ne: excludeId };
+    return !!(await Monster.findOne(query).lean());
+};
+
 export const create = async (data, userId) => {
-    // Nunca permitir que el cliente cree monstruos públicos vía API normal.
-    // Los públicos solo se crean desde el script de seed-monsters.
     const clean = { ...data };
     delete clean.isPublic;
     delete clean.srdIndex;
 
-    const monster = await Monster.create({ ...clean, user: userId });
-    return monster;
+    const escaped = clean.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const existing = await Monster.findOne({ name: new RegExp(`^${escaped}$`, "i") });
+    if (existing) {
+        const err = new Error(`Ya existe un monstruo llamado "${clean.name}"`);
+        err.status = 409;
+        throw err;
+    }
+
+    return Monster.create({ ...clean, user: userId });
 };
 
 export const update = async (id, data, userId) => {
@@ -144,4 +157,29 @@ export const cloneToMyBestiary = async (id, userId) => {
     });
 
     return clone;
+};
+export const attachImage = async (id, file, userId) => {
+    const monster = await Monster.findById(id);
+    if (!monster) throw notFound();
+    if (monster.isPublic) { const e = new Error("Los monstruos del SRD no admiten imagen"); e.status = 403; throw e; }
+    if (monster.user?.toString() !== userId.toString()) throw forbidden();
+
+    if (monster.image?.cloudinaryPublicId) {
+        await deleteImageFromCloudinary(monster.image.cloudinaryPublicId).catch(() => {});
+    }
+    const result = await uploadMonsterImage(file.buffer, id);
+    monster.image = { cloudinaryUrl: result.secure_url, cloudinaryPublicId: result.public_id };
+    await monster.save();
+    return monster;
+};
+
+export const removeImage = async (id, userId) => {
+    const monster = await Monster.findById(id);
+    if (!monster) throw notFound();
+    if (monster.user?.toString() !== userId.toString()) throw forbidden();
+    if (!monster.image?.cloudinaryPublicId) throw notFound("Este monstruo no tiene imagen");
+    await deleteImageFromCloudinary(monster.image.cloudinaryPublicId).catch(() => {});
+    monster.image = undefined;
+    await monster.save();
+    return { deleted: true };
 };

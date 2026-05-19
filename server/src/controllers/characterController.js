@@ -5,6 +5,15 @@ const handleStatusError = (error, res, next) => {
     next(error);
 };
 
+export const checkName = async (req, res, next) => {
+    try {
+        const { name, excludeId } = req.query;
+        if (!name || !name.trim()) return res.json({ exists: false });
+        const exists = await characterService.checkNameExists(name, req.user._id, excludeId || null);
+        res.json({ exists });
+    } catch (err) { handleStatusError(err, res, next); }
+};
+
 export const getAllCharacters = async (req, res, next) => {
     try {
         const characters = await characterService.findAllCharacters(req.user._id);
@@ -23,7 +32,7 @@ export const createCharacter = async (req, res, next) => {
     try {
         const character = await characterService.createCharacter(req.body, req.user._id);
         res.status(201).json(character);
-    } catch (error) { next(error); }
+    } catch (error) { handleStatusError(error, res, next); }
 };
 
 export const updateCharacter = async (req, res, next) => {

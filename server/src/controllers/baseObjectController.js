@@ -5,6 +5,15 @@ const handleStatusError = (error, res, next) => {
     next(error);
 };
 
+export const checkName = async (req, res, next) => {
+    try {
+        const { name, excludeId } = req.query;
+        if (!name || !name.trim()) return res.json({ exists: false });
+        const exists = await baseObjectService.checkNameExists(name, excludeId || null);
+        res.json({ exists });
+    } catch (err) { handleStatusError(err, res, next); }
+};
+
 export const getAllBaseObjects = async (req, res, next) => {
     try {
         res.status(200).json(await baseObjectService.findAllBaseObjects());
@@ -23,10 +32,7 @@ export const createBaseObject = async (req, res, next) => {
     try {
         res.status(201).json(await baseObjectService.createBaseObject(req.body));
     } catch (error) {
-        if (error.code === 11000) {
-            return res.status(400).json({ message: "Ya existe un objeto con ese nombre", field: error.keyValue });
-        }
-        next(error);
+        handleStatusError(error, res, next);
     }
 };
 

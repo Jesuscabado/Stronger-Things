@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { objectsApi } from "../api/objects.js";
+import { useNameCheck } from "../hooks/useNameCheck.js";
 import { translateCategory } from "../utils/categoryLabels.js";
 
 const CATEGORIES = ["weapon", "armor", "shield", "potion", "scroll", "wondrous", "tool", "gear", "ammunition"];
@@ -38,6 +39,17 @@ export default function ObjectsPage() {
         name: "", description: "", category: "weapon", cost: 0,
         damage: "", damageType: "", armorClass: "", weight: 0, rarity: "common"
     });
+
+    const { nameError, nameChecking } = useNameCheck(objectsApi.checkName, form.name);
+
+    useEffect(() => {
+        if (showForm) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => { document.body.style.overflow = ""; };
+    }, [showForm]);
 
     const load = async () => {
         try {
@@ -98,13 +110,22 @@ export default function ObjectsPage() {
             {error && <div className="alert">{error}</div>}
 
             {showForm && (
+                <div className="modal-overlay modal-overlay--form" onClick={() => setShowForm(false)}>
+                <div className="modal-content--form" onClick={(e) => e.stopPropagation()}>
                 <div className="scroll-card">
                     <h2>Forjar objeto</h2>
-                    <form onSubmit={handleCreate}>
+                    <form id="object-form" onSubmit={handleCreate}>
                         <div className="grid grid-2">
                             <div className="field">
                                 <label>Nombre</label>
-                                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                                <input
+                                    value={form.name}
+                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                    required
+                                    style={nameError ? { borderColor: "var(--blood-dark)" } : undefined}
+                                />
+                                {nameChecking && <p className="field-hint field-hint--checking">Comprobando...</p>}
+                                {nameError && <p className="field-hint field-hint--error">{nameError}</p>}
                             </div>
                             <div className="field">
                                 <label>Categoría</label>
@@ -147,8 +168,13 @@ export default function ObjectsPage() {
                                 </select>
                             </div>
                         </div>
-                        <button className="btn btn-primary" type="submit">Crear</button>
                     </form>
+                </div>
+                <div className="modal-form-footer">
+                    <button type="submit" form="object-form" className="btn btn-primary" disabled={!!nameError}>Crear</button>
+                    <button type="button" className="btn" onClick={() => setShowForm(false)}>Cancelar</button>
+                </div>
+                </div>
                 </div>
             )}
 

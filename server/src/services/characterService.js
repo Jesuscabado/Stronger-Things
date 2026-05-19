@@ -2,9 +2,9 @@ import Character from "../models/Character.js";
 import BaseObject from "../models/BaseObject.js";
 import Spell from "../models/Spell.js";
 import {
-    uploadToCloudinary,
+    uploadCharacterSheet,
+    uploadCharacterAvatar,
     deleteFromCloudinary,
-    uploadImageToCloudinary,
     deleteImageFromCloudinary
 } from "./cloudinaryService.js";
 
@@ -59,8 +59,21 @@ export const findCharacterById = async (id, userId) => {
     return character;
 };
 
-export const createCharacter = (data, userId) =>
-    Character.create({ ...data, user: userId });
+export const checkNameExists = async (name, userId, excludeId = null) => {
+    const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const query = { user: userId, name: new RegExp(`^${escaped}$`, "i") };
+    if (excludeId) query._id = { $ne: excludeId };
+    return !!(await Character.findOne(query).lean());
+};
+
+export const createCharacter = async (data, userId) => {
+    const escaped = data.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const existing = await Character.findOne({ user: userId, name: new RegExp(`^${escaped}$`, "i") });
+    if (existing) {
+        throw conflict(`Ya tienes un personaje llamado "${data.name}"`);
+    }
+    return Character.create({ ...data, user: userId });
+};
 
 export const updateCharacter = async (id, data, userId) => {
     const character = await Character.findById(id);
@@ -137,11 +150,7 @@ export const attachCharacterSheet = async (characterId, file, userId) => {
         await deleteFromCloudinary(character.characterSheet.cloudinaryPublicId).catch(() => {});
     }
 
-    const sanitizedName = character.name.replace(/[^a-zA-Z0-9_-]/g, "_");
-    const result = await uploadToCloudinary(
-        file.buffer,
-        `${sanitizedName}-character-sheet.pdf`
-    );
+    const result = await uploadCharacterSheet(file.buffer, characterId, `${character.name}-sheet.pdf`);
 
     character.characterSheet = {
         filename: `${character.name}-character-sheet.pdf`,
@@ -192,7 +201,7 @@ export const attachAvatar = async (characterId, file, userId) => {
         await deleteImageFromCloudinary(character.avatar.cloudinaryPublicId).catch(() => {});
     }
 
-    const result = await uploadImageToCloudinary(file.buffer, character.name);
+    const result = await uploadCharacterAvatar(file.buffer, characterId);
 
     character.avatar = {
         cloudinaryPublicId: result.public_id,

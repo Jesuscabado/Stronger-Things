@@ -20,5 +20,10 @@ export const spellsApi = {
 
     get: (id) => api.get(`/api/spells/${id}`),
     create: (data) => api.post("/api/spells", data),
-    delete: (id) => api.del(`/api/spells/${id}`)
+    delete: (id) => api.del(`/api/spells/${id}`),
+    checkName: (name, excludeId) => {
+        const qs = new URLSearchParams({ name });
+        if (excludeId) qs.set("excludeId", excludeId);
+        return api.get(`/api/spells/check-name?${qs}`);
+    }
 };

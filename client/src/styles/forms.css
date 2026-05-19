@@ -76,6 +76,15 @@ form textarea:focus {
 .btn-small { padding: 0.3rem 0.8rem; font-size: 0.8rem; }
 .btn-danger { background: #4a0000; color: var(--parchment); border-color: #2a0000; }
 
+
+/* ─── Validación inline de nombre ─── */
+.field-hint {
+    font-size: 0.8rem;
+    margin-top: 0.2rem;
+}
+.field-hint--error { color: var(--blood-dark); }
+.field-hint--checking { color: var(--ink-faded); }
+
 /* ─── Alertas ─── */
 
 .alert {

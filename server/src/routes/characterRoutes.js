@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { characterSheetUpload, avatarUpload } from "../config/upload.js";
 import {
+    checkName,
     getAllCharacters,
     getCharacterById,
     createCharacter,
@@ -29,6 +30,7 @@ const router = Router();
 router.use(authRequired);
 
 // CRUD del personaje
+router.get("/check-name", checkName);
 router.get("/", getAllCharacters);
 router.post("/", validateBody(["name", "charClass"]), createCharacter);
 router.get("/:id", validateObjectId(), getCharacterById);

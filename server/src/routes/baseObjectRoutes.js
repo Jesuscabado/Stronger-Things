@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+    checkName,
     getAllBaseObjects,
     getBaseObjectById,
     createBaseObject,
@@ -12,6 +13,7 @@ import { authRequired } from "../middlewares/authRequired.js";
 const router = Router();
 
 // Lectura abierta a cualquiera (catálogo público)
+router.get("/check-name", checkName);
 router.get("/", getAllBaseObjects);
 router.get("/:id", validateObjectId(), getBaseObjectById);
 

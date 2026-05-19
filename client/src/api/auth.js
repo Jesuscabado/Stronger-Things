@@ -5,4 +5,5 @@ export const authApi = {
     login: (data) => api.post("/api/auth/login", data),
     me: () => api.get("/api/auth/me"),
     loginWithGoogle: (credential) => api.post("/api/auth/google", { credential }),
+    deleteAccount: () => api.del("/api/auth/me"),
 };

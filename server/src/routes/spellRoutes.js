@@ -7,6 +7,7 @@ const router = Router();
 // Todas las rutas requieren autenticación
 router.use(authRequired);
 
+router.get("/check-name", spellController.checkName);
 router.get("/", spellController.list);
 router.get("/:id", spellController.getOne);
 router.post("/", spellController.create);

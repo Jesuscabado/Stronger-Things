@@ -164,3 +164,50 @@ export const generateToken = (user) => {
 };
 
 export const verifyToken = (token) => jwt.verify(token, process.env.JWT_SECRET);
+
+/**
+ * Elimina permanentemente la cuenta del usuario y todos sus datos (RGPD art. 17).
+ * Borrado en cascada:
+ *   1. Cloudinary assets de cada personaje (avatar + hoja PDF)
+ *   2. Personajes del usuario
+ *   3. Cloudinary assets de monstruos privados (imagen)
+ *   4. Monstruos privados del usuario
+ *   5. El propio usuario
+ */
+export const deleteAccount = async (userId) => {
+    const [Character, Monster] = await Promise.all([
+        import("../models/Character.js").then(m => m.default),
+        import("../models/Monster.js").then(m => m.default)
+    ]);
+    const { deleteFromCloudinary, deleteImageFromCloudinary } = await import("./cloudinaryService.js");
+
+    // 1. Limpiar assets de personajes
+    const characters = await Character.find({ user: userId }).lean();
+    await Promise.all(
+        characters.flatMap(c => {
+            const tasks = [];
+            if (c.characterSheet?.cloudinaryPublicId)
+                tasks.push(deleteFromCloudinary(c.characterSheet.cloudinaryPublicId).catch(() => {}));
+            if (c.avatar?.cloudinaryPublicId)
+                tasks.push(deleteImageFromCloudinary(c.avatar.cloudinaryPublicId).catch(() => {}));
+            return tasks;
+        })
+    );
+
+    // 2. Borrar personajes
+    await Character.deleteMany({ user: userId });
+
+    // 3. Limpiar assets de monstruos privados
+    const monsters = await Monster.find({ user: userId, isPublic: false }).lean();
+    await Promise.all(
+        monsters
+            .filter(m => m.image?.cloudinaryPublicId)
+            .map(m => deleteImageFromCloudinary(m.image.cloudinaryPublicId).catch(() => {}))
+    );
+
+    // 4. Borrar monstruos privados
+    await Monster.deleteMany({ user: userId, isPublic: false });
+
+    // 5. Borrar usuario
+    await User.findByIdAndDelete(userId);
+};
