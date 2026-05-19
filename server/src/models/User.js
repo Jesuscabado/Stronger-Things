@@ -17,14 +17,24 @@ const userSchema = new mongoose.Schema(
             trim: true,
             match: [/^\S+@\S+\.\S+$/, "Email no válido"]
         },
-        password_hash: { type: String, required: true },
+        password_hash: { type: String, required: false },
          role: {
             type: String,
             enum: ["user", "admin"],
             default: "user"
         },
-        isDM: { type: Boolean, default: false }
-
+        isDM: { type: Boolean, default: false },
+        googleId: {
+            type: String,
+            index: true,
+            sparse: true,
+            unique: true
+        },
+        provider: {
+            type: String,
+            enum: ["local", "google", "both"],
+            default: "local"
+        }
     },
     { timestamps: true }
 );

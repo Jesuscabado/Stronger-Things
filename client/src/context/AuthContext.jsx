@@ -20,6 +20,12 @@ export const AuthProvider = ({ children }) => {
         persist(token, user);
     };
 
+    const loginWithCredentials = ({ user, token }) => {
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        setUser(user);
+    };
+
     const register = async (username, email, password) => {
         const { user, token } = await authApi.register({ username, email, password });
         persist(token, user);
@@ -36,7 +42,7 @@ export const AuthProvider = ({ children }) => {
 
     return (
             
-       <AuthContext.Provider value={{ user, login, logout, register, updateUser }}>
+       <AuthContext.Provider value={{ user, login, logout, register,loginWithCredentials, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

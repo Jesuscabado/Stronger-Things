@@ -54,3 +54,14 @@ export const me = async (req, res) => {
             res.json(req.user);   //toJSON ya elimina el password_hash
         } catch (err) { next(err); }
     };
+
+export const googleLogin = async (req, res, next) => {
+    try {
+        const { credential } = req.body;
+        const result = await authService.loginWithGoogle(credential);
+        res.json(result);   // { user, token }
+    } catch (err) {
+        if (err.status) return res.status(err.status).json({ message: err.message });
+        next(err);
+    }
+};
