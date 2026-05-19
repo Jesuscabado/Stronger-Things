@@ -6,6 +6,7 @@ import { ToastProvider } from "./context/ToastContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 import ErrorBoundary from "./components/ui/ErrorBoundary.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./styles/index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -15,7 +16,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 <ThemeProvider>
                     <ToastProvider>
                         <AuthProvider>
+                            <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
                             <App />
+                            </GoogleOAuthProvider>
                         </AuthProvider>
                     </ToastProvider>
                 </ThemeProvider>

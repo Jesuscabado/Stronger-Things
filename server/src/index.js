@@ -10,6 +10,7 @@ import characterRoutes from "./routes/characterRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import spellRoutes from "./routes/spellRoutes.js";
+import monsterRoutes from "./routes/monsterRoutes.js";
 import { errorHandler, notFoundHandler, requestLogger } from "./middlewares/errorHandler.js";
 import { logger } from "./utils/logger.js";
 
@@ -30,6 +31,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/objects", baseObjectRoutes);
 app.use("/api/characters", characterRoutes);
 app.use("/api/spells", spellRoutes);
+app.use("/api/monsters", monsterRoutes);
 app.use("/api/admin", adminRoutes);
    // Middleware global de errores
 

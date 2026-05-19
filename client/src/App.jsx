@@ -11,6 +11,7 @@ import AdminPage from "./pages/AdminPage.jsx";
 import AdminRoute from "./components/layout/AdminRoute.jsx";
 import CharacterSheetPrint from "./pages/CharacterSheetPrint.jsx";
 import DiaryPage from "./pages/DiaryPage.jsx";
+import BestiaryPage from "./pages/BestiaryPage.jsx";
 
 export default function App() {
     return (
@@ -34,11 +35,15 @@ export default function App() {
                     <ProtectedRoute><ObjectsPage /></ProtectedRoute>
                 } />
                 <Route path="/diary" element={
-    <ProtectedRoute><DiaryPage /></ProtectedRoute>
-} />
+                    <ProtectedRoute><DiaryPage /></ProtectedRoute>
+                } />
                 <Route path="/spells" element={
                     <ProtectedRoute><SpellsPage /></ProtectedRoute>
                 } />
+                <Route path="/bestiary" element={
+                    <ProtectedRoute><BestiaryPage /></ProtectedRoute>
+                } />
+                <Route path="/bestiario" element={<Navigate to="/bestiary" replace />} />
                 <Route path="*" element={<div className="container"><h1>Aquí no hay nada</h1></div>} />
             </Routes>
         </>

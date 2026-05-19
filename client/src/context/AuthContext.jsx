@@ -20,6 +20,12 @@ export const AuthProvider = ({ children }) => {
         persist(token, user);
     };
 
+    const loginWithCredentials = ({ user, token }) => {
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        setUser(user);
+    };
+
     const register = async (username, email, password) => {
         const { user, token } = await authApi.register({ username, email, password });
         persist(token, user);
@@ -30,9 +36,13 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem("user");
         setUser(null);
     };
+    const updateUser = (newUserData) => {
+     setUser(prev => ({ ...prev, ...newUserData }));
+    };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout }}>
+            
+       <AuthContext.Provider value={{ user, login, logout, register,loginWithCredentials, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

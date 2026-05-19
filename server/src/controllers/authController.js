@@ -40,3 +40,28 @@ export const login = async (req, res, next) => {
 export const me = async (req, res) => {
     res.status(200).json(req.user);
 };
+
+ export const toggleDM = async (req, res, next) => {
+        try {
+            const { isDM } = req.body;
+            if (typeof isDM !== "boolean") {
+                return res.status(400).json({
+                    message: "Se esperaba un campo 'isDM' booleano"
+                });
+            }
+            req.user.isDM = isDM;
+            await req.user.save();
+            res.json(req.user);   //toJSON ya elimina el password_hash
+        } catch (err) { next(err); }
+    };
+
+export const googleLogin = async (req, res, next) => {
+    try {
+        const { credential } = req.body;
+        const result = await authService.loginWithGoogle(credential);
+        res.json(result);   // { user, token }
+    } catch (err) {
+        if (err.status) return res.status(err.status).json({ message: err.message });
+        next(err);
+    }
+};

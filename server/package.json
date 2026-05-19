@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "seed": "node --env-file=.env src/seed.js"
+    "seed": "node src/seed.js",
+    "seed:monsters": "node src/seed-monsters.js"
   },
   "repository": {
     "type": "git",
@@ -32,6 +33,7 @@
     "cors": "^2.8.6",
     "dotenv": "^16.4.5",
     "express": "^5.2.1",
+    "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.0",
     "multer": "2.1.1"
