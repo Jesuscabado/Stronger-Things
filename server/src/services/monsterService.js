@@ -1,4 +1,5 @@
 import Monster from "../models/Monster.js";
+import { uploadMonsterImage, deleteImageFromCloudinary } from "./cloudinaryService.js";
 
 const notFound = (msg = "Monstruo no encontrado") => {
     const err = new Error(msg);
@@ -156,4 +157,29 @@ export const cloneToMyBestiary = async (id, userId) => {
     });
 
     return clone;
+};
+export const attachImage = async (id, file, userId) => {
+    const monster = await Monster.findById(id);
+    if (!monster) throw notFound();
+    if (monster.isPublic) { const e = new Error("Los monstruos del SRD no admiten imagen"); e.status = 403; throw e; }
+    if (monster.user?.toString() !== userId.toString()) throw forbidden();
+
+    if (monster.image?.cloudinaryPublicId) {
+        await deleteImageFromCloudinary(monster.image.cloudinaryPublicId).catch(() => {});
+    }
+    const result = await uploadMonsterImage(file.buffer, id);
+    monster.image = { cloudinaryUrl: result.secure_url, cloudinaryPublicId: result.public_id };
+    await monster.save();
+    return monster;
+};
+
+export const removeImage = async (id, userId) => {
+    const monster = await Monster.findById(id);
+    if (!monster) throw notFound();
+    if (monster.user?.toString() !== userId.toString()) throw forbidden();
+    if (!monster.image?.cloudinaryPublicId) throw notFound("Este monstruo no tiene imagen");
+    await deleteImageFromCloudinary(monster.image.cloudinaryPublicId).catch(() => {});
+    monster.image = undefined;
+    await monster.save();
+    return { deleted: true };
 };

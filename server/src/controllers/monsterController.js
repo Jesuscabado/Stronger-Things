@@ -55,3 +55,18 @@ export const cloneMonster = async (req, res, next) => {
         res.status(201).json(monster);
     } catch (err) { handleStatusError(err, res, next); }
 };
+
+export const uploadMonsterImage = async (req, res, next) => {
+    try {
+        if (!req.file) return res.status(400).json({ message: "Falta la imagen" });
+        const monster = await monsterService.attachImage(req.params.id, req.file, req.user._id);
+        res.json({ image: monster.image });
+    } catch (err) { handleStatusError(err, res, next); }
+};
+
+export const deleteMonsterImage = async (req, res, next) => {
+    try {
+        const result = await monsterService.removeImage(req.params.id, req.user._id);
+        res.json(result);
+    } catch (err) { handleStatusError(err, res, next); }
+};

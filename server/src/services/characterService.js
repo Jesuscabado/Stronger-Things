@@ -2,9 +2,9 @@ import Character from "../models/Character.js";
 import BaseObject from "../models/BaseObject.js";
 import Spell from "../models/Spell.js";
 import {
-    uploadToCloudinary,
+    uploadCharacterSheet,
+    uploadCharacterAvatar,
     deleteFromCloudinary,
-    uploadImageToCloudinary,
     deleteImageFromCloudinary
 } from "./cloudinaryService.js";
 
@@ -150,11 +150,7 @@ export const attachCharacterSheet = async (characterId, file, userId) => {
         await deleteFromCloudinary(character.characterSheet.cloudinaryPublicId).catch(() => {});
     }
 
-    const sanitizedName = character.name.replace(/[^a-zA-Z0-9_-]/g, "_");
-    const result = await uploadToCloudinary(
-        file.buffer,
-        `${sanitizedName}-character-sheet.pdf`
-    );
+    const result = await uploadCharacterSheet(file.buffer, characterId, `${character.name}-sheet.pdf`);
 
     character.characterSheet = {
         filename: `${character.name}-character-sheet.pdf`,
@@ -205,7 +201,7 @@ export const attachAvatar = async (characterId, file, userId) => {
         await deleteImageFromCloudinary(character.avatar.cloudinaryPublicId).catch(() => {});
     }
 
-    const result = await uploadImageToCloudinary(file.buffer, character.name);
+    const result = await uploadCharacterAvatar(file.buffer, characterId);
 
     character.avatar = {
         cloudinaryPublicId: result.public_id,

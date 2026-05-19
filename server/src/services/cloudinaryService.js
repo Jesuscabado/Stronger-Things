@@ -7,54 +7,66 @@ cloudinary.config({
     secure: true
 });
 
-/**
- * Sube un buffer a Cloudinary. Para PDFs y similares se usa resource_type "raw".
- */
-export const uploadToCloudinary = (buffer, originalname) => {
-    return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-            {
-                resource_type: "image",      // 👈 IMPORTANTE
-                folder: "strongerthings/character-sheets",
-                use_filename: true,
-                unique_filename: true,
-                filename_override: originalname,
-                format: "pdf"                // 👈 IMPORTANTE
-            },
-            (error, result) => {
-                if (error) return reject(error);
-                resolve(result);
-            }
-        );
+const upload = (buffer, options) =>
+    new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+        });
         stream.end(buffer);
     });
-};
 
-export const uploadImageToCloudinary = (buffer, characterName) => {
-    return new Promise((resolve, reject) => {
-        const sanitized = characterName.replace(/[^a-zA-Z0-9_-]/g, "_");
-        const stream = cloudinary.uploader.upload_stream(
-            {
-                resource_type: "image",
-                folder: "strongerthings/avatars",
-                public_id: `${sanitized}-${Date.now()}`,
-                overwrite: true,
-                transformation: [
-                    { width: 500, height: 500, crop: "fill", gravity: "auto" },
-                    { quality: "auto", fetch_format: "auto" }
-                ]
-            },
-            (error, result) => {
-                if (error) return reject(error);
-                resolve(result);
-            }
-        );
-        stream.end(buffer);
+// ─── Personajes ──────────────────────────────────────────────────────────────
+
+export const uploadCharacterAvatar = (buffer, characterId) =>
+    upload(buffer, {
+        resource_type: "image",
+        folder: `strongerthings/characters/${characterId}`,
+        public_id: "avatar",
+        overwrite: true,
+        transformation: [
+            { width: 500, height: 500, crop: "fill", gravity: "auto" },
+            { quality: "auto", fetch_format: "auto" }
+        ]
     });
-};
+
+export const uploadCharacterSheet = (buffer, characterId, filename) =>
+    upload(buffer, {
+        resource_type: "image",
+        folder: `strongerthings/characters/${characterId}`,
+        public_id: "sheet",
+        overwrite: true,
+        use_filename: false,
+        filename_override: filename,
+        format: "pdf"
+    });
+
+// ─── Monstruos ───────────────────────────────────────────────────────────────
+
+export const uploadMonsterImage = (buffer, monsterId) =>
+    upload(buffer, {
+        resource_type: "image",
+        folder: `strongerthings/monsters/${monsterId}`,
+        public_id: "image",
+        overwrite: true,
+        transformation: [
+            { width: 800, height: 800, crop: "limit" },
+            { quality: "auto", fetch_format: "auto" }
+        ]
+    });
+
+// ─── Eliminación ─────────────────────────────────────────────────────────────
+
+export const deleteFromCloudinary = (publicId) =>
+    cloudinary.uploader.destroy(publicId, { resource_type: "raw" });
 
 export const deleteImageFromCloudinary = (publicId) =>
     cloudinary.uploader.destroy(publicId, { resource_type: "image" });
 
-export const deleteFromCloudinary = (publicId) =>
-    cloudinary.uploader.destroy(publicId, { resource_type: "raw" });
+// ─── Aliases para compatibilidad con código existente ────────────────────────
+
+/** @deprecated Usar uploadCharacterSheet */
+export const uploadToCloudinary = uploadCharacterSheet;
+
+/** @deprecated Usar uploadCharacterAvatar o uploadMonsterImage */
+export const uploadImageToCloudinary = uploadCharacterAvatar;
