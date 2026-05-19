@@ -18,8 +18,20 @@ body {
         radial-gradient(ellipse at bottom, rgba(139, 0, 0, 0.08) 0%, transparent 60%),
         url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.15 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     line-height: 1.6;
     font-size: 18px;
+}
+
+#root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+#root > *:not(.app-header):not(.app-footer) {
+    flex: 1;
 }
 
 h1, h2, h3, h4 {

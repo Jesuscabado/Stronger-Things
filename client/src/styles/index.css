@@ -34,6 +34,7 @@
 @import "./components/error-boundary.css";
 @import "./components/override-popover.css";
 @import "./components/theme-toggle.css";
+@import "./components/footer.css";
 
 @import "./pages/auth.css";
 @import "./pages/sheet-print.css";
