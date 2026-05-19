@@ -165,7 +165,11 @@ function Bestiary() {
             });
             setMonsters(data);
         } catch (err) {
-            setError(err.message);
+            if (err.status === 403) {
+                updateUser({ isDM: false });
+            } else {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }
