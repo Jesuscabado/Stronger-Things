@@ -344,6 +344,7 @@ function Bestiary() {
                     onSubmit={handleSubmit}
                     onCancel={closeForm}
                     helpers={{ updateStringList, addToStringList, removeFromStringList, addAction, updateAction, removeAction }}
+                    onImageUploaded={(image) => setForm(prev => ({ ...prev, image: image ?? undefined }))}
                 />
             )}
 
@@ -442,6 +443,13 @@ function MonsterCard({ monster, expanded, onToggle, onEdit, onDelete, onClone })
                     gap: "1rem"
                 }}
             >
+                {monster.image?.cloudinaryUrl && (
+                    <img
+                        src={monster.image.cloudinaryUrl}
+                        alt={monster.name}
+                        style={{ width: "56px", height: "56px", objectFit: "cover", borderRadius: "2px", border: "1px solid var(--ink-faded)", flexShrink: 0 }}
+                    />
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{ margin: 0, marginBottom: "0.3rem" }}>{monster.name}</h3>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center", fontSize: "0.85rem", color: "var(--ink-faded)" }}>
@@ -588,14 +596,43 @@ function ActionsGroup({ actions }) {
    Formulario de creación / edición. Es grande, lo extraigo en componente
    propio para no inflar la página principal.
    ───────────────────────────────────────────────────────────────────── */
-function MonsterForm({ form, setForm, editingId, onSubmit, onCancel, helpers }) {
+function MonsterForm({ form, setForm, editingId, onSubmit, onCancel, helpers, onImageUploaded }) {
     const { updateStringList, addToStringList, removeFromStringList, addAction, updateAction, removeAction } = helpers;
     const { nameError, nameChecking } = useNameCheck(monstersApi.checkName, form.name, editingId);
+    const [imgLoading, setImgLoading] = useState(false);
 
     useEffect(() => {
         document.body.style.overflow = "hidden";
         return () => { document.body.style.overflow = ""; };
     }, []);
+
+    const handleImageChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file || !editingId) return;
+        setImgLoading(true);
+        try {
+            const { image } = await monstersApi.uploadImage(editingId, file);
+            onImageUploaded(image);
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setImgLoading(false);
+            e.target.value = "";
+        }
+    };
+
+    const handleImageDelete = async () => {
+        if (!editingId || !confirm("¿Eliminar la imagen de este monstruo?")) return;
+        setImgLoading(true);
+        try {
+            await monstersApi.deleteImage(editingId);
+            onImageUploaded(null);
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setImgLoading(false);
+        }
+    };
 
     return (
         <div className="modal-overlay modal-overlay--form" onClick={onCancel}>
@@ -765,6 +802,28 @@ function MonsterForm({ form, setForm, editingId, onSubmit, onCancel, helpers }) 
                     <label>📝 Notas del DM (privadas)</label>
                     <textarea rows="3" value={form.dmNotes} onChange={(e) => setForm({ ...form, dmNotes: e.target.value })} placeholder="Trucos, sorpresas para la mesa, ganchos narrativos..." />
                 </div>
+
+                {editingId && (
+                    <div className="field" style={{ marginTop: "1rem" }}>
+                        <label>Imagen del monstruo</label>
+                        {form.image?.cloudinaryUrl && (
+                            <div style={{ marginBottom: "0.5rem" }}>
+                                <img src={form.image.cloudinaryUrl} alt="Imagen del monstruo" style={{ maxHeight: "180px", border: "2px solid var(--ink)", borderRadius: "2px" }} />
+                            </div>
+                        )}
+                        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                            <label className="btn btn-small" style={{ cursor: "pointer" }}>
+                                {imgLoading ? "Subiendo..." : form.image?.cloudinaryUrl ? "Cambiar imagen" : "Subir imagen"}
+                                <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageChange} disabled={imgLoading} />
+                            </label>
+                            {form.image?.cloudinaryUrl && (
+                                <button type="button" className="btn btn-small btn-danger" onClick={handleImageDelete} disabled={imgLoading}>
+                                    Eliminar imagen
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
 
             </form>
         </div>

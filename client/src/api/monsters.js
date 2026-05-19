@@ -16,6 +16,12 @@ export const monstersApi = {
     update: (id, data) => api.put(`/api/monsters/${id}`, data),
     remove: (id) => api.del(`/api/monsters/${id}`),
     clone:  (id) => api.post(`/api/monsters/${id}/clone`, {}),
+    uploadImage: (id, file) => {
+        const fd = new FormData();
+        fd.append("image", file);
+        return api.upload(`/api/monsters/${id}/image`, fd);
+    },
+    deleteImage: (id) => api.del(`/api/monsters/${id}/image`),
     checkName: (name, excludeId) => {
         const qs = new URLSearchParams({ name });
         if (excludeId) qs.set("excludeId", excludeId);
