@@ -254,6 +254,17 @@ function Bestiary() {
         }
     };
 
+    const handleClone = async (monster) => {
+        if (!confirm(`Los monstruos del SRD no se pueden editar directamente.\n\n¿Quieres clonar "${monster.name}" a tu bestiario privado para poder personalizarlo?`)) return;
+        try {
+            const clone = await monstersApi.clone(monster._id);
+            flash(`"${clone.name}" añadido a tu bestiario`);
+            load();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     const deactivateDM = async () => {
         if (!confirm("¿Desactivar el modo DM? Tu bestiario se conservará, pero no podrás verlo hasta volver a activarlo.")) return;
         try {
@@ -343,6 +354,14 @@ function Bestiary() {
                         />
                     </div>
                     <div className="field" style={{ marginBottom: 0 }}>
+    <label>Origen</label>
+    <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)}>
+        <option value="">Todos</option>
+        <option value="mine">Mis monstruos</option>
+        <option value="public">Catálogo SRD</option>
+    </select>
+</div>
+                    <div className="field" style={{ marginBottom: 0 }}>
                         <label>Tipo</label>
                         <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                             <option value="">Todos</option>
@@ -363,14 +382,7 @@ function Bestiary() {
                             {CR_OPTIONS.map(cr => <option key={cr} value={cr}>{cr}</option>)}
                         </select>
                     </div>
-                    <div className="field" style={{ marginBottom: 0 }}>
-    <label>Origen</label>
-    <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)}>
-        <option value="">Todos</option>
-        <option value="mine">Mis monstruos</option>
-        <option value="public">Catálogo SRD</option>
-    </select>
-</div>
+                    
                 </div>
             </form>
 
@@ -393,6 +405,7 @@ function Bestiary() {
                             onToggle={() => setExpanded(expanded === m._id ? null : m._id)}
                             onEdit={() => openEdit(m)}
                             onDelete={() => handleDelete(m)}
+                            onClone={() => handleClone(m)}
                         />
                     ))}
                 </div>
@@ -404,7 +417,7 @@ function Bestiary() {
 /* ─────────────────────────────────────────────────────────────────────
    Tarjeta de monstruo (modo lectura, expandible).
    ───────────────────────────────────────────────────────────────────── */
-function MonsterCard({ monster, expanded, onToggle, onEdit, onDelete }) {
+function MonsterCard({ monster, expanded, onToggle, onEdit, onDelete, onClone }) {
     const abil = (key) => {
         const v = monster.abilityScores?.[key] ?? 10;
         const mod = Math.floor((v - 10) / 2);
@@ -510,8 +523,16 @@ function MonsterCard({ monster, expanded, onToggle, onEdit, onDelete }) {
 
                     {/* Acciones */}
                     <div style={{ display: "flex", gap: "0.4rem", marginTop: "1rem" }}>
-                        <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); onEdit(); }}>Editar</button>
-                        <button className="btn btn-small btn-danger" onClick={(e) => { e.stopPropagation(); onDelete(); }}>Eliminar</button>
+                        {monster.isPublic ? (
+                            <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); onClone(); }}>
+                                📋 Clonar para editar
+                            </button>
+                        ) : (
+                            <>
+                                <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); onEdit(); }}>Editar</button>
+                                <button className="btn btn-small btn-danger" onClick={(e) => { e.stopPropagation(); onDelete(); }}>Eliminar</button>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

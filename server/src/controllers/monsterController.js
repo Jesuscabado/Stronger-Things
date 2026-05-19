@@ -39,3 +39,10 @@ export const deleteMonster = async (req, res, next) => {
         res.json(result);
     } catch (err) { handleStatusError(err, res, next); }
 };
+
+export const cloneMonster = async (req, res, next) => {
+    try {
+        const monster = await monsterService.cloneToMyBestiary(req.params.id, req.user._id);
+        res.status(201).json(monster);
+    } catch (err) { handleStatusError(err, res, next); }
+};

@@ -43,6 +43,7 @@ export default function App() {
                 <Route path="/bestiary" element={
                     <ProtectedRoute><BestiaryPage /></ProtectedRoute>
                 } />
+                <Route path="/bestiario" element={<Navigate to="/bestiary" replace />} />
                 <Route path="*" element={<div className="container"><h1>Aquí no hay nada</h1></div>} />
             </Routes>
         </>

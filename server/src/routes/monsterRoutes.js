@@ -4,7 +4,8 @@ import {
     getMonster,
     createMonster,
     updateMonster,
-    deleteMonster
+    deleteMonster,
+    cloneMonster
 } from "../controllers/monsterController.js";
 import { authRequired } from "../middlewares/authRequired.js";
 import { dmRequired } from "../middlewares/dmRequired.js";
@@ -20,6 +21,7 @@ router.use(dmRequired);
 router.get("/", listMonsters);
 router.get("/:id", validateObjectId(), getMonster);
 router.post("/", validateBody(["name"]), createMonster);
+router.post("/:id/clone", validateObjectId(), cloneMonster);
 router.put("/:id", validateObjectId(), updateMonster);
 router.delete("/:id", validateObjectId(), deleteMonster);
 
