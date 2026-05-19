@@ -10,41 +10,7 @@
  *   sudo docker compose exec app node seed-demo.js
  */
 
-const PORT = process.env.APP_PORT || 3001;
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
-
-const post = async (path, body, token) => {
-    const res = await fetch(`${BASE_URL}${path}`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` })
-        },
-        body: JSON.stringify(body)
-    });
-    const json = await res.json().catch(() => ({}));
-    return { res, json };
-};
-
-const put = async (path, body, token) => {
-    const res = await fetch(`${BASE_URL}${path}`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` })
-        },
-        body: JSON.stringify(body)
-    });
-    const json = await res.json().catch(() => ({}));
-    return { res, json };
-};
-
-const get = async (path, token) => {
-    const res = await fetch(`${BASE_URL}${path}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-    });
-    return res.json();
-};
+import { post, get, fetchWithRetry, BASE_URL } from "./seed-helpers.js";
 
 const main = async () => {
     console.log("🌱 Creando personaje completo de demo...\n");
@@ -173,7 +139,7 @@ const main = async () => {
     const oldEldrin = existing.find(c => c.name === "Eldrin Vespertano");
     if (oldEldrin) {
         console.log("   ↺ Personaje previo encontrado, lo borro y recreo");
-        await fetch(`${BASE_URL}/api/characters/${oldEldrin._id}`, {
+        await fetchWithRetry(`${BASE_URL}/api/characters/${oldEldrin._id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -260,7 +226,6 @@ const main = async () => {
     const allSpells = await get("/api/spells", token);
     let spellsAdded = 0;
     for (const want of wantedSpells) {
-        // Buscamos por nameOriginal (inglés) o por name (español traducido)
         const spell = allSpells.find(s =>
             s.nameOriginal === want.name ||
             s.name?.toLowerCase().includes(want.name.toLowerCase())

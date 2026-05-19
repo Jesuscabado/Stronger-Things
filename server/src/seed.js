@@ -1,69 +1,40 @@
 /**
- * Seed con rate limiting, retry y caché de traducciones.
- * Importa items y hechizos de la API D&D 5e.
+ * Seed de objetos, hechizos y personajes de prueba.
+ *
+ * Lee los datos mecánicos desde data/srd-equipment.json y data/srd-spells.json
+ * y las traducciones desde data/translations.json.
+ * No necesita conexión a ninguna API externa.
+ *
+ * Requisitos:
+ *   - El servidor debe estar arrancado (npm run dev)
+ *   - Ejecutar antes: npm run seed:download  (solo la primera vez)
  */
 
-import {
-    translateItem,
-    translateDamageType,
-    translateProperties,
-    translateSpell,
-    translateSchool,
-    getCacheStats
-} from "./services/translationService.js";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { post, get } from "./seed-helpers.js";
 
-const PORT = process.env.APP_PORT || 3001;
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
-const DND_API = "https://www.dnd5eapi.co/api/2014";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DATA_DIR  = path.resolve(__dirname, "data");
 
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-const fetchWithRetry = async (url, options = {}, retries = 5, baseDelay = 2000) => {
-    let lastError;
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            const res = await fetch(url, options);
-            if (res.ok) return res;
-            if (res.status === 429 || res.status >= 500) {
-                if (attempt < retries) {
-                    const wait = baseDelay * attempt;
-                    process.stdout.write(`\n   ⏳ ${res.status} en ${url.split("/").pop()}, esperando ${wait}ms...`);
-                    await sleep(wait);
-                    continue;
-                }
-            }
-            return res;
-        } catch (err) {
-            lastError = err;
-            if (attempt < retries) {
-                const wait = baseDelay * attempt;
-                process.stdout.write(`\n   ⏳ ${err.message} en ${url.split("/").pop()}, reintentando en ${wait}ms...`);
-                await sleep(wait);
-                continue;
-            }
-        }
-    }
-    throw lastError || new Error("Retries exhausted");
+const SCHOOL_MAP = {
+    "Abjuration":   "Abjuración",
+    "Conjuration":  "Conjuración",
+    "Divination":   "Adivinación",
+    "Enchantment":  "Encantamiento",
+    "Evocation":    "Evocación",
+    "Illusion":     "Ilusión",
+    "Necromancy":   "Nigromancia",
+    "Transmutation":"Transmutación"
 };
 
-const post = async (path, body, token) => {
-    try {
-        const res = await fetchWithRetry(`${BASE_URL}${path}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` })
-            },
-            body: JSON.stringify(body)
-        });
-        const json = await res.json().catch(() => ({}));
-        return { res, json };
-    } catch (err) {
-        return { res: { ok: false, status: 0 }, json: { message: err.message } };
-    }
+const loadJson = async (filename) => {
+    const text = await fs.readFile(path.join(DATA_DIR, filename), "utf8");
+    return JSON.parse(text);
 };
 
-/* ─────────────── ITEMS (existente) ─────────────── */
+/* ─────────────── ITEMS ─────────────── */
 
 const costToGold = (apiCost) => {
     if (!apiCost) return 0;
@@ -94,116 +65,70 @@ const normalizeCategory = (apiItem) => {
     return "gear";
 };
 
-const mapAndTranslateItem = async (apiItem) => {
-    const englishDescription = Array.isArray(apiItem.desc) && apiItem.desc.length > 0
-        ? apiItem.desc.join(" ")
-        : (Array.isArray(apiItem.special) ? apiItem.special.join(" ") : "");
+const mapItem = (apiItem, translations) => {
+    const t = translations.items[apiItem.name] || {};
 
-    const translated = await translateItem(apiItem.name, englishDescription);
-
-    const stats = {
-        rarity: "common",
-        requiresAttunement: false,
-        maxDurability: 100
-    };
+    const stats = { rarity: "common", requiresAttunement: false, maxDurability: 100 };
 
     if (apiItem.damage) {
         stats.damage = apiItem.damage.damage_dice;
-        stats.damageType = await translateDamageType(apiItem.damage.damage_type?.name);
+        const dtKey = apiItem.damage.damage_type?.name;
+        stats.damageType = (dtKey && (translations.damageTypes[dtKey] || dtKey)) || "";
     }
-    if (apiItem.armor_class) {
-        stats.armorClass = apiItem.armor_class.base;
-    }
-    if (apiItem.weight !== undefined && apiItem.weight !== null) {
-        stats.weight = apiItem.weight;
-    }
+    if (apiItem.armor_class) stats.armorClass = apiItem.armor_class.base;
+    if (apiItem.weight !== undefined && apiItem.weight !== null) stats.weight = apiItem.weight;
     if (Array.isArray(apiItem.properties) && apiItem.properties.length > 0) {
-        const propNames = apiItem.properties.map(p => p.name);
-        stats.properties = await translateProperties(propNames);
+        stats.properties = apiItem.properties.map(p =>
+            translations.properties[p.name] || p.name
+        );
     }
 
     return {
-        name: translated.name,
-        description: translated.description,
+        name: t.name || apiItem.name,
+        description: t.description || (Array.isArray(apiItem.desc) ? apiItem.desc.join(" ") : (Array.isArray(apiItem.special) ? apiItem.special.join(" ") : "")),
         category: normalizeCategory(apiItem),
         cost: costToGold(apiItem.cost),
         stats
     };
 };
 
-const importCatalogFromAPI = async (token) => {
-    console.log("\n📥 Descargando catálogo de items de la API D&D 5e...");
-    const listRes = await fetchWithRetry(`${DND_API}/equipment`);
-    const { results } = await listRes.json();
-    console.log(`   ${results.length} items disponibles`);
+const importCatalog = async (token, srdItems, translations) => {
+    console.log(`\n📦 Importando ${srdItems.length} objetos...`);
+    let inserted = 0, skipped = 0, failed = 0;
 
-    const statsBefore = await getCacheStats();
-    console.log(`   📚 Caché actual: ${statsBefore.items} items ya traducidos\n`);
-
-    let inserted = 0, skipped = 0, failed = 0, newlyTranslated = 0;
-
-    for (let i = 0; i < results.length; i++) {
-        const item = results[i];
+    for (let i = 0; i < srdItems.length; i++) {
+        const apiItem = srdItems[i];
         try {
-            if (i > 0) await sleep(800);
-            const detailRes = await fetchWithRetry(`https://www.dnd5eapi.co${item.url}`);
-            const detail = await detailRes.json();
-
-            const cacheBefore = await getCacheStats();
-            const mapped = await mapAndTranslateItem(detail);
-            const cacheAfter = await getCacheStats();
-
-            if (cacheAfter.items > cacheBefore.items) newlyTranslated++;
-
+            const mapped = mapItem(apiItem, translations);
             const { res, json } = await post("/api/objects", mapped, token);
             if (res.ok) {
                 inserted++;
-                process.stdout.write(`\r   ✓ ${i + 1}/${results.length} - ${mapped.name}`.padEnd(80) + " ");
+                process.stdout.write(`\r   ✓ ${i + 1}/${srdItems.length} - ${mapped.name}`.padEnd(80) + " ");
             } else if (
                 res.status === 409 ||
                 (json.message || "").toLowerCase().includes("ya existe") ||
                 (json.message || "").toLowerCase().includes("duplicate")
             ) {
                 skipped++;
-                process.stdout.write(`\r   · ${i + 1}/${results.length} - ${mapped.name} (ya en BD)`.padEnd(80) + " ");
+                process.stdout.write(`\r   · ${i + 1}/${srdItems.length} - ${mapped.name} (ya en BD)`.padEnd(80) + " ");
             } else {
                 failed++;
-                console.warn(`\n   ✗ ${item.name}: ${json.message || "error desconocido"}`);
+                console.warn(`\n   ✗ ${apiItem.name}: ${json.message || "error desconocido"}`);
             }
         } catch (err) {
             failed++;
-            console.warn(`\n   ✗ ${item.name}: ${err.message}`);
+            console.warn(`\n   ✗ ${apiItem.name}: ${err.message}`);
         }
     }
-
-    console.log(`\n\n   📊 ${inserted} insertados | ${skipped} ya estaban en BD | ${failed} fallidos`);
-    console.log(`   🌐 ${newlyTranslated} traducciones nuevas | ${results.length - newlyTranslated} desde caché\n`);
+    console.log(`\n\n   📊 ${inserted} insertados | ${skipped} ya estaban en BD | ${failed} fallidos\n`);
 };
 
-/* ─────────────── HECHIZOS (NUEVO Fase 6a) ─────────────── */
+/* ─────────────── HECHIZOS ─────────────── */
 
-const mapAndTranslateSpell = async (apiSpell) => {
-    const englishDescription = Array.isArray(apiSpell.desc)
-        ? apiSpell.desc.join("\n\n")
-        : (apiSpell.desc || "");
+const mapSpell = (apiSpell, translations) => {
+    const t = translations.spells[apiSpell.name] || {};
 
-    const englishAtHigher = Array.isArray(apiSpell.higher_level)
-        ? apiSpell.higher_level.join("\n\n")
-        : (apiSpell.higher_level || "");
-
-    const translated = await translateSpell(
-        apiSpell.name,
-        englishDescription,
-        englishAtHigher
-    );
-
-    // Componentes V/S/M
-    const components = {
-        verbal: false,
-        somatic: false,
-        material: false,
-        materialDesc: ""
-    };
+    const components = { verbal: false, somatic: false, material: false, materialDesc: "" };
     if (Array.isArray(apiSpell.components)) {
         for (const c of apiSpell.components) {
             if (c === "V") components.verbal = true;
@@ -213,138 +138,105 @@ const mapAndTranslateSpell = async (apiSpell) => {
     }
     if (apiSpell.material) components.materialDesc = apiSpell.material;
 
-    // Daño por nivel de slot
     const damageAtSlot = {};
     let damageType = "";
     if (apiSpell.damage) {
-        if (apiSpell.damage.damage_type?.name) {
-            damageType = await translateDamageType(apiSpell.damage.damage_type.name);
+        const dtName = apiSpell.damage.damage_type?.name;
+        if (dtName) damageType = translations.damageTypes[dtName] || dtName;
+        for (const [k, v] of Object.entries(apiSpell.damage.damage_at_slot_level || {})) {
+            damageAtSlot[k] = v;
         }
-        if (apiSpell.damage.damage_at_slot_level) {
-            for (const [k, v] of Object.entries(apiSpell.damage.damage_at_slot_level)) {
-                damageAtSlot[k] = v;
-            }
-        }
-        if (apiSpell.damage.damage_at_character_level) {
-            for (const [k, v] of Object.entries(apiSpell.damage.damage_at_character_level)) {
-                damageAtSlot[`char${k}`] = v;
-            }
+        for (const [k, v] of Object.entries(apiSpell.damage.damage_at_character_level || {})) {
+            damageAtSlot[`char${k}`] = v;
         }
     }
 
-    // Clases que pueden lanzarlo
-    const classes = Array.isArray(apiSpell.classes)
-        ? apiSpell.classes.map(c => c.name) // ya vienen en inglés y coinciden con nuestros enums
-        : [];
-
     return {
-        name: translated.name,
-        nameOriginal: apiSpell.name,
-        description: translated.description,
-        atHigherLevels: translated.atHigherLevels,
-        level: apiSpell.level ?? 0,
-        school: translateSchool(apiSpell.school?.name),
-        castingTime: apiSpell.casting_time || "1 acción",
-        range: apiSpell.range || "30 pies",
-        duration: apiSpell.duration || "Instantáneo",
-        concentration: !!apiSpell.concentration,
-        ritual: !!apiSpell.ritual,
+        name:           t.name || apiSpell.name,
+        nameOriginal:   apiSpell.name,
+        description:    t.description || (Array.isArray(apiSpell.desc) ? apiSpell.desc.join("\n\n") : ""),
+        atHigherLevels: t.atHigherLevels || (Array.isArray(apiSpell.higher_level) ? apiSpell.higher_level.join("\n\n") : ""),
+        level:          apiSpell.level ?? 0,
+        school:         SCHOOL_MAP[apiSpell.school?.name] || apiSpell.school?.name || "",
+        castingTime:    apiSpell.casting_time || "1 acción",
+        range:          apiSpell.range || "30 pies",
+        duration:       apiSpell.duration || "Instantáneo",
+        concentration:  !!apiSpell.concentration,
+        ritual:         !!apiSpell.ritual,
         components,
         damageType,
         damageAtSlot,
-        classes
+        classes: Array.isArray(apiSpell.classes) ? apiSpell.classes.map(c => c.name) : []
     };
 };
 
-const importSpellsFromAPI = async (token) => {
-    console.log("\n📥 Descargando catálogo de hechizos de la API D&D 5e...");
-    const listRes = await fetchWithRetry(`${DND_API}/spells`);
-    const { results } = await listRes.json();
-    console.log(`   ${results.length} hechizos disponibles`);
+const importSpells = async (token, srdSpells, translations) => {
+    console.log(`\n✨ Importando ${srdSpells.length} hechizos...`);
+    let inserted = 0, skipped = 0, failed = 0;
 
-    const statsBefore = await getCacheStats();
-    console.log(`   📚 Caché actual: ${statsBefore.spells} hechizos ya traducidos\n`);
-
-    let inserted = 0, skipped = 0, failed = 0, newlyTranslated = 0;
-
-    for (let i = 0; i < results.length; i++) {
-        const item = results[i];
+    for (let i = 0; i < srdSpells.length; i++) {
+        const apiSpell = srdSpells[i];
         try {
-            if (i > 0) await sleep(800);
-            const detailRes = await fetchWithRetry(`https://www.dnd5eapi.co${item.url}`);
-            const detail = await detailRes.json();
-
-            const cacheBefore = await getCacheStats();
-            const mapped = await mapAndTranslateSpell(detail);
-            const cacheAfter = await getCacheStats();
-
-            if (cacheAfter.spells > cacheBefore.spells) newlyTranslated++;
-
+            const mapped = mapSpell(apiSpell, translations);
             const { res, json } = await post("/api/spells", mapped, token);
             if (res.ok) {
                 inserted++;
-                process.stdout.write(`\r   ✓ ${i + 1}/${results.length} - ${mapped.name} (Nv ${mapped.level})`.padEnd(80) + " ");
+                process.stdout.write(`\r   ✓ ${i + 1}/${srdSpells.length} - ${mapped.name} (Nv ${mapped.level})`.padEnd(80) + " ");
             } else if (
                 res.status === 409 ||
                 (json.message || "").toLowerCase().includes("ya existe") ||
                 (json.message || "").toLowerCase().includes("duplicate")
             ) {
                 skipped++;
-                process.stdout.write(`\r   · ${i + 1}/${results.length} - ${mapped.name} (ya en BD)`.padEnd(80) + " ");
+                process.stdout.write(`\r   · ${i + 1}/${srdSpells.length} - ${mapped.name} (ya en BD)`.padEnd(80) + " ");
             } else {
                 failed++;
-                console.warn(`\n   ✗ ${item.name}: ${json.message || "error desconocido"}`);
+                console.warn(`\n   ✗ ${apiSpell.name}: ${json.message || "error desconocido"}`);
             }
         } catch (err) {
             failed++;
-            console.warn(`\n   ✗ ${item.name}: ${err.message}`);
+            console.warn(`\n   ✗ ${apiSpell.name}: ${err.message}`);
         }
     }
-
-    console.log(`\n\n   📊 ${inserted} insertados | ${skipped} ya estaban en BD | ${failed} fallidos`);
-    console.log(`   🌐 ${newlyTranslated} traducciones nuevas | ${results.length - newlyTranslated} desde caché\n`);
+    console.log(`\n\n   📊 ${inserted} insertados | ${skipped} ya estaban en BD | ${failed} fallidos\n`);
 };
 
-/* ─────────────── PERSONAJES ─────────────── */
-
-const findObjectIdByName = async (name, token) => {
-    try {
-        const res = await fetchWithRetry(`${BASE_URL}/api/objects`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        const list = await res.json();
-        const found = list.find(o => o.name === name);
-        return found?._id || null;
-    } catch {
-        return null;
-    }
-};
+/* ─────────────── MAIN ─────────────── */
 
 const main = async () => {
-    console.log("🌱 Seeding StrongerThings...");
+    console.log("🌱 Seeding StrongerThings (modo local, sin APIs externas)...");
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-        console.warn("⚠  ANTHROPIC_API_KEY no está definida en .env. Las traducciones nuevas fallarán.");
+    let srdEquipment, srdSpells, translations;
+    try {
+        [srdEquipment, srdSpells, translations] = await Promise.all([
+            loadJson("srd-equipment.json"),
+            loadJson("srd-spells.json"),
+            loadJson("translations.json")
+        ]);
+        console.log(`✅ Datos cargados: ${srdEquipment.length} objetos, ${srdSpells.length} hechizos`);
+    } catch (err) {
+        console.error("❌ Faltan archivos de datos locales. Ejecuta primero: npm run seed:download");
+        process.exit(1);
     }
 
-    let token, userId;
+    let token;
     const credentials = { email: "dm@dnd.io", password: "secret123" };
 
     let r = await post("/api/auth/register", { username: "DungeonMaster", ...credentials });
     if (r.res.ok) {
         token = r.json.token;
-        userId = r.json.user._id;
         console.log("✅ Usuario DM registrado");
     } else {
         r = await post("/api/auth/login", credentials);
         if (!r.res.ok) throw new Error("No se pudo registrar ni hacer login con dm@dnd.io");
         token = r.json.token;
-        userId = r.json.user._id;
         console.log("✅ Login con DM existente");
     }
 
-    await importCatalogFromAPI(token);
-    await importSpellsFromAPI(token);
+    await importCatalog(token, srdEquipment, translations);
+    await importSpells(token, srdSpells, translations);
+
+    const allObjects = await get("/api/objects", token).catch(() => []);
 
     const characters = [
         {
@@ -393,19 +285,18 @@ const main = async () => {
             console.log(`   ⏭  ${char.name} ya existe o falló (${res.status})`);
             continue;
         }
-
         console.log(`✅ ${char.name} (${char.charClass} nivel ${char.level})`);
 
         for (const item of loadout) {
-            const baseObjectId = await findObjectIdByName(item.name, token);
-            if (!baseObjectId) {
+            const baseObject = allObjects.find(o => o.name === item.name);
+            if (!baseObject) {
                 console.log(`     ⚠ "${item.name}" no encontrado en el catálogo, salto`);
                 continue;
             }
             const { name, ...rest } = item;
             const r = await post(
                 `/api/characters/${json._id}/inventory`,
-                { baseObject: baseObjectId, ...rest },
+                { baseObject: baseObject._id, ...rest },
                 token
             );
             if (r.res.ok) {

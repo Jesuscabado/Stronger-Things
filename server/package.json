@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
+    "seed:download": "node src/seed-download.js",
     "seed": "node src/seed.js",
     "seed:monsters": "node src/seed-monsters.js"
   },

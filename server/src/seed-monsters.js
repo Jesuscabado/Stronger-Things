@@ -24,7 +24,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import mongoose from "mongoose";
-import readline from "node:readline";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { connectMongo } from "./config/db.js";
 import Monster from "./models/Monster.js";
@@ -35,51 +37,17 @@ import {
     translateDamageList,
     translateConditionList,
     translateLanguageList,
-    translateSense,
-    translateMonster
+    translateSense
 } from "./services/translationService.js";
 
-const DND_API = "https://www.dnd5eapi.co";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DATA_DIR  = path.resolve(__dirname, "data");
 const CONCURRENCY = 3;
-const ESTIMATED_COST_EUR = "2-4";
 
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-/* ─── Fetch con retry (mismo patrón que tu seed.js) ─── */
-
-const fetchWithRetry = async (url, retries = 5, baseDelay = 2000) => {
-    let lastError;
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            const res = await fetch(url);
-            if (res.ok) return res;
-            if (res.status === 429 || res.status >= 500) {
-                if (attempt < retries) {
-                    await sleep(baseDelay * attempt);
-                    continue;
-                }
-            }
-            return res;
-        } catch (err) {
-            lastError = err;
-            if (attempt < retries) {
-                await sleep(baseDelay * attempt);
-                continue;
-            }
-        }
-    }
-    throw lastError || new Error("Retries exhausted");
+const loadJson = async (filename) => {
+    const text = await fs.readFile(path.join(DATA_DIR, filename), "utf8");
+    return JSON.parse(text);
 };
-
-/* ─── Confirmación interactiva ─── */
-
-const confirm = (question) => new Promise(resolve => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question(question, (answer) => {
-        rl.close();
-        resolve(answer.trim().toLowerCase() === "s");
-    });
-});
 
 /* ─── Mapeo del SRD a nuestro modelo Monster ─── */
 
@@ -207,28 +175,21 @@ const mapMonsterFromSrd = (srd) => {
     };
 };
 
-/* ─── Traducción con Claude ─── */
+/* ─── Aplicar traducción desde translations.json ─── */
 
-const translateMapped = async (mapped) => {
-    const payload = {
-        name: mapped.name,
-        description: mapped.description,
-        actions: mapped.actions.map(a => ({
-            kind: a.kind, name: a.name, description: a.description
-        }))
-    };
+const applyTranslation = (mapped, translations) => {
+    const t = translations.monsters[mapped.srdIndex];
+    if (!t) return mapped;
 
-    const translated = await translateMonster(mapped.srdIndex, payload);
+    mapped.name = t.name || mapped.name;
+    if (t.description) mapped.description = t.description;
 
-    mapped.name = translated.name || mapped.name;
-    if (translated.description) mapped.description = translated.description;
-
-    if (Array.isArray(translated.actions)) {
+    if (Array.isArray(t.actions)) {
         for (let i = 0; i < mapped.actions.length; i++) {
-            const t = translated.actions[i];
-            if (!t) continue;
-            mapped.actions[i].name = t.name || mapped.actions[i].name;
-            mapped.actions[i].description = t.description || mapped.actions[i].description;
+            const tr = t.actions[i];
+            if (!tr) continue;
+            mapped.actions[i].name        = tr.name        || mapped.actions[i].name;
+            mapped.actions[i].description = tr.description || mapped.actions[i].description;
         }
     }
     return mapped;
@@ -263,24 +224,28 @@ const processInPool = async (items, worker, concurrency) => {
 /* ─── Main ─── */
 
 const main = async () => {
-    console.log("🐉 SEED DE MONSTRUOS DEL SRD OFICIAL\n");
-
-    if (!process.env.ANTHROPIC_API_KEY) {
-        console.error("❌ Falta ANTHROPIC_API_KEY en .env");
-        process.exit(1);
-    }
+    console.log("🐉 SEED DE MONSTRUOS DEL SRD OFICIAL (modo local, sin APIs externas)\n");
 
     await connectMongo();
 
-    console.log("📡 Descargando índice del SRD...");
-    const listRes = await fetchWithRetry(`${DND_API}/api/2014/monsters`);
-    const { results } = await listRes.json();
-    console.log(`   ${results.length} monstruos disponibles.\n`);
+    // Cargar datos locales
+    let srdMonsters, translations;
+    try {
+        [srdMonsters, translations] = await Promise.all([
+            loadJson("srd-monsters.json"),
+            loadJson("translations.json")
+        ]);
+        console.log(`✅ Datos cargados: ${srdMonsters.length} monstruos, ${Object.keys(translations.monsters).length} traducciones`);
+    } catch (err) {
+        console.error("❌ Faltan archivos de datos locales. Ejecuta primero: npm run seed:download");
+        await mongoose.disconnect();
+        process.exit(1);
+    }
 
     // Excluir los ya importados (idempotencia por srdIndex)
     const existing = await Monster.find({ srdIndex: { $exists: true } }, "srdIndex").lean();
     const existingIndices = new Set(existing.map(m => m.srdIndex));
-    const pending = results.filter(m => !existingIndices.has(m.index));
+    const pending = srdMonsters.filter(m => !existingIndices.has(m.index));
 
     console.log(`✓ Ya importados: ${existingIndices.size}`);
     console.log(`→ Por importar:  ${pending.length}\n`);
@@ -291,64 +256,37 @@ const main = async () => {
         return;
     }
 
-    console.log(`⚠️  Se van a traducir ${pending.length} monstruos con Claude Haiku.`);
-    console.log(`   Coste estimado: ${ESTIMATED_COST_EUR} EUR aproximadamente.`);
-    console.log(`   Concurrencia: ${CONCURRENCY} en paralelo.\n`);
-    const ok = await confirm("¿Continuar? [s/n] ");
-    if (!ok) {
-        console.log("Cancelado.");
-        await mongoose.disconnect();
-        return;
-    }
-
-    // Descargar detalles del SRD
-    console.log("\n📥 Descargando datos del SRD...");
-    const srdDetails = await processInPool(
+    // Mapear y aplicar traducciones locales
+    console.log("🗺️  Mapeando y aplicando traducciones...");
+    const mapped = await processInPool(
         pending,
-        async (m) => {
-            const r = await fetchWithRetry(`${DND_API}${m.url}`);
-            return r.json();
-        },
-        5
+        async (srd) => applyTranslation(mapMonsterFromSrd(srd), translations),
+        CONCURRENCY
     );
 
-    // Mapear
-    console.log("\n🗺️  Mapeando al modelo Monster...");
-    const mapped = srdDetails
-        .filter(d => d && !d.error)
-        .map(mapMonsterFromSrd);
-
-    // Traducir
-    console.log(`\n🤖 Traduciendo con Claude Haiku...`);
-    const translated = await processInPool(mapped, translateMapped, CONCURRENCY);
-
-    const okTranslations = translated.filter(t => t && !t.error);
-    const errors = translated.filter(t => t && t.error);
+    const ok     = mapped.filter(m => m && !m.error);
+    const errors = mapped.filter(m => m && m.error);
 
     if (errors.length) {
-        console.warn(`\n⚠️  ${errors.length} traducciones fallaron:`);
+        console.warn(`\n⚠️  ${errors.length} monstruos fallaron al mapear:`);
         for (const e of errors) console.warn(`   - ${e.srdIndex}: ${e.error}`);
     }
 
     // Insertar en Mongo
-    console.log(`\n💾 Guardando ${okTranslations.length} monstruos en BD...`);
+    console.log(`\n💾 Guardando ${ok.length} monstruos en BD...`);
     let inserted = 0;
-    for (const m of okTranslations) {
+    for (const m of ok) {
         try {
             await Monster.create(m);
             inserted++;
         } catch (err) {
-            if (err.code !== 11000) {   // 11000 = duplicado, lo ignoramos
+            if (err.code !== 11000) {
                 console.error(`   ❌ ${m.srdIndex}: ${err.message}`);
             }
         }
     }
 
     console.log(`\n✅ ${inserted} monstruos insertados correctamente.`);
-    if (errors.length) {
-        console.log(`   ⚠️ ${errors.length} fallaron — relanza el script para reintentar (la caché conserva lo ya traducido).`);
-    }
-
     await mongoose.disconnect();
     console.log("\n🎉 Seed de monstruos completado.\n");
 };
