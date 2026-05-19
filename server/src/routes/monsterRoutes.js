@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+    checkName,
     listMonsters,
     getMonster,
     createMonster,
@@ -18,6 +19,7 @@ const router = Router();
 router.use(authRequired);
 router.use(dmRequired);
 
+router.get("/check-name", checkName);
 router.get("/", listMonsters);
 router.get("/:id", validateObjectId(), getMonster);
 router.post("/", validateBody(["name"]), createMonster);

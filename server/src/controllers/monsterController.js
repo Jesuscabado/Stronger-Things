@@ -5,6 +5,15 @@ const handleStatusError = (error, res, next) => {
     next(error);
 };
 
+export const checkName = async (req, res, next) => {
+    try {
+        const { name, excludeId } = req.query;
+        if (!name || !name.trim()) return res.json({ exists: false });
+        const exists = await monsterService.checkNameExists(name, excludeId || null);
+        res.json({ exists });
+    } catch (err) { handleStatusError(err, res, next); }
+};
+
 export const listMonsters = async (req, res, next) => {
     try {
         const monsters = await monsterService.list(req.user._id, req.query);

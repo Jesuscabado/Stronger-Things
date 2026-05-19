@@ -1,5 +1,16 @@
 import * as spellService from "../services/spellService.js";
 
+export const checkName = async (req, res) => {
+    try {
+        const { name, excludeId } = req.query;
+        if (!name || !name.trim()) return res.json({ exists: false });
+        const exists = await spellService.checkNameExists(name, excludeId || null);
+        res.json({ exists });
+    } catch {
+        res.json({ exists: false });
+    }
+};
+
 export const list = async (req, res) => {
     try {
         const spells = await spellService.listSpells({
@@ -28,10 +39,7 @@ export const create = async (req, res) => {
         const spell = await spellService.createSpell(req.body);
         res.status(201).json(spell);
     } catch (err) {
-        if (err.code === 11000) {
-            return res.status(409).json({ message: "Ya existe un hechizo con ese nombre" });
-        }
-        res.status(400).json({ message: err.message });
+        res.status(err.status || 400).json({ message: err.message });
     }
 };
 

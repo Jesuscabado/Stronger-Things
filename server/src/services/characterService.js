@@ -59,8 +59,21 @@ export const findCharacterById = async (id, userId) => {
     return character;
 };
 
-export const createCharacter = (data, userId) =>
-    Character.create({ ...data, user: userId });
+export const checkNameExists = async (name, userId, excludeId = null) => {
+    const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const query = { user: userId, name: new RegExp(`^${escaped}$`, "i") };
+    if (excludeId) query._id = { $ne: excludeId };
+    return !!(await Character.findOne(query).lean());
+};
+
+export const createCharacter = async (data, userId) => {
+    const escaped = data.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const existing = await Character.findOne({ user: userId, name: new RegExp(`^${escaped}$`, "i") });
+    if (existing) {
+        throw conflict(`Ya tienes un personaje llamado "${data.name}"`);
+    }
+    return Character.create({ ...data, user: userId });
+};
 
 export const updateCharacter = async (id, data, userId) => {
     const character = await Character.findById(id);

@@ -69,15 +69,27 @@ export const getById = async (id, userId) => {
     return monster;
 };
 
+export const checkNameExists = async (name, excludeId = null) => {
+    const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const query = { name: new RegExp(`^${escaped}$`, "i") };
+    if (excludeId) query._id = { $ne: excludeId };
+    return !!(await Monster.findOne(query).lean());
+};
+
 export const create = async (data, userId) => {
-    // Nunca permitir que el cliente cree monstruos públicos vía API normal.
-    // Los públicos solo se crean desde el script de seed-monsters.
     const clean = { ...data };
     delete clean.isPublic;
     delete clean.srdIndex;
 
-    const monster = await Monster.create({ ...clean, user: userId });
-    return monster;
+    const escaped = clean.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const existing = await Monster.findOne({ name: new RegExp(`^${escaped}$`, "i") });
+    if (existing) {
+        const err = new Error(`Ya existe un monstruo llamado "${clean.name}"`);
+        err.status = 409;
+        throw err;
+    }
+
+    return Monster.create({ ...clean, user: userId });
 };
 
 export const update = async (id, data, userId) => {
