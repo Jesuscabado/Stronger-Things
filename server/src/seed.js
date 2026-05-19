@@ -12,58 +12,11 @@ import {
     getCacheStats
 } from "./services/translationService.js";
 
-const PORT = process.env.APP_PORT || 3001;
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+import { sleep, fetchWithRetry, post, get } from "./seed-helpers.js";
+
 const DND_API = "https://www.dnd5eapi.co/api/2014";
 
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-const fetchWithRetry = async (url, options = {}, retries = 5, baseDelay = 2000) => {
-    let lastError;
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            const res = await fetch(url, options);
-            if (res.ok) return res;
-            if (res.status === 429 || res.status >= 500) {
-                if (attempt < retries) {
-                    const wait = baseDelay * attempt;
-                    process.stdout.write(`\n   ⏳ ${res.status} en ${url.split("/").pop()}, esperando ${wait}ms...`);
-                    await sleep(wait);
-                    continue;
-                }
-            }
-            return res;
-        } catch (err) {
-            lastError = err;
-            if (attempt < retries) {
-                const wait = baseDelay * attempt;
-                process.stdout.write(`\n   ⏳ ${err.message} en ${url.split("/").pop()}, reintentando en ${wait}ms...`);
-                await sleep(wait);
-                continue;
-            }
-        }
-    }
-    throw lastError || new Error("Retries exhausted");
-};
-
-const post = async (path, body, token) => {
-    try {
-        const res = await fetchWithRetry(`${BASE_URL}${path}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` })
-            },
-            body: JSON.stringify(body)
-        });
-        const json = await res.json().catch(() => ({}));
-        return { res, json };
-    } catch (err) {
-        return { res: { ok: false, status: 0 }, json: { message: err.message } };
-    }
-};
-
-/* ─────────────── ITEMS (existente) ─────────────── */
+/* ─────────────── ITEMS ─────────────── */
 
 const costToGold = (apiCost) => {
     if (!apiCost) return 0;
@@ -180,7 +133,7 @@ const importCatalogFromAPI = async (token) => {
     console.log(`   🌐 ${newlyTranslated} traducciones nuevas | ${results.length - newlyTranslated} desde caché\n`);
 };
 
-/* ─────────────── HECHIZOS (NUEVO Fase 6a) ─────────────── */
+/* ─────────────── HECHIZOS ─────────────── */
 
 const mapAndTranslateSpell = async (apiSpell) => {
     const englishDescription = Array.isArray(apiSpell.desc)
@@ -197,7 +150,6 @@ const mapAndTranslateSpell = async (apiSpell) => {
         englishAtHigher
     );
 
-    // Componentes V/S/M
     const components = {
         verbal: false,
         somatic: false,
@@ -213,7 +165,6 @@ const mapAndTranslateSpell = async (apiSpell) => {
     }
     if (apiSpell.material) components.materialDesc = apiSpell.material;
 
-    // Daño por nivel de slot
     const damageAtSlot = {};
     let damageType = "";
     if (apiSpell.damage) {
@@ -232,9 +183,8 @@ const mapAndTranslateSpell = async (apiSpell) => {
         }
     }
 
-    // Clases que pueden lanzarlo
     const classes = Array.isArray(apiSpell.classes)
-        ? apiSpell.classes.map(c => c.name) // ya vienen en inglés y coinciden con nuestros enums
+        ? apiSpell.classes.map(c => c.name)
         : [];
 
     return {
@@ -305,20 +255,7 @@ const importSpellsFromAPI = async (token) => {
     console.log(`   🌐 ${newlyTranslated} traducciones nuevas | ${results.length - newlyTranslated} desde caché\n`);
 };
 
-/* ─────────────── PERSONAJES ─────────────── */
-
-const findObjectIdByName = async (name, token) => {
-    try {
-        const res = await fetchWithRetry(`${BASE_URL}/api/objects`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        const list = await res.json();
-        const found = list.find(o => o.name === name);
-        return found?._id || null;
-    } catch {
-        return null;
-    }
-};
+/* ─────────────── MAIN ─────────────── */
 
 const main = async () => {
     console.log("🌱 Seeding StrongerThings...");
@@ -327,24 +264,25 @@ const main = async () => {
         console.warn("⚠  ANTHROPIC_API_KEY no está definida en .env. Las traducciones nuevas fallarán.");
     }
 
-    let token, userId;
+    let token;
     const credentials = { email: "dm@dnd.io", password: "secret123" };
 
     let r = await post("/api/auth/register", { username: "DungeonMaster", ...credentials });
     if (r.res.ok) {
         token = r.json.token;
-        userId = r.json.user._id;
         console.log("✅ Usuario DM registrado");
     } else {
         r = await post("/api/auth/login", credentials);
         if (!r.res.ok) throw new Error("No se pudo registrar ni hacer login con dm@dnd.io");
         token = r.json.token;
-        userId = r.json.user._id;
         console.log("✅ Login con DM existente");
     }
 
     await importCatalogFromAPI(token);
     await importSpellsFromAPI(token);
+
+    // Cargamos el catálogo una sola vez para el inventario de personajes
+    const allObjects = await get("/api/objects", token).catch(() => []);
 
     const characters = [
         {
@@ -397,15 +335,15 @@ const main = async () => {
         console.log(`✅ ${char.name} (${char.charClass} nivel ${char.level})`);
 
         for (const item of loadout) {
-            const baseObjectId = await findObjectIdByName(item.name, token);
-            if (!baseObjectId) {
+            const baseObject = allObjects.find(o => o.name === item.name);
+            if (!baseObject) {
                 console.log(`     ⚠ "${item.name}" no encontrado en el catálogo, salto`);
                 continue;
             }
             const { name, ...rest } = item;
             const r = await post(
                 `/api/characters/${json._id}/inventory`,
-                { baseObject: baseObjectId, ...rest },
+                { baseObject: baseObject._id, ...rest },
                 token
             );
             if (r.res.ok) {

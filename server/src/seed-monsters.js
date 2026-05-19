@@ -38,38 +38,11 @@ import {
     translateSense,
     translateMonster
 } from "./services/translationService.js";
+import { sleep, fetchWithRetry } from "./seed-helpers.js";
 
 const DND_API = "https://www.dnd5eapi.co";
 const CONCURRENCY = 3;
 const ESTIMATED_COST_EUR = "2-4";
-
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-/* ─── Fetch con retry (mismo patrón que tu seed.js) ─── */
-
-const fetchWithRetry = async (url, retries = 5, baseDelay = 2000) => {
-    let lastError;
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            const res = await fetch(url);
-            if (res.ok) return res;
-            if (res.status === 429 || res.status >= 500) {
-                if (attempt < retries) {
-                    await sleep(baseDelay * attempt);
-                    continue;
-                }
-            }
-            return res;
-        } catch (err) {
-            lastError = err;
-            if (attempt < retries) {
-                await sleep(baseDelay * attempt);
-                continue;
-            }
-        }
-    }
-    throw lastError || new Error("Retries exhausted");
-};
 
 /* ─── Confirmación interactiva ─── */
 
