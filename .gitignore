@@ -145,5 +145,8 @@ vite.config.ts.timestamp-*
 # Google files
 google-credentials.json
 uploads/
-# Claude
+# db info
 translations.json
+srd-equipment.json
+srd-monsters.json
+srd-spells.json
