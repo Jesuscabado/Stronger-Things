@@ -64,6 +64,16 @@
 .app-header__brand a {
     color: var(--gold-bright);
     border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.app-header__logo {
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    display: block;
+    border-radius: 6px;
 }
 .app-header nav {
     display: flex;

@@ -41,8 +41,14 @@ export default defineConfig({
             workbox: {
                 // Cachea el shell de la app y los assets estáticos
                 globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-                // Las llamadas a la API siempre van a la red (network-first)
+                // Nunca interceptar peticiones de Google OAuth ni de accounts.google.com
+                navigateFallbackDenylist: [/^\/api\//],
                 runtimeCaching: [
+                    {
+                        // Google OAuth y servicios de identidad — NUNCA cachear
+                        urlPattern: /^https:\/\/(accounts\.google\.com|oauth2\.googleapis\.com|apis\.google\.com)\/.*/i,
+                        handler: "NetworkOnly"
+                    },
                     {
                         urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
                         handler: "CacheFirst",

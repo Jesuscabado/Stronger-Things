@@ -56,6 +56,8 @@ export default function GoogleLoginButton({ onError }) {
                 shape="rectangular"
                 theme="outline"
                 size="large"
+                itp_support={true}
+                context="use"
             />
         </div>
     );

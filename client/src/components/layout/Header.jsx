@@ -32,7 +32,10 @@ export default function Header() {
         <header className="app-header">
             <div className="app-header__inner">
                 <div className="app-header__brand">
-                    <Link to={user ? "/characters" : "/login"}>⚔ StrongerThings</Link>
+                    <Link to={user ? "/characters" : "/login"}>
+                        <img src="/icon.svg" alt="" className="app-header__logo" aria-hidden="true" />
+                        StrongerThings
+                    </Link>
                 </div>
 
                 {/* Botón hamburguesa: solo visible en móvil (lo controla el CSS) */}
