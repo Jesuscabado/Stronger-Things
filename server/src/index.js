@@ -17,8 +17,12 @@ import { logger } from "./utils/logger.js";
 const app = express();
 const PORT = process.env.APP_PORT || 3000;
 
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+    .split(",")
+    .map(o => o.trim());
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true
 }));
 app.use(express.json());

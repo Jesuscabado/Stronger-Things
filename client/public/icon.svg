@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#cc1111" stop-opacity="0.6"/>
+      <stop offset="60%" stop-color="#660000" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Glow central -->
+  <circle cx="256" cy="256" r="200" fill="url(#glow)"/>
+
+  <!-- ── Anillos ── -->
+  <circle cx="256" cy="256" r="224" fill="none" stroke="#cc1111" stroke-width="3"/>
+  <circle cx="256" cy="256" r="214" fill="none" stroke="#880000" stroke-width="1" stroke-dasharray="4 5"/>
+  <circle cx="256" cy="256" r="190" fill="none" stroke="#cc1111" stroke-width="1.5"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#880000" stroke-width="1" stroke-dasharray="3 4"/>
+  <circle cx="256" cy="256" r="136" fill="none" stroke="#cc1111" stroke-width="2"/>
+  <circle cx="256" cy="256" r="80"  fill="none" stroke="#cc1111" stroke-width="1.5"/>
+  <circle cx="256" cy="256" r="36"  fill="none" stroke="#ff2222" stroke-width="2"/>
+  <circle cx="256" cy="256" r="16"  fill="#220000" stroke="#ff4444" stroke-width="2"/>
+  <circle cx="256" cy="256" r="7"   fill="#ff2020"/>
+
+  <!-- ── Triángulo apuntando arriba (r≈190) ── -->
+  <polygon
+    points="256,66 430,355 82,355"
+    fill="none" stroke="#cc1111" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- ── Triángulo apuntando abajo (r≈190) ── -->
+  <polygon
+    points="256,446 82,157 430,157"
+    fill="none" stroke="#cc1111" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- ── Hexágono inscrito (r≈136) ── -->
+  <polygon
+    points="256,120 374,188 374,324 256,392 138,324 138,188"
+    fill="none" stroke="#cc1111" stroke-width="1.5" stroke-linejoin="round"/>
+
+  <!-- ── Cuadrado rotado 45° (r≈136) ── -->
+  <polygon
+    points="256,120 392,256 256,392 120,256"
+    fill="none" stroke="#880000" stroke-width="1" stroke-linejoin="round" stroke-dasharray="6 4"/>
+
+  <!-- ── Cruz de 12 radios en el anillo exterior ── -->
+  <g stroke="#cc1111" stroke-width="1.5">
+    <line x1="256" y1="32"  x2="256" y2="66"  />
+    <line x1="256" y1="32"  x2="256" y2="66"  transform="rotate(30  256 256)"/>
+    <line x1="256" y1="32"  x2="256" y2="66"  transform="rotate(60  256 256)"/>
+    <line x1="256" y1="32"  x2="256" y2="66"  transform="rotate(90  256 256)"/>
+    <line x1="256" y1="32"  x2="256" y2="66"  transform="rotate(120 256 256)"/>
+    <line x1="256" y1="32"  x2="256" y2="66"  transform="rotate(150 256 256)"/>
+    <line x1="256" y1="32"  x2="256" y2="66"  transform="rotate(180 256 256)"/>
+    <line x1="256" y1="32"  x2="256" y2="66"  transform="rotate(210 256 256)"/>
+    <line x1="256" y1="32"  x2="256" y2="66"  transform="rotate(240 256 256)"/>
+    <line x1="256" y1="32"  x2="256" y2="66"  transform="rotate(270 256 256)"/>
+    <line x1="256" y1="32"  x2="256" y2="66"  transform="rotate(300 256 256)"/>
+    <line x1="256" y1="32"  x2="256" y2="66"  transform="rotate(330 256 256)"/>
+  </g>
+
+  <!-- ── Tick marks del anillo medio (cada 15°) ── -->
+  <g stroke="#880000" stroke-width="1" opacity="0.8">
+    <line x1="256" y1="106" x2="256" y2="120" transform="rotate(0   256 256)"/>
+    <line x1="256" y1="112" x2="256" y2="120" transform="rotate(15  256 256)"/>
+    <line x1="256" y1="106" x2="256" y2="120" transform="rotate(30  256 256)"/>
+    <line x1="256" y1="112" x2="256" y2="120" transform="rotate(45  256 256)"/>
+    <line x1="256" y1="106" x2="256" y2="120" transform="rotate(60  256 256)"/>
+    <line x1="256" y1="112" x2="256" y2="120" transform="rotate(75  256 256)"/>
+    <line x1="256" y1="106" x2="256" y2="120" transform="rotate(90  256 256)"/>
+    <line x1="256" y1="112" x2="256" y2="120" transform="rotate(105 256 256)"/>
+    <line x1="256" y1="106" x2="256" y2="120" transform="rotate(120 256 256)"/>
+    <line x1="256" y1="112" x2="256" y2="120" transform="rotate(135 256 256)"/>
+    <line x1="256" y1="106" x2="256" y2="120" transform="rotate(150 256 256)"/>
+    <line x1="256" y1="112" x2="256" y2="120" transform="rotate(165 256 256)"/>
+    <line x1="256" y1="106" x2="256" y2="120" transform="rotate(180 256 256)"/>
+    <line x1="256" y1="112" x2="256" y2="120" transform="rotate(195 256 256)"/>
+    <line x1="256" y1="106" x2="256" y2="120" transform="rotate(210 256 256)"/>
+    <line x1="256" y1="112" x2="256" y2="120" transform="rotate(225 256 256)"/>
+    <line x1="256" y1="106" x2="256" y2="120" transform="rotate(240 256 256)"/>
+    <line x1="256" y1="112" x2="256" y2="120" transform="rotate(255 256 256)"/>
+    <line x1="256" y1="106" x2="256" y2="120" transform="rotate(270 256 256)"/>
+    <line x1="256" y1="112" x2="256" y2="120" transform="rotate(285 256 256)"/>
+    <line x1="256" y1="106" x2="256" y2="120" transform="rotate(300 256 256)"/>
+    <line x1="256" y1="112" x2="256" y2="120" transform="rotate(315 256 256)"/>
+    <line x1="256" y1="106" x2="256" y2="120" transform="rotate(330 256 256)"/>
+    <line x1="256" y1="112" x2="256" y2="120" transform="rotate(345 256 256)"/>
+  </g>
+
+  <!-- ── 6 nodos en el hexágono ── -->
+  <g fill="#0c0000" stroke="#ff2222" stroke-width="2">
+    <circle cx="256" cy="120" r="7"/>
+    <circle cx="374" cy="188" r="7"/>
+    <circle cx="374" cy="324" r="7"/>
+    <circle cx="256" cy="392" r="7"/>
+    <circle cx="138" cy="324" r="7"/>
+    <circle cx="138" cy="188" r="7"/>
+  </g>
+  <g fill="#ff2222">
+    <circle cx="256" cy="120" r="3"/>
+    <circle cx="374" cy="188" r="3"/>
+    <circle cx="374" cy="324" r="3"/>
+    <circle cx="256" cy="392" r="3"/>
+    <circle cx="138" cy="324" r="3"/>
+    <circle cx="138" cy="188" r="3"/>
+  </g>
+
+  <!-- ── Símbolo alquímico central (cruz flamel simplificada) ── -->
+  <g stroke="#ff3333" stroke-width="3" stroke-linecap="round">
+    <line x1="256" y1="236" x2="256" y2="276"/>
+    <line x1="236" y1="256" x2="276" y2="256"/>
+    <line x1="243" y1="243" x2="269" y2="269" stroke-width="1.5" opacity="0.6"/>
+    <line x1="269" y1="243" x2="243" y2="269" stroke-width="1.5" opacity="0.6"/>
+  </g>
+
+  <!-- ── Texto alquímico en el anillo (r≈202) ── -->
+  <text font-size="11" fill="#880000" font-family="serif" letter-spacing="2" opacity="0.8">
+    <textPath href="#ring-path">· IGNIS · AQUA · TERRA · AETHER · SOLVE · ET · COAGULA · </textPath>
+  </text>
+  <defs>
+    <path id="ring-path"
+      d="M256,54 A202,202 0 1,1 255.9,54"
+      fill="none"/>
+  </defs>
+</svg>
