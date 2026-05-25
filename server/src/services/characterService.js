@@ -380,3 +380,13 @@ export const removeDiaryEntry = async (characterId, entryId, userId) => {
     await character.save();
     return loadFullCharacter(character._id);
 };
+
+export const searchForDM = async (query) => {
+    if (!query || !query.trim()) return [];
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return Character.find({ name: new RegExp(escaped, "i") })
+        .populate({ path: "user", select: "username" })
+        .select("name charClass level avatar user")
+        .limit(12)
+        .lean();
+};

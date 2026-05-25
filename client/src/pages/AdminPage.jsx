@@ -45,6 +45,19 @@ export default function AdminPage() {
         }
     };
 
+    const handleToggleDM = async (user) => {
+        const next = !user.isDM;
+        const action = next ? "asignar rol DM" : "quitar rol DM";
+        if (!confirm(`¿${action} a ${user.username}?`)) return;
+        try {
+            await adminApi.updateDM(user._id, next);
+            flash(`Rol DM ${next ? "asignado" : "retirado"}`);
+            load();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     const handleDelete = async (user) => {
         if (!confirm(`¿Eliminar a ${user.username}? Se borrarán también todos sus personajes. Esta acción no se puede deshacer.`)) return;
         try {
@@ -78,6 +91,10 @@ export default function AdminPage() {
                             <div style={{ color: "var(--ink-faded)", fontFamily: "Cinzel", textTransform: "uppercase", fontSize: "0.85rem" }}>Administradores</div>
                         </div>
                         <div style={{ textAlign: "center", padding: "1rem" }}>
+                            <div style={{ fontSize: "2.5rem", fontFamily: "Cinzel", color: "var(--gold)" }}>{stats.dms}</div>
+                            <div style={{ color: "var(--ink-faded)", fontFamily: "Cinzel", textTransform: "uppercase", fontSize: "0.85rem" }}>Directores de juego</div>
+                        </div>
+                        <div style={{ textAlign: "center", padding: "1rem" }}>
                             <div style={{ fontSize: "2.5rem", fontFamily: "Cinzel", color: "var(--ink)" }}>{stats.characters}</div>
                             <div style={{ color: "var(--ink-faded)", fontFamily: "Cinzel", textTransform: "uppercase", fontSize: "0.85rem" }}>Personajes creados</div>
                         </div>
@@ -97,6 +114,7 @@ export default function AdminPage() {
                                     <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Aventurero</th>
                                     <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Email</th>
                                     <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Rol</th>
+                                    <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>DM</th>
                                     <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Creado</th>
                                     <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Acciones</th>
                                 </tr>
@@ -118,6 +136,11 @@ export default function AdminPage() {
                                                     {u.role}
                                                 </span>
                                             </td>
+                                            <td style={{ padding: "0.6rem" }}>
+                                                {u.isDM && (
+                                                    <span className="class-badge" style={{ color: "var(--gold)" }}>DM</span>
+                                                )}
+                                            </td>
                                             <td style={{ padding: "0.6rem", color: "var(--ink-faded)", fontSize: "0.85rem" }}>
                                                 {new Date(u.createdAt).toLocaleDateString()}
                                             </td>
@@ -130,6 +153,15 @@ export default function AdminPage() {
                                                         title={isMe ? "No puedes cambiar tu propio rol" : ""}
                                                     >
                                                         {u.role === "admin" ? "↓ Degradar" : "↑ Promover"}
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-small"
+                                                        onClick={() => handleToggleDM(u)}
+                                                        disabled={isMe}
+                                                        title={isMe ? "No puedes cambiar tu propio rol DM" : ""}
+                                                        style={{ color: u.isDM ? "var(--blood)" : "var(--gold)" }}
+                                                    >
+                                                        {u.isDM ? "✕ Quitar DM" : "🎲 Asignar DM"}
                                                     </button>
                                                     <button
                                                         className="btn btn-small btn-danger"

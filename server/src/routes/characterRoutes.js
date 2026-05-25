@@ -20,14 +20,19 @@ import {
     removeCharacterSpell,
     addDiaryEntryToCharacter,
     updateCharacterDiaryEntry,
-    removeCharacterDiaryEntry
+    removeCharacterDiaryEntry,
+    searchCharactersForDM
 } from "../controllers/characterController.js";
 import { validateBody, validateObjectId } from "../middlewares/validateBody.js";
 import { authRequired } from "../middlewares/authRequired.js";
+import { dmRequired } from "../middlewares/dmRequired.js";
 
 const router = Router();
 
 router.use(authRequired);
+
+// Búsqueda global de personajes (sólo DMs, para añadir a sesiones)
+router.get("/search", dmRequired, searchCharactersForDM);
 
 // CRUD del personaje
 router.get("/check-name", checkName);
