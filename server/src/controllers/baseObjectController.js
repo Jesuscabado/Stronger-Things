@@ -38,7 +38,8 @@ export const createBaseObject = async (req, res, next) => {
 
 export const updateBaseObject = async (req, res, next) => {
     try {
-        res.status(200).json(await baseObjectService.updateBaseObject(req.params.id, req.body));
+        const isAdmin = req.user?.role === "admin";
+        res.status(200).json(await baseObjectService.updateBaseObject(req.params.id, req.body, isAdmin));
     } catch (error) {
         if (error.code === 11000) {
             return res.status(400).json({ message: "Nombre duplicado", field: error.keyValue });
@@ -49,6 +50,7 @@ export const updateBaseObject = async (req, res, next) => {
 
 export const deleteBaseObject = async (req, res, next) => {
     try {
-        res.status(200).json(await baseObjectService.deleteBaseObject(req.params.id));
+        const isAdmin = req.user?.role === "admin";
+        res.status(200).json(await baseObjectService.deleteBaseObject(req.params.id, isAdmin));
     } catch (error) { handleStatusError(error, res, next); }
 };

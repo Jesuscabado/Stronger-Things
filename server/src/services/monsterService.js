@@ -93,17 +93,17 @@ export const create = async (data, userId) => {
     return Monster.create({ ...clean, user: userId });
 };
 
-export const update = async (id, data, userId) => {
+export const update = async (id, data, userId, isAdmin = false) => {
     const monster = await Monster.findById(id);
     if (!monster) throw notFound();
 
-    if (monster.isPublic) {
+    if (monster.isPublic && !isAdmin) {
         const err = new Error("Los monstruos del SRD no se pueden editar. Clónalo a tu bestiario privado para personalizarlo.");
         err.status = 403;
         throw err;
     }
 
-    if (!monster.user || monster.user.toString() !== userId.toString()) {
+    if (!isAdmin && (!monster.user || monster.user.toString() !== userId.toString())) {
         throw forbidden();
     }
 
@@ -116,17 +116,17 @@ export const update = async (id, data, userId) => {
     return monster;
 };
 
-export const remove = async (id, userId) => {
+export const remove = async (id, userId, isAdmin = false) => {
     const monster = await Monster.findById(id);
     if (!monster) throw notFound();
 
-    if (monster.isPublic) {
+    if (monster.isPublic && !isAdmin) {
         const err = new Error("Los monstruos del SRD no se pueden eliminar.");
         err.status = 403;
         throw err;
     }
 
-    if (!monster.user || monster.user.toString() !== userId.toString()) {
+    if (!isAdmin && (!monster.user || monster.user.toString() !== userId.toString())) {
         throw forbidden();
     }
     await monster.deleteOne();

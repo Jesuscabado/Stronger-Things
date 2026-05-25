@@ -9,7 +9,8 @@
     "start": "node src/index.js",
     "seed:download": "node src/seed-download.js",
     "seed": "node src/seed.js",
-    "seed:monsters": "node src/seed-monsters.js"
+    "seed:monsters": "node src/seed-monsters.js",
+    "migrate:ispublic": "node src/migrate-ispublic.js"
   },
   "repository": {
     "type": "git",

@@ -439,7 +439,7 @@ export default function SpellsPage() {
                                             spell={spell}
                                             expanded={expanded === spell._id}
                                             onToggle={() => setExpanded(expanded === spell._id ? null : spell._id)}
-                                            onDelete={isAdmin ? () => handleDelete(spell) : null}
+                                            onDelete={(!spell.isPublic || isAdmin) ? () => handleDelete(spell) : null}
                                         />
                                     ))}
                                 </div>
@@ -453,7 +453,7 @@ export default function SpellsPage() {
                                     spell={spell}
                                     expanded={expanded === spell._id}
                                     onToggle={() => setExpanded(expanded === spell._id ? null : spell._id)}
-                                    onDelete={isAdmin ? () => handleDelete(spell) : null}
+                                    onDelete={(!spell.isPublic || isAdmin) ? () => handleDelete(spell) : null}
                                     showLevelBadge
                                 />
                             ))}

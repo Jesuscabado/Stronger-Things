@@ -37,14 +37,16 @@ export const createMonster = async (req, res, next) => {
 
 export const updateMonster = async (req, res, next) => {
     try {
-        const monster = await monsterService.update(req.params.id, req.body, req.user._id);
+        const isAdmin = req.user?.role === "admin";
+        const monster = await monsterService.update(req.params.id, req.body, req.user._id, isAdmin);
         res.json(monster);
     } catch (err) { handleStatusError(err, res, next); }
 };
 
 export const deleteMonster = async (req, res, next) => {
     try {
-        const result = await monsterService.remove(req.params.id, req.user._id);
+        const isAdmin = req.user?.role === "admin";
+        const result = await monsterService.remove(req.params.id, req.user._id, isAdmin);
         res.json(result);
     } catch (err) { handleStatusError(err, res, next); }
 };

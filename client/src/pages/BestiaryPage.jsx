@@ -367,6 +367,7 @@ function Bestiary() {
                             key={m._id}
                             monster={m}
                             campaigns={campaigns}
+                            isAdmin={user?.role === "admin"}
                             expanded={expanded === m._id}
                             onToggle={() => setExpanded(expanded === m._id ? null : m._id)}
                             onEdit={() => openEdit(m)}
@@ -384,7 +385,7 @@ function Bestiary() {
 /* ─────────────────────────────────────────────────────────────────────
    Tarjeta de monstruo (modo lectura, expandible).
    ───────────────────────────────────────────────────────────────────── */
-function MonsterCard({ monster, campaigns, expanded, onToggle, onEdit, onDelete, onClone, onAddToCampaign }) {
+function MonsterCard({ monster, campaigns, isAdmin, expanded, onToggle, onEdit, onDelete, onClone, onAddToCampaign }) {
     const [selectedCampaign, setSelectedCampaign] = useState("");
 
     const abil = (key) => {
@@ -506,7 +507,7 @@ function MonsterCard({ monster, campaigns, expanded, onToggle, onEdit, onDelete,
 
                     {/* Acciones */}
                     <div style={{ display: "flex", gap: "0.4rem", marginTop: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-                        {monster.isPublic ? (
+                        {monster.isPublic && !isAdmin ? (
                             <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); onClone(); }}>
                                 📋 Clonar para editar
                             </button>

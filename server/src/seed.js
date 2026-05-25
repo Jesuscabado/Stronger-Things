@@ -88,7 +88,8 @@ const mapItem = (apiItem, translations) => {
         description: t.description || (Array.isArray(apiItem.desc) ? apiItem.desc.join(" ") : (Array.isArray(apiItem.special) ? apiItem.special.join(" ") : "")),
         category: normalizeCategory(apiItem),
         cost: costToGold(apiItem.cost),
-        stats
+        stats,
+        isPublic: true
     };
 };
 
@@ -166,7 +167,8 @@ const mapSpell = (apiSpell, translations) => {
         components,
         damageType,
         damageAtSlot,
-        classes: Array.isArray(apiSpell.classes) ? apiSpell.classes.map(c => c.name) : []
+        classes: Array.isArray(apiSpell.classes) ? apiSpell.classes.map(c => c.name) : [],
+        isPublic: true
     };
 };
 

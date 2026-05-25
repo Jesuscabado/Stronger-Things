@@ -45,10 +45,10 @@ export const create = async (req, res) => {
 
 export const remove = async (req, res) => {
     try {
-        const deleted = await spellService.deleteSpell(req.params.id);
-        if (!deleted) return res.status(404).json({ message: "Hechizo no encontrado" });
+        const isAdmin = req.user?.role === "admin";
+        await spellService.deleteSpell(req.params.id, isAdmin);
         res.json({ message: "Hechizo eliminado" });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(err.status || 500).json({ message: err.message });
     }
 };
