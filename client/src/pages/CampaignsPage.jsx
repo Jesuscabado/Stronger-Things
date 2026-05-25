@@ -553,7 +553,8 @@ function SessionView({ campaign, session, onBack, onChanged, onError, onFlash })
     const [logContent, setLogContent] = useState("");
     const [logMonster, setLogMonster] = useState("");
     const [adding, setAdding]         = useState(false);
-    const [editingEntry, setEditingEntry] = useState(null); // { _id, content }
+    const [editingEntry, setEditingEntry] = useState(null);
+    const [monsterPopup, setMonsterPopup] = useState(null); // monsterId para el modal
 
     useEffect(() => {
         monstersApi.list().then(setMonsters).catch(() => {});
@@ -601,6 +602,7 @@ function SessionView({ campaign, session, onBack, onChanged, onError, onFlash })
     const sessionIndex = sessions.findIndex(s => s._id === session._id);
 
     return (
+        <>
         <div className="scroll-card" style={{ padding: "1.4rem" }}>
             {/* Cabecera sesión */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
@@ -695,8 +697,18 @@ function SessionView({ campaign, session, onBack, onChanged, onError, onFlash })
                                                 {new Date(entry.createdAt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                                             </span>
                                             {entry.kind === "encounter" && (entry.monster || entry.monsterName) && (
-                                                <p style={{ margin: "0.15rem 0 0", fontSize: "0.85rem", fontWeight: 600, color: "var(--blood)" }}>
-                                                    ⚔️ {entry.monster?.name || entry.monsterName}
+                                                <p style={{ margin: "0.15rem 0 0", fontSize: "0.85rem", fontWeight: 600 }}>
+                                                    {entry.monster?._id ? (
+                                                        <button
+                                                            onClick={() => setMonsterPopup(entry.monster._id)}
+                                                            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--blood)", fontWeight: 600, fontSize: "inherit", textDecoration: "underline dotted", textUnderlineOffset: "3px" }}
+                                                            title="Ver stat block"
+                                                        >
+                                                            ⚔️ {entry.monster.name}
+                                                        </button>
+                                                    ) : (
+                                                        <span style={{ color: "var(--blood)" }}>⚔️ {entry.monsterName}</span>
+                                                    )}
                                                     {entry.monster?.challengeRating && <span style={{ fontWeight: 400, color: "var(--ink-faded)", marginLeft: "0.3rem" }}>CR {entry.monster.challengeRating}</span>}
                                                 </p>
                                             )}
@@ -716,6 +728,11 @@ function SessionView({ campaign, session, onBack, onChanged, onError, onFlash })
                 </div>
             )}
         </div>
+
+        {monsterPopup && (
+            <MonsterStatModal monsterId={monsterPopup} onClose={() => setMonsterPopup(null)} />
+        )}
+        </>
     );
 }
 
@@ -746,6 +763,144 @@ function SessionForm({ form, setForm, editingId, onSubmit, onCancel }) {
                 </div>
             </form>
         </div>
+    );
+}
+
+// ─── Modal stat block de monstruo ────────────────────────────────────────────
+
+function MonsterStatModal({ monsterId, onClose }) {
+    const [monster, setMonster] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError]     = useState("");
+
+    useEffect(() => {
+        setLoading(true);
+        setError("");
+        monstersApi.get(monsterId)
+            .then(setMonster)
+            .catch(e => setError(e.message))
+            .finally(() => setLoading(false));
+    }, [monsterId]);
+
+    useEffect(() => {
+        const onKey = (e) => { if (e.key === "Escape") onClose(); };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [onClose]);
+
+    const abil = (m, key) => {
+        const v = m.abilityScores?.[key] ?? 10;
+        const mod = Math.floor((v - 10) / 2);
+        return `${v} (${mod >= 0 ? "+" : ""}${mod})`;
+    };
+
+    return (
+        <div className="modal-overlay modal-overlay--form" onClick={onClose}>
+            <div className="modal-content modal-content--form" style={{ maxWidth: "600px" }} onClick={e => e.stopPropagation()}>
+                <div style={{ padding: "1.5rem 2rem", borderBottom: "1px solid var(--parchment-shadow)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h2 style={{ margin: 0, fontSize: "1.2rem" }}>Stat Block</h2>
+                    <button className="btn btn-small" onClick={onClose}>✕ Cerrar</button>
+                </div>
+
+                <div style={{ padding: "1.5rem 2rem", overflowY: "auto" }}>
+                    {loading && <p style={{ color: "var(--ink-faded)" }}>Cargando…</p>}
+                    {error   && <p style={{ color: "var(--blood)" }}>{error}</p>}
+                    {monster && (
+                        <>
+                            {/* Cabecera */}
+                            <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "1rem" }}>
+                                {monster.image?.cloudinaryUrl && (
+                                    <img src={monster.image.cloudinaryUrl} alt={monster.name}
+                                        style={{ width: "72px", height: "72px", objectFit: "cover", borderRadius: "2px", border: "1px solid var(--ink-faded)", flexShrink: 0 }} />
+                                )}
+                                <div>
+                                    <h3 style={{ margin: "0 0 0.3rem" }}>{monster.name}</h3>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", fontSize: "0.85rem" }}>
+                                        <span className="badge-tag">{monster.size}</span>
+                                        <span className="badge-tag">{monster.type}{monster.subtype ? ` (${monster.subtype})` : ""}</span>
+                                        <span className="badge-tag" style={{ background: "rgba(160,32,32,0.15)" }}>CR {monster.challengeRating}</span>
+                                        {monster.isPublic && <span className="badge-tag" style={{ background: "rgba(59,109,255,0.15)", color: "#3b6dff" }}>SRD</span>}
+                                    </div>
+                                    <p style={{ margin: "0.3rem 0 0", fontSize: "0.85rem", color: "var(--ink-faded)" }}>{monster.alignment}</p>
+                                </div>
+                            </div>
+
+                            {/* Defensas */}
+                            <div style={{ fontSize: "0.9rem", lineHeight: 1.7, marginBottom: "1rem", borderTop: "1px dashed var(--parchment-shadow)", paddingTop: "0.75rem" }}>
+                                <div><strong>Clase de armadura:</strong> {monster.armorClass}{monster.armorClassNote && ` (${monster.armorClassNote})`}</div>
+                                <div><strong>Puntos de golpe:</strong> {monster.hitPoints?.average}{monster.hitPoints?.roll && ` (${monster.hitPoints.roll})`}</div>
+                                <div><strong>Velocidad:</strong> {(monster.speed || []).join(", ") || "—"}</div>
+                            </div>
+
+                            {/* Atributos */}
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: "0.4rem", margin: "0.75rem 0 1rem", fontSize: "0.85rem", textAlign: "center", borderTop: "1px dashed var(--parchment-shadow)", paddingTop: "0.75rem" }}>
+                                {["strength","dexterity","constitution","intelligence","wisdom","charisma"].map(k => (
+                                    <div key={k}>
+                                        <div style={{ fontFamily: "Cinzel,serif", fontSize: "0.68rem", color: "var(--ink-faded)", textTransform: "uppercase" }}>{k.slice(0,3)}</div>
+                                        <strong>{abil(monster, k)}</strong>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Sentidos y resistencias */}
+                            <div style={{ fontSize: "0.85rem", lineHeight: 1.7, marginBottom: "0.75rem" }}>
+                                {monster.senses?.length > 0     && <div><strong>Sentidos:</strong> {monster.senses.join(", ")}, Percepción pasiva {monster.passivePerception}</div>}
+                                {monster.languages?.length > 0  && <div><strong>Idiomas:</strong> {monster.languages.join(", ")}</div>}
+                                {monster.damageResistances?.length > 0  && <div><strong>Resistencias:</strong> {monster.damageResistances.join(", ")}</div>}
+                                {monster.damageImmunities?.length > 0   && <div><strong>Inmunidades:</strong> {monster.damageImmunities.join(", ")}</div>}
+                                {monster.conditionImmunities?.length > 0 && <div><strong>Inmunidad a condiciones:</strong> {monster.conditionImmunities.join(", ")}</div>}
+                            </div>
+
+                            {/* Acciones */}
+                            {monster.actions?.length > 0 && <MonsterActionsGroup actions={monster.actions} />}
+
+                            {monster.spellcastingNote && (
+                                <div style={{ marginTop: "1rem", padding: "0.6rem", background: "rgba(184,134,11,0.08)", borderLeft: "3px solid var(--gold)", borderRadius: "2px", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>
+                                    <strong>Lanzamiento de conjuros:</strong> {monster.spellcastingNote}
+                                </div>
+                            )}
+                            {monster.description && (
+                                <p style={{ marginTop: "1rem", fontStyle: "italic", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>{monster.description}</p>
+                            )}
+                            {monster.dmNotes && (
+                                <div style={{ marginTop: "1rem", padding: "0.6rem", background: "rgba(139,0,0,0.08)", borderLeft: "3px solid var(--blood)", borderRadius: "2px", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>
+                                    <strong>📝 Notas del DM:</strong><br />{monster.dmNotes}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function MonsterActionsGroup({ actions }) {
+    const grouped = {};
+    for (const a of actions) {
+        const k = a.kind || "action";
+        if (!grouped[k]) grouped[k] = [];
+        grouped[k].push(a);
+    }
+    const order  = ["trait","action","bonus","reaction","legendary","lair"];
+    const titles = { trait:"Rasgos", action:"Acciones", bonus:"Acciones adicionales", reaction:"Reacciones", legendary:"Acciones legendarias", lair:"Acciones de guarida" };
+    return (
+        <>
+            {order.filter(k => grouped[k]).map(k => (
+                <div key={k} style={{ marginTop: "1rem" }}>
+                    <h4 style={{ borderBottom: "1px solid var(--gold)", paddingBottom: "0.2rem", marginBottom: "0.4rem" }}>{titles[k]}</h4>
+                    {grouped[k].map(a => (
+                        <div key={a._id} style={{ marginBottom: "0.6rem", fontSize: "0.9rem" }}>
+                            <strong>{a.name}.</strong>{" "}
+                            {(a.attackBonus !== undefined && a.attackBonus !== null && a.attackBonus !== "") && (
+                                <em>Ataque: {a.attackBonus >= 0 ? "+" : ""}{a.attackBonus} al golpe{a.reach && `, alcance ${a.reach}`}. Impacto: {a.damage}{a.damageType ? ` de daño ${a.damageType}` : ""}.</em>
+                            )}{" "}
+                            <span style={{ whiteSpace: "pre-wrap" }}>{a.description}</span>
+                        </div>
+                    ))}
+                </div>
+            ))}
+        </>
     );
 }
 
