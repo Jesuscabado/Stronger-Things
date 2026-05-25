@@ -31,3 +31,13 @@ export const deleteSession = async (req, res, next) => { try { res.json(await sv
 export const addLogEntry    = async (req, res, next) => { try { res.status(201).json(await svc.addLogEntry(req.params.id, req.params.sessionId, req.body, req.user._id)); }                       catch (e) { handle(e, res, next); } };
 export const updateLogEntry = async (req, res, next) => { try { res.json(await svc.updateLogEntry(req.params.id, req.params.sessionId, req.params.entryId, req.body, req.user._id)); }           catch (e) { handle(e, res, next); } };
 export const deleteLogEntry = async (req, res, next) => { try { res.json(await svc.removeLogEntry(req.params.id, req.params.sessionId, req.params.entryId, req.user._id)); }                     catch (e) { handle(e, res, next); } };
+
+// ─── Pool de monstruos ────────────────────────────────────────────────────────
+export const addMonsterToPool = async (req, res, next) => {
+    try {
+        const { monsterId } = req.body;
+        if (!monsterId) return res.status(400).json({ message: "Falta monsterId" });
+        res.status(201).json(await svc.addMonsterToPool(req.params.id, monsterId, req.user._id));
+    } catch (e) { handle(e, res, next); }
+};
+export const removeMonsterFromPool = async (req, res, next) => { try { res.json(await svc.removeMonsterFromPool(req.params.id, req.params.monsterId, req.user._id)); } catch (e) { handle(e, res, next); } };

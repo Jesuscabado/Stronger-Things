@@ -56,6 +56,7 @@ const campaignSchema = new mongoose.Schema(
         },
         participants: [participantSchema],
         sessions:    [sessionSchema],
+        monsters:    [{ type: mongoose.Schema.Types.ObjectId, ref: "Monster" }],
         notes:       { type: String, default: "" }
     },
     { timestamps: true }

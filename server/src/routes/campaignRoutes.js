@@ -3,7 +3,8 @@ import {
     listCampaigns, getCampaign, createCampaign, updateCampaign, deleteCampaign,
     addParticipant, removeParticipant,
     addSession, updateSession, deleteSession,
-    addLogEntry, updateLogEntry, deleteLogEntry
+    addLogEntry, updateLogEntry, deleteLogEntry,
+    addMonsterToPool, removeMonsterFromPool
 } from "../controllers/campaignController.js";
 import { authRequired } from "../middlewares/authRequired.js";
 import { dmRequired } from "../middlewares/dmRequired.js";
@@ -14,10 +15,11 @@ const router = Router();
 router.use(authRequired);
 router.use(dmRequired);
 
-const cid       = validateObjectId();
-const sid       = validateObjectId("sessionId");
-const eid       = validateObjectId("entryId");
-const charIdVal = validateObjectId("charId");
+const cid          = validateObjectId();
+const sid          = validateObjectId("sessionId");
+const eid          = validateObjectId("entryId");
+const charIdVal    = validateObjectId("charId");
+const monsterIdVal = validateObjectId("monsterId");
 
 // Campañas
 router.get("/",    listCampaigns);
@@ -39,5 +41,9 @@ router.delete("/:id/sessions/:sessionId", cid, sid, deleteSession);
 router.post("/:id/sessions/:sessionId/log",             cid, sid, addLogEntry);
 router.put("/:id/sessions/:sessionId/log/:entryId",     cid, sid, eid, updateLogEntry);
 router.delete("/:id/sessions/:sessionId/log/:entryId",  cid, sid, eid, deleteLogEntry);
+
+// Pool de monstruos
+router.post("/:id/monsters",              cid, addMonsterToPool);
+router.delete("/:id/monsters/:monsterId", cid, monsterIdVal, removeMonsterFromPool);
 
 export default router;

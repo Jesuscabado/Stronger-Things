@@ -17,11 +17,12 @@ const checkOwner = (campaign, dmId) => {
 const listPopulate = (q) =>
     q.populate({ path: "participants.character", select: "name charClass level" });
 
-// Populate completo para detalle (log entries con monstruo)
+// Populate completo para detalle (log entries con monstruo + pool de monstruos)
 const detailPopulate = (q) =>
     q
         .populate({ path: "participants.character", select: "name charClass level avatar" })
-        .populate({ path: "sessions.log.monster", select: "name challengeRating type" });
+        .populate({ path: "sessions.log.monster", select: "name challengeRating type" })
+        .populate({ path: "monsters", select: "name challengeRating type size source" });
 
 // ─── Campañas ─────────────────────────────────────────────────────────────────
 
@@ -177,4 +178,25 @@ export const removeLogEntry = async (id, sessionId, entryId, dmId) => {
     entry.deleteOne();
     await campaign.save();
     return { deleted: true };
+};
+
+// ─── Pool de monstruos de la campaña ─────────────────────────────────────────
+
+export const addMonsterToPool = async (id, monsterId, dmId) => {
+    const campaign = await Campaign.findById(id);
+    checkOwner(campaign, dmId);
+    const monster = await Monster.findById(monsterId).lean();
+    if (!monster) throw notFound("Monstruo no encontrado");
+    if (campaign.monsters.some(m => m.equals(monsterId))) throw conflict("Monstruo ya en el pool de la campaña");
+    campaign.monsters.push(monsterId);
+    await campaign.save();
+    return detailPopulate(Campaign.findById(id)).lean();
+};
+
+export const removeMonsterFromPool = async (id, monsterId, dmId) => {
+    const campaign = await Campaign.findById(id);
+    checkOwner(campaign, dmId);
+    campaign.monsters = campaign.monsters.filter(m => !m.equals(monsterId));
+    await campaign.save();
+    return detailPopulate(Campaign.findById(id)).lean();
 };

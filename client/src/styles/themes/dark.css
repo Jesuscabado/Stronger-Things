@@ -102,22 +102,22 @@
 
 /* ─── 5. Formularios ─── */
 
-:root[data-theme="dark"] form input,
-:root[data-theme="dark"] form select,
-:root[data-theme="dark"] form textarea {
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
     background: rgba(0, 0, 0, 0.25);
     border-color: var(--parchment-shadow);
     color: var(--ink);
 }
 
-:root[data-theme="dark"] form input:focus,
-:root[data-theme="dark"] form select:focus,
-:root[data-theme="dark"] form textarea:focus {
+:root[data-theme="dark"] input:focus,
+:root[data-theme="dark"] select:focus,
+:root[data-theme="dark"] textarea:focus {
     background: rgba(0, 0, 0, 0.35);
     border-color: var(--gold-bright);
 }
 
-:root[data-theme="dark"] form select option {
+:root[data-theme="dark"] select option {
     background: var(--parchment-dark);
     color: var(--ink);
 }

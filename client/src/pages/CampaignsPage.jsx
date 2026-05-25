@@ -548,17 +548,12 @@ function NotesPanel({ campaign, onChanged, onError, onFlash }) {
 // ─── Vista de sesión con log ──────────────────────────────────────────────────
 
 function SessionView({ campaign, session, onBack, onChanged, onError, onFlash }) {
-    const [monsters, setMonsters]     = useState([]);
     const [logKind, setLogKind]       = useState("note");
     const [logContent, setLogContent] = useState("");
     const [logMonster, setLogMonster] = useState("");
     const [adding, setAdding]         = useState(false);
     const [editingEntry, setEditingEntry] = useState(null);
-    const [monsterPopup, setMonsterPopup] = useState(null); // monsterId para el modal
-
-    useEffect(() => {
-        monstersApi.list().then(setMonsters).catch(() => {});
-    }, []);
+    const [monsterPopup, setMonsterPopup] = useState(null);
 
     const log = [...(session.log || [])].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
@@ -635,15 +630,11 @@ function SessionView({ campaign, session, onBack, onChanged, onError, onFlash })
                 </div>
 
                 {logKind === "encounter" && (
-                    <div style={{ marginBottom: "0.5rem" }}>
-                        <label style={lbl}>Monstruo del bestiario</label>
-                        <select value={logMonster} onChange={e => setLogMonster(e.target.value)} style={{ width: "100%" }}>
-                            <option value="">— Sin monstruo concreto —</option>
-                            {monsters.map(m => (
-                                <option key={m._id} value={m._id}>{m.name} (CR {m.challengeRating})</option>
-                            ))}
-                        </select>
-                    </div>
+                    <MonsterPicker
+                        value={logMonster}
+                        onChange={setLogMonster}
+                        campaignMonsters={campaign.monsters || []}
+                    />
                 )}
 
                 <textarea
@@ -762,6 +753,90 @@ function SessionForm({ form, setForm, editingId, onSubmit, onCancel }) {
                     <button type="button" className="btn" onClick={onCancel}>Cancelar</button>
                 </div>
             </form>
+        </div>
+    );
+}
+
+// ─── Selector de monstruo con filtros y buscador ─────────────────────────────
+
+function MonsterPicker({ value, onChange, campaignMonsters }) {
+    const FILTERS = [["campaign", "Campaña"], ["mine", "Míos"], ["srd", "SRD"], ["all", "Todos"]];
+    const [filter, setFilter]       = useState("campaign");
+    const [search, setSearch]       = useState("");
+    const [apiMonsters, setApiMonsters] = useState([]);
+    const [loading, setLoading]     = useState(false);
+
+    useEffect(() => {
+        if (filter === "campaign") return;
+        setLoading(true);
+        const params = filter === "all" ? {} : { source: filter };
+        monstersApi.list(params)
+            .then(setApiMonsters)
+            .catch(() => {})
+            .finally(() => setLoading(false));
+    }, [filter]);
+
+    const source   = filter === "campaign" ? campaignMonsters : apiMonsters;
+    const filtered = search.trim()
+        ? source.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
+        : source;
+
+    const selectedMonster = [...campaignMonsters, ...apiMonsters].find(m => m._id === value);
+
+    return (
+        <div style={{ marginBottom: "0.5rem" }}>
+            <label style={lbl}>Monstruo (opcional)</label>
+
+            {value ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.4rem 0.7rem", background: "rgba(139,0,0,0.1)", borderRadius: "4px", marginBottom: "0.4rem" }}>
+                    <span style={{ fontSize: "0.9rem", flex: 1 }}>⚔️ <strong>{selectedMonster?.name ?? "Monstruo seleccionado"}</strong></span>
+                    <button className="btn btn-small" style={{ padding: "0.1rem 0.5rem" }} onClick={() => onChange("")}>✕</button>
+                </div>
+            ) : (
+                <>
+                    <div style={{ display: "flex", gap: "0.3rem", marginBottom: "0.4rem", flexWrap: "wrap" }}>
+                        {FILTERS.map(([f, label]) => (
+                            <button
+                                key={f}
+                                className="btn btn-small"
+                                style={{ opacity: filter === f ? 1 : 0.5, fontWeight: filter === f ? 700 : 400 }}
+                                onClick={() => setFilter(f)}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder="Buscar monstruo…"
+                        style={{ width: "100%", marginBottom: "0.3rem" }}
+                    />
+
+                    <ul style={{ listStyle: "none", padding: 0, marginTop: 0, border: "1px solid var(--parchment-shadow)", borderRadius: "4px", overflow: "hidden", maxHeight: "160px", overflowY: "auto" }}>
+                        {loading ? (
+                            <li style={{ padding: "0.45rem 0.75rem", color: "var(--ink-faded)", fontSize: "0.85rem" }}>Cargando…</li>
+                        ) : filtered.length === 0 ? (
+                            <li style={{ padding: "0.45rem 0.75rem", color: "var(--ink-faded)", fontSize: "0.85rem" }}>
+                                {filter === "campaign" ? "Sin monstruos en el pool de esta campaña." : "Sin resultados."}
+                            </li>
+                        ) : (
+                            filtered.map(m => (
+                                <li
+                                    key={m._id}
+                                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.45rem 0.75rem", borderBottom: "1px solid var(--parchment-shadow)", cursor: "pointer" }}
+                                    onClick={() => onChange(m._id)}
+                                >
+                                    <span style={{ fontSize: "0.88rem" }}>{m.name}</span>
+                                    <span style={{ color: "var(--ink-faded)", fontSize: "0.78rem" }}>CR {m.challengeRating}</span>
+                                </li>
+                            ))
+                        )}
+                    </ul>
+                </>
+            )}
         </div>
     );
 }

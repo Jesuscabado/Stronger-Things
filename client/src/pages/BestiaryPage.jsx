@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { monstersApi } from "../api/monsters.js";
+import { campaignsApi } from "../api/campaigns.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNameCheck } from "../hooks/useNameCheck.js";
 
@@ -91,6 +92,7 @@ function Bestiary() {
     const { user } = useAuth();
 
     const [monsters, setMonsters] = useState([]);
+    const [campaigns, setCampaigns] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
@@ -136,6 +138,10 @@ function Bestiary() {
         const handle = setTimeout(load, 250);
         return () => clearTimeout(handle);
     }, [search, filterType, filterSize, filterCR, filterSource]);
+
+    useEffect(() => {
+        campaignsApi.list().then(setCampaigns).catch(() => {});
+    }, []);
 
     const openCreate = () => {
         setForm(emptyMonster);
@@ -221,6 +227,15 @@ function Bestiary() {
             const clone = await monstersApi.clone(monster._id);
             flash(`"${clone.name}" añadido a tu bestiario`);
             load();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const handleAddToCampaign = async (monsterId, campaignId) => {
+        try {
+            await campaignsApi.addMonster(campaignId, monsterId);
+            flash("Monstruo añadido al pool de la campaña");
         } catch (err) {
             setError(err.message);
         }
@@ -350,11 +365,13 @@ function Bestiary() {
                         <MonsterCard
                             key={m._id}
                             monster={m}
+                            campaigns={campaigns}
                             expanded={expanded === m._id}
                             onToggle={() => setExpanded(expanded === m._id ? null : m._id)}
                             onEdit={() => openEdit(m)}
                             onDelete={() => handleDelete(m)}
                             onClone={() => handleClone(m)}
+                            onAddToCampaign={(campaignId) => handleAddToCampaign(m._id, campaignId)}
                         />
                     ))}
                 </div>
@@ -366,7 +383,9 @@ function Bestiary() {
 /* ─────────────────────────────────────────────────────────────────────
    Tarjeta de monstruo (modo lectura, expandible).
    ───────────────────────────────────────────────────────────────────── */
-function MonsterCard({ monster, expanded, onToggle, onEdit, onDelete, onClone }) {
+function MonsterCard({ monster, campaigns, expanded, onToggle, onEdit, onDelete, onClone, onAddToCampaign }) {
+    const [selectedCampaign, setSelectedCampaign] = useState("");
+
     const abil = (key) => {
         const v = monster.abilityScores?.[key] ?? 10;
         const mod = Math.floor((v - 10) / 2);
@@ -478,7 +497,7 @@ function MonsterCard({ monster, expanded, onToggle, onEdit, onDelete, onClone })
                     )}
 
                     {/* Acciones */}
-                    <div style={{ display: "flex", gap: "0.4rem", marginTop: "1rem" }}>
+                    <div style={{ display: "flex", gap: "0.4rem", marginTop: "1rem", flexWrap: "wrap", alignItems: "center" }}>
                         {monster.isPublic ? (
                             <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); onClone(); }}>
                                 📋 Clonar para editar
@@ -488,6 +507,24 @@ function MonsterCard({ monster, expanded, onToggle, onEdit, onDelete, onClone })
                                 <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); onEdit(); }}>Editar</button>
                                 <button className="btn btn-small btn-danger" onClick={(e) => { e.stopPropagation(); onDelete(); }}>Eliminar</button>
                             </>
+                        )}
+                        {campaigns.length > 0 && (
+                            <div style={{ display: "flex", gap: "0.3rem", alignItems: "center", marginLeft: "auto" }} onClick={e => e.stopPropagation()}>
+                                <select
+                                    value={selectedCampaign}
+                                    onChange={e => setSelectedCampaign(e.target.value)}
+                                >
+                                    <option value="">Añadir a campaña…</option>
+                                    {campaigns.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                                </select>
+                                <button
+                                    className="btn btn-small btn-gold"
+                                    disabled={!selectedCampaign}
+                                    onClick={() => { onAddToCampaign(selectedCampaign); setSelectedCampaign(""); }}
+                                >
+                                    ＋
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>
