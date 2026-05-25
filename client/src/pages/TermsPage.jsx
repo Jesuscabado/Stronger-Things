@@ -112,7 +112,7 @@ export default function TermsPage() {
                     <h2>11. Contacto</h2>
                     <p>
                         Para cualquier consulta sobre estos términos, escríbenos a{" "}
-                        <a href="mailto:duredan20@gmail.com">duredan20@gmail.com</a>.
+                        <a href="mailto:strongerthings00@gmail.com ">strongerthings00@gmail.com </a>.
                     </p>
                 </section>
             </div>

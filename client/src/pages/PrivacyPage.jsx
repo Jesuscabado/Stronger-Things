@@ -11,7 +11,7 @@ export default function PrivacyPage() {
                         El responsable del tratamiento de los datos personales recogidos a través de StrongerThings es
                         el desarrollador del proyecto. Para cualquier consulta relacionada con la privacidad puedes
                         escribir a{" "}
-                        <a href="mailto:duredan20@gmail.com">duredan20@gmail.com</a>.
+                        <a href="mailto:strongerthings00@gmail.com ">strongerthings00@gmail.com </a>.
                     </p>
                 </section>
 
