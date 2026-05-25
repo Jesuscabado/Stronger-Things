@@ -3,22 +3,12 @@ import { spellsApi } from "../api/spells.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNameCheck } from "../hooks/useNameCheck.js";
 import { CLASS_OPTIONS, translateClass } from "../utils/dndLabels.js";
+import { spellSchoolColor } from "../utils/dndColors.js";
 
 const SCHOOLS = [
     "Abjuración", "Conjuración", "Adivinación", "Encantamiento",
     "Evocación", "Ilusión", "Nigromancia", "Transmutación"
 ];
-
-const SCHOOL_COLORS = {
-    "Abjuración":     "#3b6dff",
-    "Conjuración":    "#1eb7b7",
-    "Adivinación":    "#a347c4",
-    "Encantamiento":  "#e08000",
-    "Evocación":      "#a02020",
-    "Ilusión":        "#a0a0b0",
-    "Nigromancia":    "#8a8a9a",
-    "Transmutación":  "#2d6a2d"
-};
 
 const LEVEL_LABEL = (lvl) => lvl === 0 ? "Truco" : `Nivel ${lvl}`;
 
@@ -476,7 +466,7 @@ export default function SpellsPage() {
 }
 
 function SpellCard({ spell, expanded, onToggle, onDelete, showLevelBadge }) {
-    const schoolColor = SCHOOL_COLORS[spell.school] || "#666";
+    const { color: schoolColor, bg: schoolBg } = spellSchoolColor(spell.school);
 
     const componentLetters = [
         spell.components?.verbal && "V",
@@ -513,8 +503,8 @@ function SpellCard({ spell, expanded, onToggle, onDelete, showLevelBadge }) {
                             </span>
                         )}
                         <span
-                            className="class-badge"
-                            style={{ color: schoolColor, borderColor: schoolColor }}
+                            className="badge-tag"
+                            style={{ color: schoolColor, background: schoolBg, border: `1px solid ${schoolColor}40` }}
                         >
                             {spell.school}
                         </span>

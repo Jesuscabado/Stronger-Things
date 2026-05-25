@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { campaignsApi, charactersSearchApi } from "../api/campaigns.js";
 import { monstersApi } from "../api/monsters.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import { campaignColor } from "../utils/campaignColors.js";
+import { campaignColor, monsterTypeColor } from "../utils/dndColors.js";
 
 // ─── Iconos SVG ──────────────────────────────────────────────────────────────
 
@@ -921,7 +921,14 @@ function MonsterStatModal({ monsterId, onClose }) {
                                     <h3 style={{ margin: "0 0 0.3rem" }}>{monster.name}</h3>
                                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", fontSize: "0.85rem" }}>
                                         <span className="badge-tag">{monster.size}</span>
-                                        <span className="badge-tag">{monster.type}{monster.subtype ? ` (${monster.subtype})` : ""}</span>
+                                        {(() => {
+                                            const { color, bg } = monsterTypeColor(monster.type);
+                                            return (
+                                                <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
+                                                    {monster.type}{monster.subtype ? ` (${monster.subtype})` : ""}
+                                                </span>
+                                            );
+                                        })()}
                                         <span className="badge-tag" style={{ background: "rgba(160,32,32,0.15)" }}>CR {monster.challengeRating}</span>
                                         {monster.isPublic && <span className="badge-tag" style={{ background: "rgba(59,109,255,0.15)", color: "#3b6dff" }}>SRD</span>}
                                     </div>

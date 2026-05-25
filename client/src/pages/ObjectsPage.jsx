@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { objectsApi } from "../api/objects.js";
 import { useNameCheck } from "../hooks/useNameCheck.js";
 import { translateCategory } from "../utils/categoryLabels.js";
+import { rarityColor } from "../utils/dndColors.js";
 
 const CATEGORIES = ["weapon", "armor", "shield", "potion", "scroll", "wondrous", "tool", "gear", "ammunition"];
 const RARITIES = ["common", "uncommon", "rare", "very rare", "legendary", "artifact"];
@@ -16,15 +17,6 @@ const RARITY_LABELS = {
 };
 
 const translateRarity = (en) => RARITY_LABELS[en?.toLowerCase()] || en || "Común";
-
-const rarityColor = {
-    common: "#666",
-    uncommon: "#1eb7b7",
-    rare: "#3b6dff",
-    "very rare": "#a347c4",
-    legendary: "#e08000",
-    artifact: "#a02020"
-};
 
 export default function ObjectsPage() {
     const [objects, setObjects] = useState([]);
@@ -240,10 +232,15 @@ export default function ObjectsPage() {
                         {filtered.map(o => (
                             <div key={o._id} className="scroll-card">
                                 <h3 style={{ marginBottom: "0.3rem" }}>{o.name}</h3>
-                                <div style={{ marginBottom: "0.5rem" }}>
-                                    <span className="class-badge" style={{ color: rarityColor[o.stats?.rarity] }}>
-                                        {translateRarity(o.stats?.rarity)}
-                                    </span>{" "}
+                                <div style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+                                    {(() => {
+                                        const { color, bg } = rarityColor(o.stats?.rarity);
+                                        return (
+                                            <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
+                                                {translateRarity(o.stats?.rarity)}
+                                            </span>
+                                        );
+                                    })()}
                                     <span style={{ color: "var(--ink-faded)", fontSize: "0.85rem" }}>
                                         {translateCategory(o.category)}
                                     </span>

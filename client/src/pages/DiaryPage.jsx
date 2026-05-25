@@ -4,7 +4,7 @@ import { charactersApi } from "../api/characters.js";
 import { campaignsApi } from "../api/campaigns.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { translateClass } from "../utils/dndLabels.js";
-import { campaignColor } from "../utils/campaignColors.js";
+import { campaignColor } from "../utils/dndColors.js";
 
 // ─── Iconos ───────────────────────────────────────────────────────────────────
 

@@ -3,6 +3,7 @@ import { monstersApi } from "../api/monsters.js";
 import { campaignsApi } from "../api/campaigns.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNameCheck } from "../hooks/useNameCheck.js";
+import { monsterTypeColor } from "../utils/dndColors.js";
 
 const SIZES = ["Diminuto", "Pequeño", "Mediano", "Grande", "Enorme", "Gargantuesco"];
 const TYPES = [
@@ -416,15 +417,22 @@ function MonsterCard({ monster, campaigns, expanded, onToggle, onEdit, onDelete,
                     <h3 style={{ margin: 0, marginBottom: "0.3rem" }}>{monster.name}</h3>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center", fontSize: "0.85rem", color: "var(--ink-faded)" }}>
                         <span className="badge-tag">{monster.size}</span>
-                        <span className="badge-tag">{monster.type}{monster.subtype ? ` (${monster.subtype})` : ""}</span>
+                        {(() => {
+                            const { color, bg } = monsterTypeColor(monster.type);
+                            return (
+                                <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
+                                    {monster.type}{monster.subtype ? ` (${monster.subtype})` : ""}
+                                </span>
+                            );
+                        })()}
                         <span className="badge-tag" style={{ background: "rgba(160, 32, 32, 0.15)" }}>CR {monster.challengeRating}</span>
                         <span>·</span>
                         <span>{monster.alignment}</span>
                         {monster.isPublic && (
-    <span className="badge-tag" style={{ background: "rgba(59, 109, 255, 0.15)", color: "#3b6dff" }}>
-        SRD
-    </span>
-)}
+                            <span className="badge-tag" style={{ background: "rgba(59, 109, 255, 0.15)", color: "#3b6dff" }}>
+                                SRD
+                            </span>
+                        )}
                     </div>
                 </div>
                 <span style={{ fontSize: "1.3rem", color: "var(--ink-faded)" }}>
