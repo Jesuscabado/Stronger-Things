@@ -28,7 +28,7 @@ const detailPopulate = (q) =>
 
 export const list = (dmId) =>
     listPopulate(
-        Campaign.find({ dm: dmId }, "name description status participants sessions createdAt")
+        Campaign.find({ dm: dmId }, "name description status participants sessions notes createdAt")
             .sort({ createdAt: -1 })
     ).lean();
 
