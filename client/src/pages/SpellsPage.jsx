@@ -15,8 +15,8 @@ const SCHOOL_COLORS = {
     "Adivinación":    "#a347c4",
     "Encantamiento":  "#e08000",
     "Evocación":      "#a02020",
-    "Ilusión":        "#666",
-    "Nigromancia":    "#2a2a2a",
+    "Ilusión":        "#a0a0b0",
+    "Nigromancia":    "#8a8a9a",
     "Transmutación":  "#2d6a2d"
 };
 

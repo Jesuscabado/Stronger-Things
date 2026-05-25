@@ -63,7 +63,7 @@ export default function Header() {
                     {user ? (
                         <>
                             {user.isDM
-                                ? <Link to="/sessions">Sesiones</Link>
+                                ? <Link to="/campaigns">Campañas</Link>
                                 : <Link to="/characters">Personajes</Link>
                             }
                             <Link to="/objects">Catálogo</Link>

@@ -13,7 +13,7 @@ import AdminRoute from "./components/layout/AdminRoute.jsx";
 import CharacterSheetPrint from "./pages/CharacterSheetPrint.jsx";
 import DiaryPage from "./pages/DiaryPage.jsx";
 import BestiaryPage from "./pages/BestiaryPage.jsx";
-import SessionsPage from "./pages/SessionsPage.jsx";
+import CampaignsPage from "./pages/CampaignsPage.jsx";
 import LicensesPage from "./pages/LicensesPage.jsx";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
 import TermsPage from "./pages/TermsPage.jsx";
@@ -56,8 +56,8 @@ export default function App() {
                     <ProtectedRoute><BestiaryPage /></ProtectedRoute>
                 } />
                 <Route path="/bestiario" element={<Navigate to="/bestiary" replace />} />
-                <Route path="/sessions" element={
-                    <ProtectedRoute><SessionsPage /></ProtectedRoute>
+                <Route path="/campaigns" element={
+                    <ProtectedRoute><CampaignsPage /></ProtectedRoute>
                 } />
                 <Route path="*" element={<div className="container"><h1>Aquí no hay nada</h1></div>} />
             </Routes>
