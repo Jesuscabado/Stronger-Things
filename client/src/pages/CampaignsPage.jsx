@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { campaignsApi, charactersSearchApi } from "../api/campaigns.js";
 import { monstersApi } from "../api/monsters.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { campaignColor } from "../utils/campaignColors.js";
 
 // ─── Iconos SVG ──────────────────────────────────────────────────────────────
 
@@ -169,41 +170,56 @@ function Campaigns() {
                 <div style={{ display: "grid", gridTemplateColumns: selectedCampaign ? "300px 1fr" : "1fr", gap: "1.25rem", alignItems: "start" }}>
 
                     {/* Lista de campañas */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                        {campaigns.map(c => (
-                            <CampaignCard
-                                key={c._id}
-                                campaign={c}
-                                isSelected={selectedCampaign?._id === c._id}
-                                onClick={() => selectCampaign(c)}
-                                onEdit={() => openEditCampaign(c)}
-                                onDelete={() => deleteCampaign(c)}
-                            />
-                        ))}
-                    </div>
+                    {(() => {
+                        // Índice de color basado en orden de creación (más antigua = 0)
+                        const colorIdx = Object.fromEntries(
+                            [...campaigns]
+                                .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                                .map((c, i) => [c._id, i])
+                        );
+                        return (
+                            <>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                                {campaigns.map(c => (
+                                    <CampaignCard
+                                        key={c._id}
+                                        campaign={c}
+                                        colorIndex={colorIdx[c._id]}
+                                        isSelected={selectedCampaign?._id === c._id}
+                                        onClick={() => selectCampaign(c)}
+                                        onEdit={() => openEditCampaign(c)}
+                                        onDelete={() => deleteCampaign(c)}
+                                    />
+                                ))}
+                            </div>
 
-                    {/* Panel derecho */}
-                    {selectedCampaign && (
-                        selectedSession ? (
-                            <SessionView
-                                campaign={selectedCampaign}
-                                session={selectedSession}
-                                onBack={() => setSelectedSession(null)}
-                                onChanged={() => reloadCampaign(selectedCampaign._id)}
-                                onError={setError}
-                                onFlash={flash}
-                            />
-                        ) : (
-                            <CampaignDetail
-                                campaign={selectedCampaign}
-                                onClose={() => { setSelectedCampaign(null); setSelectedSession(null); }}
-                                onSelectSession={setSelectedSession}
-                                onChanged={() => reloadCampaign(selectedCampaign._id)}
-                                onError={setError}
-                                onFlash={flash}
-                            />
-                        )
-                    )}
+                            {/* Panel derecho */}
+                            {selectedCampaign && (
+                                selectedSession ? (
+                                    <SessionView
+                                        campaign={selectedCampaign}
+                                        colorIndex={colorIdx[selectedCampaign._id]}
+                                        session={selectedSession}
+                                        onBack={() => setSelectedSession(null)}
+                                        onChanged={() => reloadCampaign(selectedCampaign._id)}
+                                        onError={setError}
+                                        onFlash={flash}
+                                    />
+                                ) : (
+                                    <CampaignDetail
+                                        campaign={selectedCampaign}
+                                        colorIndex={colorIdx[selectedCampaign._id]}
+                                        onClose={() => { setSelectedCampaign(null); setSelectedSession(null); }}
+                                        onSelectSession={setSelectedSession}
+                                        onChanged={() => reloadCampaign(selectedCampaign._id)}
+                                        onError={setError}
+                                        onFlash={flash}
+                                    />
+                                )
+                            )}
+                            </>
+                        );
+                    })()}
                 </div>
             )}
         </div>
@@ -212,24 +228,33 @@ function Campaigns() {
 
 // ─── Tarjeta de campaña ───────────────────────────────────────────────────────
 
-function CampaignCard({ campaign, isSelected, onClick, onEdit, onDelete }) {
+function CampaignCard({ campaign, colorIndex, isSelected, onClick, onEdit, onDelete }) {
+    const { color, bg } = campaignColor(colorIndex);
     return (
         <div
             className="scroll-card"
-            style={{ padding: "0.9rem 1.1rem", cursor: "pointer", borderColor: isSelected ? "var(--gold)" : undefined, boxShadow: isSelected ? "0 0 0 2px var(--gold)" : undefined }}
+            style={{
+                padding: "0.9rem 1.1rem",
+                cursor: "pointer",
+                borderLeft: `4px solid ${color}`,
+                background: isSelected ? bg : undefined,
+                boxShadow: isSelected ? `0 0 0 2px ${color}` : undefined
+            }}
             onClick={onClick}
         >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                        <strong style={{ fontSize: "0.95rem" }}>{campaign.name}</strong>
+                        <strong style={{ fontSize: "0.95rem", color }}>{campaign.name}</strong>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.2rem", flexWrap: "wrap" }}>
+                        <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--ink-faded)" }}>
+                            {campaign.sessions?.length || 0} sesión{campaign.sessions?.length !== 1 ? "es" : ""}
+                            {" · "}
+                            {campaign.participants?.length || 0} aventurero{campaign.participants?.length !== 1 ? "s" : ""}
+                        </p>
                         <span style={{ fontSize: "0.72rem", color: STATUS_COLOR[campaign.status] }}>● {STATUS_LABEL[campaign.status]}</span>
                     </div>
-                    <p style={{ margin: "0.2rem 0 0", fontSize: "0.78rem", color: "var(--ink-faded)" }}>
-                        {campaign.sessions?.length || 0} sesión{campaign.sessions?.length !== 1 ? "es" : ""}
-                        {" · "}
-                        {campaign.participants?.length || 0} aventurero{campaign.participants?.length !== 1 ? "s" : ""}
-                    </p>
                 </div>
                 <div style={{ display: "flex", gap: "0.3rem", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     <button className="btn btn-small" onClick={onEdit}><IconEdit /></button>
@@ -282,7 +307,8 @@ function CampaignForm({ form, setForm, editingId, onSubmit, onCancel }) {
 
 // ─── Detalle de campaña ───────────────────────────────────────────────────────
 
-function CampaignDetail({ campaign, onClose, onSelectSession, onChanged, onError, onFlash }) {
+function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChanged, onError, onFlash }) {
+    const { color, bg } = campaignColor(colorIndex);
     const [tab, setTab]           = useState("sessions"); // "sessions" | "participants" | "notes"
     const [showSessionForm, setShowSessionForm] = useState(false);
     const [sessionForm, setSessionForm]         = useState(emptySessionForm());
@@ -326,10 +352,12 @@ function CampaignDetail({ campaign, onClose, onSelectSession, onChanged, onError
     });
 
     return (
-        <div className="scroll-card" style={{ padding: "1.4rem" }}>
+        <div className="scroll-card" style={{ padding: "1.4rem", borderTop: `4px solid ${color}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
                 <div>
-                    <h2 style={{ margin: 0 }}>{campaign.name}</h2>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                        <h2 style={{ margin: 0, color }}>{campaign.name}</h2>
+                    </div>
                     <span style={{ fontSize: "0.8rem", color: STATUS_COLOR[campaign.status] }}>● {STATUS_LABEL[campaign.status]}</span>
                     {campaign.description && <p style={{ margin: "0.3rem 0 0", color: "var(--ink-faded)", fontSize: "0.85rem" }}>{campaign.description}</p>}
                 </div>
@@ -337,12 +365,12 @@ function CampaignDetail({ campaign, onClose, onSelectSession, onChanged, onError
             </div>
 
             {/* Pestañas internas */}
-            <div style={{ display: "flex", gap: "0.3rem", borderBottom: "2px solid var(--parchment-shadow)", marginBottom: "1rem" }}>
+            <div style={{ display: "flex", gap: "0.3rem", borderBottom: `2px solid ${color}`, marginBottom: "1rem" }}>
                 {[["sessions", "Sesiones"], ["participants", "Aventureros"], ["notes", "Notas DM"]].map(([id, label]) => (
                     <button
                         key={id}
                         className="btn btn-small"
-                        style={{ borderRadius: "4px 4px 0 0", borderBottom: "none", opacity: tab === id ? 1 : 0.55, fontWeight: tab === id ? 700 : 400, background: tab === id ? "var(--parchment-shadow)" : undefined }}
+                        style={{ borderRadius: "4px 4px 0 0", borderBottom: "none", opacity: tab === id ? 1 : 0.55, fontWeight: tab === id ? 700 : 400, background: tab === id ? bg : undefined, color: tab === id ? color : undefined }}
                         onClick={() => setTab(id)}
                     >
                         {label}
@@ -377,7 +405,7 @@ function CampaignDetail({ campaign, onClose, onSelectSession, onChanged, onError
                                 <div
                                     key={s._id}
                                     className="scroll-card"
-                                    style={{ padding: "0.75rem 1rem", cursor: "pointer" }}
+                                    style={{ padding: "0.75rem 1rem", cursor: "pointer", borderLeft: `4px solid ${color}` }}
                                     onClick={() => onSelectSession(s)}
                                 >
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -547,7 +575,7 @@ function NotesPanel({ campaign, onChanged, onError, onFlash }) {
 
 // ─── Vista de sesión con log ──────────────────────────────────────────────────
 
-function SessionView({ campaign, session, onBack, onChanged, onError, onFlash }) {
+function SessionView({ campaign, colorIndex, session, onBack, onChanged, onError, onFlash }) {
     const [logKind, setLogKind]       = useState("note");
     const [logContent, setLogContent] = useState("");
     const [logMonster, setLogMonster] = useState("");
@@ -595,15 +623,16 @@ function SessionView({ campaign, session, onBack, onChanged, onError, onFlash })
 
     const sessions = [...(campaign.sessions || [])].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     const sessionIndex = sessions.findIndex(s => s._id === session._id);
+    const { color: sessionColor, bg: sessionBg } = campaignColor(colorIndex);
 
     return (
         <>
-        <div className="scroll-card" style={{ padding: "1.4rem" }}>
+        <div className="scroll-card" style={{ padding: "1.4rem", borderTop: `4px solid ${sessionColor}` }}>
             {/* Cabecera sesión */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
                 <div>
-                    <button className="btn btn-small" onClick={onBack} style={{ marginBottom: "0.4rem" }}>← {campaign.name}</button>
-                    <h2 style={{ margin: 0, fontSize: "1.1rem" }}>
+                    <button className="btn btn-small" onClick={onBack} style={{ marginBottom: "0.4rem", borderColor: sessionColor, color: sessionColor }}>← {campaign.name}</button>
+                    <h2 style={{ margin: 0, fontSize: "1.1rem", color: sessionColor }}>
                         Sesión {sessionIndex + 1}: {session.title}
                     </h2>
                     {session.date && <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem", color: "var(--ink-faded)" }}>{new Date(session.date).toLocaleDateString("es-ES")}</p>}
@@ -621,7 +650,7 @@ function SessionView({ campaign, session, onBack, onChanged, onError, onFlash })
                         <button
                             key={k}
                             className="btn btn-small"
-                            style={{ fontWeight: logKind === k ? 700 : 400, opacity: logKind === k ? 1 : 0.6, borderColor: logKind === k ? "var(--gold)" : undefined }}
+                            style={{ fontWeight: logKind === k ? 700 : 400, opacity: logKind === k ? 1 : 0.6, borderColor: logKind === k ? sessionColor : undefined }}
                             onClick={() => setLogKind(k)}
                         >
                             {LOG_KIND_ICON[k]} {label}

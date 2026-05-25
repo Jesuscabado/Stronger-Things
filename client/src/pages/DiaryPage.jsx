@@ -4,6 +4,7 @@ import { charactersApi } from "../api/characters.js";
 import { campaignsApi } from "../api/campaigns.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { translateClass } from "../utils/dndLabels.js";
+import { campaignColor } from "../utils/campaignColors.js";
 
 // ─── Iconos ───────────────────────────────────────────────────────────────────
 
@@ -95,6 +96,13 @@ function DMChronicles() {
 
     // Estructura agrupada: todas las sesiones visibles + entradas filtradas por búsqueda
     const grouped = useMemo(() => {
+        // Índice de color: orden de creación ascendente (más antigua = 0)
+        const colorIdxMap = Object.fromEntries(
+            [...campaigns]
+                .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                .map((c, i) => [c._id, i])
+        );
+
         return campaigns
             .filter(c => campaignFilter === "all" || c._id === campaignFilter)
             .map(c => {
@@ -121,7 +129,7 @@ function DMChronicles() {
                     || c.name.toLowerCase().includes(norm)
                     || (c.notes || "").toLowerCase().includes(norm);
 
-                return { ...c, _filteredSessions: sessions, _notesVisible: notesVisible };
+                return { ...c, _filteredSessions: sessions, _notesVisible: notesVisible, _colorIndex: colorIdxMap[c._id] ?? 0 };
             })
             // Mostrar campañas con sesiones, notas coincidentes, o sin búsqueda activa
             .filter(c => c._filteredSessions.length > 0 || (c._notesVisible && c.notes?.trim()));
@@ -167,13 +175,15 @@ function DMChronicles() {
                         : "Aún no hay diario ni notas en tus campañas."}
                 </div>
             ) : (
-                grouped.map(campaign => (
+                grouped.map(campaign => {
+                    const { color: cColor, bg: cBg } = campaignColor(campaign._colorIndex);
+                    return (
                     <div key={campaign._id} style={{ marginBottom: "2rem" }}>
 
                         {/* ── Cabecera de campaña ── */}
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.9rem" }}>
-                            <h2 style={{ margin: 0, fontSize: "1.2rem" }}>{campaign.name}</h2>
-                            <Link to="/campaigns" style={{ fontSize: "0.8rem", color: "var(--ink-faded)", borderBottom: "none" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.9rem", paddingLeft: "0.85rem", borderLeft: `4px solid ${cColor}` }}>
+                            <h2 style={{ margin: 0, fontSize: "1.2rem", color: cColor }}>{campaign.name}</h2>
+                            <Link to="/campaigns" style={{ fontSize: "0.8rem", color: "var(--ink-faded)", borderBottom: "none", marginLeft: "auto" }}>
                                 Ver campaña →
                             </Link>
                         </div>
@@ -187,6 +197,8 @@ function DMChronicles() {
                                         session={session}
                                         sessionNumber={idx + 1}
                                         campaignId={campaign._id}
+                                        campaignColor={cColor}
+                                        campaignBg={cBg}
                                         expandedEntry={expandedEntry}
                                         onToggleEntry={id => setExpandedEntry(expandedEntry === id ? null : id)}
                                         onSaved={() => { flash("Entrada actualizada"); load(); }}
@@ -199,11 +211,13 @@ function DMChronicles() {
                         {/* ── Notas de campaña (siempre visible) ── */}
                         <CampaignNotesBlock
                             campaign={campaign}
+                            campaignColor={cColor}
                             onSaved={() => { flash("Notas guardadas"); load(); }}
                             onError={setError}
                         />
                     </div>
-                ))
+                    );
+                })
             )}
         </>
     );
@@ -211,7 +225,7 @@ function DMChronicles() {
 
 // ─── Bloque de una sesión con sus entradas de diario ─────────────────────────
 
-function SessionBlock({ session, sessionNumber, campaignId, expandedEntry, onToggleEntry, onSaved, onError }) {
+function SessionBlock({ session, sessionNumber, campaignId, campaignColor: cColor, campaignBg: cBg, expandedEntry, onToggleEntry, onSaved, onError }) {
     const entries = session._diaryEntries;
     const [editingId, setEditingId] = useState(null);
     const [draft, setDraft]         = useState("");
@@ -261,11 +275,11 @@ function SessionBlock({ session, sessionNumber, campaignId, expandedEntry, onTog
     };
 
     return (
-        <div className="scroll-card" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="scroll-card" style={{ padding: 0, overflow: "hidden", borderLeft: `4px solid ${cColor}` }}>
             {/* Cabecera de sesión */}
-            <div style={{ padding: "0.7rem 1.1rem", background: "rgba(0,0,0,0.04)", borderBottom: "1px solid var(--parchment-shadow)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "0.7rem 1.1rem", background: cBg, borderBottom: "1px solid var(--parchment-shadow)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                    <span style={{ fontFamily: "Cinzel, serif", fontSize: "0.92rem", fontWeight: 700 }}>
+                    <span style={{ fontFamily: "Cinzel, serif", fontSize: "0.92rem", fontWeight: 700, color: cColor }}>
                         Sesión {sessionNumber}: {session.title}
                     </span>
                     {session.date && (
@@ -293,7 +307,7 @@ function SessionBlock({ session, sessionNumber, campaignId, expandedEntry, onTog
                     return (
                         <div
                             key={entry._id}
-                            style={{ borderBottom: i < entries.length - 1 ? "1px solid var(--parchment-shadow)" : "none", borderLeft: "3px solid var(--gold)" }}
+                            style={{ borderBottom: i < entries.length - 1 ? "1px solid var(--parchment-shadow)" : "none", borderLeft: `3px solid ${cColor}` }}
                         >
                             {/* Cabecera de la entrada */}
                             <div
@@ -359,7 +373,7 @@ function SessionBlock({ session, sessionNumber, campaignId, expandedEntry, onTog
                 })}
                 {/* ── Formulario nueva entrada ── */}
                 {showAddForm ? (
-                    <div style={{ borderTop: "1px solid var(--parchment-shadow)", padding: "0.75rem 1.1rem", borderLeft: "3px solid var(--gold-bright)" }}>
+                    <div style={{ borderTop: "1px solid var(--parchment-shadow)", padding: "0.75rem 1.1rem", borderLeft: `3px solid ${cColor}` }}>
                         <textarea
                             value={newContent}
                             onChange={e => setNewContent(e.target.value)}
@@ -395,7 +409,7 @@ function SessionBlock({ session, sessionNumber, campaignId, expandedEntry, onTog
 
 // ─── Bloque de notas de campaña (editable) ───────────────────────────────────
 
-function CampaignNotesBlock({ campaign, onSaved, onError }) {
+function CampaignNotesBlock({ campaign, campaignColor: cColor, onSaved, onError }) {
     const isEmpty = !campaign.notes?.trim();
     const [editing, setEditing] = useState(false);
     const [draft, setDraft]     = useState(campaign.notes || "");
@@ -421,7 +435,7 @@ function CampaignNotesBlock({ campaign, onSaved, onError }) {
     };
 
     return (
-        <div className="scroll-card" style={{ padding: "1rem 1.25rem", borderLeft: "4px solid var(--gold)" }}>
+        <div className="scroll-card" style={{ padding: "1rem 1.25rem", borderLeft: `4px solid ${cColor}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                 <p style={{ margin: 0, fontFamily: "Cinzel, serif", fontSize: "0.85rem", color: "var(--ink-faded)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                     📝 Notas del DM
