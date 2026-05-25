@@ -30,6 +30,68 @@ const emptyForm = () => ({
     damage: "", damageType: "", armorClass: "", weight: 0, rarity: "common"
 });
 
+// ─── Tarjeta de objeto (expandible) ─────────────────────────────────────────
+
+function ObjectCard({ o, isAdmin, expanded, onToggle, onEdit, onDelete }) {
+    const { color, bg } = rarityColor(o.stats?.rarity);
+    const canEdit = !o.isPublic || isAdmin;
+
+    return (
+        <div className="scroll-card" style={{ padding: 0, overflow: "hidden" }}>
+            {/* Cabecera clicable */}
+            <div
+                onClick={onToggle}
+                style={{ padding: "1rem 1.25rem", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem" }}
+            >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{ margin: "0 0 0.3rem", ...(expanded ? {} : { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }) }}>{o.name}</h3>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", alignItems: "center" }}>
+                        <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
+                            {translateRarity(o.stats?.rarity)}
+                        </span>
+                        <span className="badge-tag">{translateCategory(o.category)}</span>
+                        {o.isPublic && (
+                            <span className="badge-tag" style={{ background: "rgba(59,109,255,0.15)", color: "#3b6dff" }}>SRD</span>
+                        )}
+                    </div>
+                </div>
+                <span style={{ fontSize: "1.2rem", color: "var(--ink-faded)", flexShrink: 0 }}>
+                    {expanded ? "▾" : "▸"}
+                </span>
+            </div>
+
+            {/* Detalle expandido */}
+            {expanded && (
+                <div style={{ padding: "0 1.25rem 1rem", borderTop: "1px dashed var(--parchment-shadow)" }}>
+                    {o.description && (
+                        <p style={{ fontSize: "0.9rem", lineHeight: 1.6, margin: "0.85rem 0 0.6rem", whiteSpace: "pre-wrap" }}>{o.description}</p>
+                    )}
+                    <div style={{ fontSize: "0.85rem", color: "var(--ink-faded)", lineHeight: 1.8, marginTop: o.description ? 0 : "0.85rem" }}>
+                        {o.stats?.damage     && <div>⚔ <strong>Daño:</strong> {o.stats.damage}{o.stats.damageType ? ` ${o.stats.damageType}` : ""}</div>}
+                        {o.stats?.armorClass && <div>🛡 <strong>CA:</strong> {o.stats.armorClass}</div>}
+                        {(o.stats?.properties || []).length > 0 && <div>🔸 <strong>Propiedades:</strong> {o.stats.properties.join(", ")}</div>}
+                        {o.cost > 0          && <div>💰 <strong>Coste:</strong> {o.cost} po</div>}
+                        {o.stats?.weight > 0 && <div>⚖ <strong>Peso:</strong> {o.stats.weight} lb</div>}
+                    </div>
+
+                    {canEdit && (
+                        <div style={{ display: "flex", gap: "0.4rem", marginTop: "1rem", flexWrap: "wrap" }}>
+                            <button className="btn btn-small" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onEdit(); }}>
+                                <IconEdit /> Editar
+                            </button>
+                            <button className="btn btn-small btn-danger" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onDelete(); }}>
+                                × Eliminar
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Página principal ────────────────────────────────────────────────────────
+
 export default function ObjectsPage() {
     const { user } = useAuth();
     const isAdmin = user?.role === "admin";
@@ -39,6 +101,7 @@ export default function ObjectsPage() {
     const [success, setSuccess]   = useState("");
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [expanded, setExpanded] = useState(null);
     const [filter, setFilter]     = useState("all");
     const [search, setSearch]     = useState("");
     const [form, setForm]         = useState(emptyForm());
@@ -276,37 +339,15 @@ export default function ObjectsPage() {
                     </p>
                     <div className="grid grid-3">
                         {filtered.map(o => (
-                            <div key={o._id} className="scroll-card" style={{ display: "flex", flexDirection: "column" }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.3rem" }}>
-                                    <h3 style={{ margin: 0 }}>{o.name}</h3>
-                                    {(!o.isPublic || isAdmin) && (
-                                        <div style={{ display: "flex", gap: "0.3rem", flexShrink: 0 }}>
-                                            <button className="btn btn-small" onClick={() => openEdit(o)} title="Editar"><IconEdit /></button>
-                                            <button className="btn btn-small btn-danger" onClick={() => handleDelete(o)} title="Eliminar">×</button>
-                                        </div>
-                                    )}
-                                </div>
-                                <div style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
-                                    {(() => {
-                                        const { color, bg } = rarityColor(o.stats?.rarity);
-                                        return (
-                                            <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
-                                                {translateRarity(o.stats?.rarity)}
-                                            </span>
-                                        );
-                                    })()}
-                                    <span style={{ color: "var(--ink-faded)", fontSize: "0.85rem" }}>
-                                        {translateCategory(o.category)}
-                                    </span>
-                                </div>
-                                {o.description && <p style={{ fontSize: "0.9rem", marginBottom: "0.6rem" }}>{o.description}</p>}
-                                <div style={{ fontSize: "0.85rem", color: "var(--ink-faded)" }}>
-                                    {o.stats?.damage && <div>⚔ {o.stats.damage} {o.stats.damageType}</div>}
-                                    {o.stats?.armorClass && <div>🛡 CA {o.stats.armorClass}</div>}
-                                    {o.cost > 0 && <div>💰 {o.cost} oro</div>}
-                                    {o.stats?.weight > 0 && <div>⚖ {o.stats.weight} lb</div>}
-                                </div>
-                            </div>
+                            <ObjectCard
+                                key={o._id}
+                                o={o}
+                                isAdmin={isAdmin}
+                                expanded={expanded === o._id}
+                                onToggle={() => setExpanded(expanded === o._id ? null : o._id)}
+                                onEdit={() => openEdit(o)}
+                                onDelete={() => handleDelete(o)}
+                            />
                         ))}
                     </div>
                 </>
