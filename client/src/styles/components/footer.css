@@ -1,6 +1,6 @@
 .app-footer {
     background: linear-gradient(180deg, #2a1a0c 0%, var(--leather) 100%);
-    color: var(--parchment-light);
+    color: #f4e8d0;
     border-top: 4px double var(--gold);
     padding: 1.25rem 2rem;
     margin-top: auto;
@@ -19,7 +19,7 @@
 .app-footer__copy {
     margin: 0;
     font-size: 0.8rem;
-    color: var(--parchment-light);
+    color: #f4e8d0;
     opacity: 0.85;
 }
 
@@ -34,7 +34,7 @@
 }
 
 .app-footer__links a {
-    color: var(--parchment-light);
+    color: #f4e8d0;
     font-family: "Cinzel", serif;
     font-size: 0.8rem;
     text-transform: uppercase;

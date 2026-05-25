@@ -17,6 +17,13 @@ export const updateUserRole = async (req, res, next) => {
     } catch (e) { handleStatusError(e, res, next); }
 };
 
+export const updateUserDM = async (req, res, next) => {
+    try {
+        const user = await userService.updateUserDM(req.params.id, req.body.isDM);
+        res.status(200).json(user);
+    } catch (e) { handleStatusError(e, res, next); }
+};
+
 export const deleteUser = async (req, res, next) => {
     try {
         // Evitar que un admin se borre a sí mismo

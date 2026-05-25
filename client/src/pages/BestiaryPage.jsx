@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { monstersApi } from "../api/monsters.js";
-import { authApi } from "../api/auth.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNameCheck } from "../hooks/useNameCheck.js";
 
@@ -64,61 +63,22 @@ const emptyMonster = {
  * de creación.
  */
 export default function BestiaryPage() {
-    const { user, updateUser } = useAuth();
+    const { user } = useAuth();
     const isDM = user?.isDM === true;
 
-    return isDM ? <Bestiary /> : <ActivateDM updateUser={updateUser} />;
+    return isDM ? <Bestiary /> : <NoDMAccess />;
 }
 
-/* ─────────────────────────────────────────────────────────────────────
-   Pantalla de activación: visible si el usuario aún no es DM.
-   Un solo botón llama al endpoint y, si funciona, refresca el user
-   en el contexto. La página entonces re-renderiza mostrando ya el
-   bestiario.
-   ───────────────────────────────────────────────────────────────────── */
-function ActivateDM({ updateUser }) {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-
-    const activate = async () => {
-        setLoading(true);
-        setError("");
-        try {
-            const updated = await authApi.toggleDM(true);
-            updateUser(updated);
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
+function NoDMAccess() {
     return (
         <div className="container">
             <div className="scroll-card" style={{ textAlign: "center", padding: "3rem 2rem" }}>
-                <div style={{ fontSize: "4rem", marginBottom: "1rem" }}></div>
-                <h1>Modo Director de Juego</h1>
-                <p style={{ color: "var(--ink-faded)", maxWidth: "520px", margin: "1rem auto" }}>
-                    El bestiario es una herramienta para los Directores de Juego.
-                    Aquí podrás crear y gestionar tus propios monstruos para usarlos
-                    en tus campañas. Tu bestiario es <strong>privado</strong>: sólo tú
-                    ves los monstruos que crees.
+                <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🔒</div>
+                <h1>Acceso restringido</h1>
+                <p style={{ color: "var(--ink-faded)", maxWidth: "480px", margin: "1rem auto" }}>
+                    El bestiario está disponible únicamente para los Directores de Juego.
+                    Contacta con un administrador para que te asigne el rol DM.
                 </p>
-                <p style={{ color: "var(--ink-faded)", maxWidth: "520px", margin: "1rem auto" }}>
-                    Activa el modo DM para empezar. Podrás desactivarlo desde aquí en
-                    cualquier momento.
-                </p>
-
-                {error && <div className="alert">{error}</div>}
-
-                <button
-                    className="btn btn-primary"
-                    onClick={activate}
-                    disabled={loading}
-                    style={{ marginTop: "1rem" }}
-                >
-                    {loading ? "Activando..." : "🎲 Activar modo DM"}
-                </button>
             </div>
         </div>
     );
@@ -128,7 +88,7 @@ function ActivateDM({ updateUser }) {
    El bestiario propiamente dicho.
    ───────────────────────────────────────────────────────────────────── */
 function Bestiary() {
-    const { user, updateUser } = useAuth();
+    const { user } = useAuth();
 
     const [monsters, setMonsters] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -166,11 +126,7 @@ function Bestiary() {
             });
             setMonsters(data);
         } catch (err) {
-            if (err.status === 403) {
-                updateUser({ isDM: false });
-            } else {
-                setError(err.message);
-            }
+            setError(err.message);
         } finally {
             setLoading(false);
         }
@@ -270,16 +226,6 @@ function Bestiary() {
         }
     };
 
-    const deactivateDM = async () => {
-        if (!confirm("¿Desactivar el modo DM? Tu bestiario se conservará, pero no podrás verlo hasta volver a activarlo.")) return;
-        try {
-            const updated = await authApi.toggleDM(false);
-            updateUser(updated);
-        } catch (err) {
-            setError(err.message);
-        }
-    };
-
     /* ─── Helpers para los arrays "lista de strings" (speed, idiomas, etc.) ─── */
     const updateStringList = (field, idx, value) => {
         setForm(prev => {
@@ -326,9 +272,6 @@ function Bestiary() {
                     {!showForm && (
                         <button className="btn btn-primary" onClick={openCreate}>+ Nuevo monstruo</button>
                     )}
-                    <button className="btn btn-small" onClick={deactivateDM} title="Desactivar modo DM">
-                        Desactivar modo DM
-                    </button>
                 </div>
             </div>
 

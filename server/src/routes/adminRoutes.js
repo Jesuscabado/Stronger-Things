@@ -1,6 +1,6 @@
 import { Router } from "express";
 import {
-    getAllUsers, updateUserRole, deleteUser, getStats
+    getAllUsers, updateUserRole, updateUserDM, deleteUser, getStats
 } from "../controllers/userController.js";
 import { authRequired } from "../middlewares/authRequired.js";
 import { adminRequired } from "../middlewares/adminRequired.js";
@@ -14,6 +14,7 @@ router.use(adminRequired);
 router.get("/stats", getStats);
 router.get("/users", getAllUsers);
 router.put("/users/:id/role", validateObjectId(), updateUserRole);
+router.put("/users/:id/dm", validateObjectId(), updateUserDM);
 router.delete("/users/:id", validateObjectId(), deleteUser);
 
 export default router;

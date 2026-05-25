@@ -178,3 +178,11 @@ export const removeCharacterDiaryEntry = async (req, res, next) => {
         res.status(200).json(character);
     } catch (error) { handleStatusError(error, res, next); }
 };
+
+export const searchCharactersForDM = async (req, res, next) => {
+    try {
+        const { q } = req.query;
+        const results = await characterService.searchForDM(q || "");
+        res.json(results);
+    } catch (error) { handleStatusError(error, res, next); }
+};

@@ -220,17 +220,21 @@ const main = async () => {
     }
 
     let token;
-    const credentials = { email: "dm@dnd.io", password: "secret123" };
+    const credentials = {
+        email: process.env.SEED_EMAIL || "dm@dnd.io",
+        password: process.env.SEED_PASSWORD || "secret123"
+    };
+    const username = process.env.SEED_USERNAME || "DungeonMaster";
 
-    let r = await post("/api/auth/register", { username: "DungeonMaster", ...credentials });
+    let r = await post("/api/auth/register", { username, ...credentials });
     if (r.res.ok) {
         token = r.json.token;
-        console.log("✅ Usuario DM registrado");
+        console.log(`✅ Usuario ${username} registrado`);
     } else {
         r = await post("/api/auth/login", credentials);
-        if (!r.res.ok) throw new Error("No se pudo registrar ni hacer login con dm@dnd.io");
+        if (!r.res.ok) throw new Error(`No se pudo registrar ni hacer login con ${credentials.email}`);
         token = r.json.token;
-        console.log("✅ Login con DM existente");
+        console.log(`✅ Login con ${username} existente`);
     }
 
     await importCatalog(token, srdEquipment, translations);
@@ -306,7 +310,7 @@ const main = async () => {
     }
 
     console.log("\n🎉 Seed completado.");
-    console.log(`👉 Login en el front: dm@dnd.io / secret123\n`);
+    console.log(`👉 Login en el front: ${credentials.email} / ${credentials.password}\n`);
 };
 
 main().catch((err) => {
