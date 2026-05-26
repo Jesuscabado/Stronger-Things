@@ -153,33 +153,32 @@ function Campaigns() {
             {error   && <div className="alert" style={{ cursor: "pointer" }} onClick={() => setError("")}>{error}</div>}
             {success && <div className="alert-success" style={{ marginBottom: "1rem", padding: "0.75rem 1rem", borderRadius: "4px" }}>{success}</div>}
 
-            {showCampaignForm && (
-                <CampaignForm
-                    form={campaignForm}
-                    setForm={setCampaignForm}
-                    editingId={editingCampaignId}
-                    onSubmit={submitCampaign}
-                    onCancel={() => setShowCampaignForm(false)}
-                />
-            )}
-
             {loading ? (
                 <p style={{ color: "var(--ink-faded)" }}>Cargando campañas…</p>
             ) : campaigns.length === 0 && !showCampaignForm ? (
                 <div className="scroll-card" style={{ textAlign: "center", padding: "2rem" }}>
                     <p style={{ color: "var(--ink-faded)" }}>Aún no tienes campañas. ¡Crea la primera!</p>
                 </div>
-            ) : (
-                (() => {
-                    const colorIdx = Object.fromEntries(
-                        [...campaigns]
-                            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-                            .map((c, i) => [c._id, i])
-                    );
+            ) : (() => {
+                const colorIdx = Object.fromEntries(
+                    [...campaigns]
+                        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                        .map((c, i) => [c._id, i])
+                );
 
-                    if (selectedCampaign) {
-                        return selectedSession ? (
-                            <SessionView
+                const campaignForm_ = <CampaignForm
+                    form={campaignForm}
+                    setForm={setCampaignForm}
+                    editingId={editingCampaignId}
+                    onSubmit={submitCampaign}
+                    onCancel={() => setShowCampaignForm(false)}
+                />;
+
+                const detailPanel = showCampaignForm
+                    ? campaignForm_
+                    : selectedCampaign
+                        ? (selectedSession
+                            ? <SessionView
                                 campaign={selectedCampaign}
                                 colorIndex={colorIdx[selectedCampaign._id]}
                                 session={selectedSession}
@@ -187,48 +186,62 @@ function Campaigns() {
                                 onChanged={() => reloadCampaign(selectedCampaign._id)}
                                 onError={setError}
                                 onFlash={flash}
-                            />
-                        ) : (
-                            <CampaignDetail
+                              />
+                            : <CampaignDetail
                                 campaign={selectedCampaign}
                                 colorIndex={colorIdx[selectedCampaign._id]}
-                                onClose={() => { setSelectedCampaign(null); setSelectedSession(null); }}
+                                onClose={() => { setSelectedCampaign(null); setSelectedSession(null); setExpandedCard(null); }}
                                 onSelectSession={setSelectedSession}
                                 onChanged={() => reloadCampaign(selectedCampaign._id)}
                                 onError={setError}
                                 onFlash={flash}
-                            />
-                        );
-                    }
+                              />)
+                        : <div className="scroll-card" style={{ padding: "3rem 2rem", textAlign: "center", color: "var(--ink-faded)" }}>
+                            <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>🗺️</div>
+                            <p style={{ margin: 0 }}>Selecciona una campaña para ver sus detalles</p>
+                          </div>;
 
-                    return (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                // Sin campañas aún pero abriendo el formulario de creación
+                if (campaigns.length === 0) {
+                    return campaignForm_;
+                }
+
+                return (
+                    <div className="campaigns-layout" data-has-detail={(selectedCampaign || showCampaignForm) ? "true" : undefined}>
+                        <div className="campaigns-sidebar">
                             {campaigns.map(c => (
                                 <CampaignCard
                                     key={c._id}
                                     campaign={c}
                                     colorIndex={colorIdx[c._id]}
+                                    isSelected={selectedCampaign?._id === c._id}
                                     expanded={expandedCard === c._id}
-                                    onToggle={() => setExpandedCard(id => id === c._id ? null : c._id)}
-                                    onOpen={() => selectCampaign(c)}
+                                    onToggle={() => {
+                                        const next = expandedCard === c._id ? null : c._id;
+                                        setExpandedCard(next);
+                                        if (next !== null) selectCampaign(c);
+                                    }}
                                     onEdit={() => openEditCampaign(c)}
                                     onDelete={() => deleteCampaign(c)}
                                 />
                             ))}
                         </div>
-                    );
-                })()
-            )}
+                        <div className="campaigns-detail">
+                            {detailPanel}
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }
 
 // ─── Tarjeta de campaña ───────────────────────────────────────────────────────
 
-function CampaignCard({ campaign, colorIndex, expanded, onToggle, onOpen, onEdit, onDelete }) {
+function CampaignCard({ campaign, colorIndex, isSelected, expanded, onToggle, onEdit, onDelete }) {
     const { color, bg } = campaignColor(colorIndex);
     return (
-        <div className="scroll-card" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="scroll-card" style={{ padding: 0, overflow: "hidden", boxShadow: isSelected ? `0 0 0 2px ${color}` : undefined }}>
             {/* Cabecera clicable */}
             <div
                 onClick={onToggle}
@@ -236,34 +249,31 @@ function CampaignCard({ campaign, colorIndex, expanded, onToggle, onOpen, onEdit
                     padding: "0.9rem 1.1rem",
                     cursor: "pointer",
                     borderLeft: `4px solid ${color}`,
-                    background: expanded ? bg : undefined,
+                    background: expanded || isSelected ? bg : undefined,
                 }}
             >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <strong style={{ fontSize: "0.95rem", color, display: "block", overflow: "hidden", textOverflow: expanded ? undefined : "ellipsis", whiteSpace: expanded ? undefined : "nowrap" }}>
-                            {campaign.name}
-                        </strong>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.2rem", flexWrap: "wrap" }}>
-                            <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--ink-faded)" }}>
-                                {campaign.sessions?.length || 0} sesión{campaign.sessions?.length !== 1 ? "es" : ""}
-                                {" · "}
-                                {campaign.participants?.length || 0} aventurero{campaign.participants?.length !== 1 ? "s" : ""}
-                            </p>
-                            <span style={{ fontSize: "0.72rem", color: STATUS_COLOR[campaign.status] }}>● {STATUS_LABEL[campaign.status]}</span>
-                        </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <strong style={{ fontSize: "0.95rem", color, display: "block", overflow: "hidden", textOverflow: expanded ? undefined : "ellipsis", whiteSpace: expanded ? undefined : "nowrap" }}>
+                        {campaign.name}
+                    </strong>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.2rem", flexWrap: "wrap" }}>
+                        <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--ink-faded)" }}>
+                            {campaign.sessions?.length || 0} sesión{campaign.sessions?.length !== 1 ? "es" : ""}
+                            {" · "}
+                            {campaign.participants?.length || 0} aventurero{campaign.participants?.length !== 1 ? "s" : ""}
+                        </p>
+                        <span style={{ fontSize: "0.72rem", color: STATUS_COLOR[campaign.status] }}>● {STATUS_LABEL[campaign.status]}</span>
                     </div>
                 </div>
             </div>
 
-            {/* Detalle expandido */}
+            {/* Detalle expandido: solo botones de gestión */}
             {expanded && (
-                <div style={{ padding: "0.75rem 1.1rem 1rem", borderTop: "1px dashed var(--parchment-shadow)" }}>
+                <div style={{ padding: "0.6rem 1.1rem 0.75rem", borderTop: "1px dashed var(--parchment-shadow)" }}>
                     {campaign.description && (
-                        <p style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: "var(--ink-faded)" }}>{campaign.description}</p>
+                        <p style={{ margin: "0 0 0.6rem", fontSize: "0.82rem", color: "var(--ink-faded)" }}>{campaign.description}</p>
                     )}
                     <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-                        <button className="btn btn-small btn-primary" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onOpen(); }}>Abrir campaña</button>
                         <button className="btn btn-small" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onEdit(); }}><IconEdit /> Editar</button>
                         <button className="btn btn-small btn-danger" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onDelete(); }}>× Eliminar</button>
                     </div>
@@ -363,10 +373,8 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
     return (
         <div className="scroll-card" style={{ padding: "1.4rem", borderTop: `4px solid ${color}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
-                <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                        <h2 style={{ margin: 0, color }}>{campaign.name}</h2>
-                    </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <h2 style={{ margin: 0, color }}>{campaign.name}</h2>
                     <span style={{ fontSize: "0.8rem", color: STATUS_COLOR[campaign.status] }}>● {STATUS_LABEL[campaign.status]}</span>
                     {campaign.description && <p style={{ margin: "0.3rem 0 0", color: "var(--ink-faded)", fontSize: "0.85rem" }}>{campaign.description}</p>}
                 </div>
@@ -390,11 +398,13 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
             {/* ── Sesiones ── */}
             {tab === "sessions" && (
                 <div>
-                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.75rem" }}>
-                        <button className="btn btn-primary" onClick={() => { setSessionForm(emptySessionForm()); setEditingSessionId(null); setShowSessionForm(true); }}>
-                            + Nueva sesión
-                        </button>
-                    </div>
+                    {!showSessionForm && (
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.75rem" }}>
+                            <button className="btn btn-primary" onClick={() => { setSessionForm(emptySessionForm()); setEditingSessionId(null); setShowSessionForm(true); }}>
+                                + Nueva sesión
+                            </button>
+                        </div>
+                    )}
 
                     {showSessionForm && (
                         <SessionForm
@@ -402,14 +412,14 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
                             setForm={setSessionForm}
                             editingId={editingSessionId}
                             onSubmit={submitSession}
-                            onCancel={() => setShowSessionForm(false)}
+                            onCancel={() => { setShowSessionForm(false); setEditingSessionId(null); }}
                         />
                     )}
 
-                    {sessions.length === 0 ? (
+                    {!showSessionForm && (sessions.length === 0 ? (
                         <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Aún no hay sesiones. Crea la primera.</p>
                     ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                        <div className="card-list-2">
                             {sessions.map((s, i) => {
                                 const isExp = expandedSession === s._id;
                                 return (
@@ -445,7 +455,7 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
                                 );
                             })}
                         </div>
-                    )}
+                    ))}
                 </div>
             )}
 
