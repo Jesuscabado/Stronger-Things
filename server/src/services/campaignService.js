@@ -196,6 +196,36 @@ export const addMonsterToPool = async (id, monsterId, dmId) => {
     return detailPopulate(Campaign.findById(id)).lean();
 };
 
+// ─── Notas DM (cards) ─────────────────────────────────────────────────────────
+
+export const addNoteCard = async (id, data, dmId) => {
+    const campaign = await Campaign.findById(id);
+    checkOwner(campaign, dmId);
+    campaign.noteCards.push({ content: data.content || "" });
+    await campaign.save();
+    return campaign.noteCards[campaign.noteCards.length - 1];
+};
+
+export const updateNoteCard = async (id, noteId, data, dmId) => {
+    const campaign = await Campaign.findById(id);
+    checkOwner(campaign, dmId);
+    const note = campaign.noteCards.id(noteId);
+    if (!note) throw notFound("Nota no encontrada");
+    if (data.content !== undefined) note.content = data.content;
+    await campaign.save();
+    return { updated: true };
+};
+
+export const removeNoteCard = async (id, noteId, dmId) => {
+    const campaign = await Campaign.findById(id);
+    checkOwner(campaign, dmId);
+    const note = campaign.noteCards.id(noteId);
+    if (!note) throw notFound("Nota no encontrada");
+    note.deleteOne();
+    await campaign.save();
+    return { deleted: true };
+};
+
 export const removeMonsterFromPool = async (id, monsterId, dmId) => {
     const campaign = await Campaign.findById(id);
     checkOwner(campaign, dmId);

@@ -4,6 +4,7 @@ import {
     addParticipant, removeParticipant,
     addSession, updateSession, deleteSession,
     addLogEntry, updateLogEntry, deleteLogEntry,
+    addNoteCard, updateNoteCard, removeNoteCard,
     addMonsterToPool, removeMonsterFromPool
 } from "../controllers/campaignController.js";
 import { authRequired } from "../middlewares/authRequired.js";
@@ -41,6 +42,12 @@ router.delete("/:id/sessions/:sessionId", cid, sid, deleteSession);
 router.post("/:id/sessions/:sessionId/log",             cid, sid, addLogEntry);
 router.put("/:id/sessions/:sessionId/log/:entryId",     cid, sid, eid, updateLogEntry);
 router.delete("/:id/sessions/:sessionId/log/:entryId",  cid, sid, eid, deleteLogEntry);
+
+// Notas DM
+const nid = validateObjectId("noteId");
+router.post("/:id/notecards",            cid, addNoteCard);
+router.put("/:id/notecards/:noteId",     cid, nid, updateNoteCard);
+router.delete("/:id/notecards/:noteId",  cid, nid, removeNoteCard);
 
 // Pool de monstruos
 router.post("/:id/monsters",              cid, addMonsterToPool);

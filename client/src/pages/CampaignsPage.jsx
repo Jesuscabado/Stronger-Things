@@ -329,7 +329,7 @@ function CampaignForm({ form, setForm, editingId, onSubmit, onCancel }) {
 
 function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChanged, onError, onFlash, onEdit, onDelete }) {
     const { color, bg } = campaignColor(colorIndex);
-    const [tab, setTab]           = useState("sessions"); // "sessions" | "participants" | "notes"
+    const [tab, setTab]           = useState("sessions"); // "sessions" | "participants" | "gallery" | "notes"
     const [showSessionForm, setShowSessionForm] = useState(false);
     const [sessionForm, setSessionForm]         = useState(emptySessionForm());
     const [editingSessionId, setEditingSessionId] = useState(null);
@@ -391,7 +391,7 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
 
             {/* Pestañas internas */}
             <div style={{ display: "flex", gap: "0.3rem", borderBottom: `2px solid ${color}`, marginBottom: "1rem" }}>
-                {[["sessions", "Sesiones"], ["participants", "Aventureros"], ["notes", "Notas DM"]].map(([id, label]) => (
+                {[["sessions", "Sesiones"], ["participants", "Aventureros"], ["gallery", "⚔️ Galería"], ["notes", "Notas DM"]].map(([id, label]) => (
                     <button
                         key={id}
                         className="btn btn-small"
@@ -427,42 +427,47 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
                     {!showSessionForm && (sessions.length === 0 ? (
                         <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Aún no hay sesiones. Crea la primera.</p>
                     ) : (
-                        <div className="card-list-2">
-                            {sessions.map((s, i) => {
-                                const isExp = expandedSession === s._id;
-                                return (
-                                    <div key={s._id} className="scroll-card" style={{ padding: 0, overflow: "hidden" }}>
-                                        {/* Cabecera clicable */}
+                        <>
+                            <p style={{ margin: "0 0 0.75rem", fontSize: "0.82rem", color: "var(--ink-faded)" }}>
+                                {sessions.length} sesión{sessions.length !== 1 ? "es" : ""}
+                            </p>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.6rem" }}>
+                                {sessions.map((s, i) => {
+                                    const isExp = expandedSession === s._id;
+                                    return (
                                         <div
+                                            key={s._id}
+                                            style={{ background: isExp ? bg : "var(--parchment)", border: `1px solid ${color}33`, borderLeft: `3px solid ${color}`, borderRadius: "4px", overflow: "hidden", cursor: "pointer" }}
                                             onClick={() => setExpandedSession(id => id === s._id ? null : s._id)}
-                                            style={{ padding: "0.75rem 1rem", cursor: "pointer", borderLeft: `4px solid ${color}`, background: isExp ? bg : undefined }}
                                         >
-                                            <strong style={{ fontSize: "0.9rem", display: "block", overflow: "hidden", textOverflow: isExp ? undefined : "ellipsis", whiteSpace: isExp ? undefined : "nowrap" }}>
-                                                Sesión {i + 1}: {s.title}
-                                            </strong>
-                                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.15rem", flexWrap: "wrap" }}>
-                                                {s.date && <span style={{ fontSize: "0.78rem", color: "var(--ink-faded)" }}>{new Date(s.date).toLocaleDateString("es-ES")}</span>}
-                                                <span style={{ fontSize: "0.78rem", color: "var(--ink-faded)" }}>
-                                                    {s.log?.length || 0} entrada{s.log?.length !== 1 ? "s" : ""} en el log
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        {/* Detalle expandido */}
-                                        {isExp && (
-                                            <div style={{ padding: "0.6rem 1rem 0.75rem", borderTop: "1px dashed var(--parchment-shadow)" }}>
-                                                {s.summary && <p style={{ margin: "0 0 0.6rem", fontSize: "0.85rem", color: "var(--ink-faded)" }}>{s.summary}</p>}
-                                                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-                                                    <button className="btn btn-small btn-primary" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onSelectSession(s); }}>Abrir sesión</button>
-                                                    <button className="btn btn-small" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); openEditSession(s); }}><IconEdit /> Editar</button>
-                                                    <button className="btn btn-small btn-danger" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); deleteSession(s); }}>× Eliminar</button>
+                                            <div style={{ padding: "0.65rem 0.85rem" }}>
+                                                <div style={{ fontSize: "0.68rem", color, fontFamily: "Cinzel, serif", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.15rem" }}>
+                                                    Sesión {i + 1}
+                                                </div>
+                                                <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--ink)", overflow: "hidden", textOverflow: isExp ? undefined : "ellipsis", whiteSpace: isExp ? undefined : "nowrap", marginBottom: "0.2rem" }} title={s.title}>
+                                                    {s.title}
+                                                </div>
+                                                <div style={{ fontSize: "0.72rem", color: "var(--ink-faded)" }}>
+                                                    {s.date ? new Date(s.date).toLocaleDateString("es-ES") + " · " : ""}
+                                                    {s.log?.length || 0} entrada{s.log?.length !== 1 ? "s" : ""}
                                                 </div>
                                             </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+
+                                            {isExp && (
+                                                <div style={{ padding: "0.5rem 0.85rem 0.7rem", borderTop: `1px dashed ${color}44` }} onClick={e => e.stopPropagation()}>
+                                                    {s.summary && <p style={{ margin: "0 0 0.5rem", fontSize: "0.82rem", color: "var(--ink-faded)" }}>{s.summary}</p>}
+                                                    <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
+                                                        <button className="btn btn-small btn-primary" onClick={() => onSelectSession(s)}>Abrir</button>
+                                                        <button className="btn btn-small" onClick={() => openEditSession(s)}><IconEdit /> Editar</button>
+                                                        <button className="btn btn-small btn-danger" onClick={() => deleteSession(s)}>× Eliminar</button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </>
                     ))}
                 </div>
             )}
@@ -477,6 +482,9 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
                 />
             )}
 
+            {/* ── Galería de encuentros ── */}
+            {tab === "gallery" && <EncounterGallery campaign={campaign} />}
+
             {/* ── Notas DM ── */}
             {tab === "notes" && (
                 <NotesPanel
@@ -486,6 +494,213 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
                     onFlash={onFlash}
                 />
             )}
+        </div>
+    );
+}
+
+// ─── Modal de detalle de monstruo ────────────────────────────────────────────
+
+function MonsterDetailModal({ monsterId, onClose }) {
+    const [monster, setMonster] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error,   setError]   = useState("");
+
+    useEffect(() => {
+        monstersApi.get(monsterId)
+            .then(m => setMonster(m))
+            .catch(e => setError(e.message))
+            .finally(() => setLoading(false));
+    }, [monsterId]);
+
+    const abil = (key) => {
+        const v = monster?.abilityScores?.[key] ?? 10;
+        const mod = Math.floor((v - 10) / 2);
+        return `${v} (${mod >= 0 ? "+" : ""}${mod})`;
+    };
+
+    const { color, bg } = monster ? monsterTypeColor(monster.type) : { color: "var(--gold)", bg: "transparent" };
+
+    return (
+        <div className="modal-overlay" onClick={onClose} style={{ zIndex: 200 }}>
+            <div
+                className="scroll-card"
+                onClick={e => e.stopPropagation()}
+                style={{ maxWidth: "620px", width: "90%", maxHeight: "85vh", overflowY: "auto", margin: "auto", borderTop: `4px solid ${color}` }}
+            >
+                {loading && <p style={{ color: "var(--ink-faded)" }}>Cargando…</p>}
+                {error   && <p style={{ color: "var(--blood)" }}>{error}</p>}
+                {monster && (
+                    <>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
+                            <div style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
+                                {monster.image?.cloudinaryUrl && (
+                                    <img src={monster.image.cloudinaryUrl} alt={monster.name}
+                                        style={{ width: "64px", height: "64px", objectFit: "cover", borderRadius: "2px", border: "1px solid var(--ink-faded)", flexShrink: 0 }} />
+                                )}
+                                <div>
+                                    <h2 style={{ margin: 0, color }}>{monster.name}</h2>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.3rem" }}>
+                                        <span className="badge-tag">{monster.size}</span>
+                                        <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
+                                            {monster.type}{monster.subtype ? ` (${monster.subtype})` : ""}
+                                        </span>
+                                        <span className="badge-tag" style={{ background: "rgba(160,32,32,0.15)" }}>CR {monster.challengeRating}</span>
+                                        {monster.alignment && <span style={{ fontSize: "0.82rem", color: "var(--ink-faded)", alignSelf: "center" }}>{monster.alignment}</span>}
+                                    </div>
+                                </div>
+                            </div>
+                            <button className="btn btn-small" onClick={onClose}>✕</button>
+                        </div>
+
+                        <div style={{ fontSize: "0.9rem", lineHeight: 1.7, marginBottom: "0.75rem" }}>
+                            <div><strong>CA:</strong> {monster.armorClass}{monster.armorClassNote && ` (${monster.armorClassNote})`}</div>
+                            <div><strong>Puntos de golpe:</strong> {monster.hitPoints?.average}{monster.hitPoints?.roll && ` (${monster.hitPoints.roll})`}</div>
+                            <div><strong>Velocidad:</strong> {(monster.speed || []).join(", ") || "—"}</div>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "0.4rem", margin: "0.75rem 0", fontSize: "0.85rem", textAlign: "center" }}>
+                            {["strength","dexterity","constitution","intelligence","wisdom","charisma"].map(k => (
+                                <div key={k}>
+                                    <div style={{ fontFamily: "Cinzel, serif", fontSize: "0.65rem", color: "var(--ink-faded)", textTransform: "uppercase" }}>{k.slice(0,3)}</div>
+                                    <strong>{abil(k)}</strong>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ fontSize: "0.85rem", lineHeight: 1.6, marginBottom: "0.5rem" }}>
+                            {monster.senses?.length > 0           && <div><strong>Sentidos:</strong> {monster.senses.join(", ")}, Percepción pasiva {monster.passivePerception}</div>}
+                            {monster.languages?.length > 0        && <div><strong>Idiomas:</strong> {monster.languages.join(", ")}</div>}
+                            {monster.damageResistances?.length > 0 && <div><strong>Resistencias:</strong> {monster.damageResistances.join(", ")}</div>}
+                            {monster.damageImmunities?.length > 0  && <div><strong>Inmunidades:</strong> {monster.damageImmunities.join(", ")}</div>}
+                            {monster.conditionImmunities?.length > 0 && <div><strong>Inmunidad a condiciones:</strong> {monster.conditionImmunities.join(", ")}</div>}
+                        </div>
+
+                        {monster.actions?.length > 0 && <ActionsGroup actions={monster.actions} />}
+
+                        {monster.spellcastingNote && (
+                            <div style={{ marginTop: "0.75rem", padding: "0.6rem", background: "rgba(184,134,11,0.08)", borderLeft: "3px solid var(--gold)", borderRadius: "2px", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>
+                                <strong>Lanzamiento de conjuros:</strong> {monster.spellcastingNote}
+                            </div>
+                        )}
+                        {monster.description && (
+                            <div style={{ marginTop: "0.75rem", fontStyle: "italic", whiteSpace: "pre-wrap", fontSize: "0.9rem" }}>{monster.description}</div>
+                        )}
+                        {monster.dmNotes && (
+                            <div style={{ marginTop: "0.75rem", padding: "0.6rem", background: "rgba(139,0,0,0.08)", borderLeft: "3px solid var(--blood)", borderRadius: "2px", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>
+                                <strong>📝 Notas del DM:</strong><br />{monster.dmNotes}
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function ActionsGroup({ actions }) {
+    const grouped = {};
+    for (const a of actions) {
+        const key = a.kind || "action";
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(a);
+    }
+    const order  = ["trait", "action", "bonus", "reaction", "legendary", "lair"];
+    const titles = { trait: "Rasgos", action: "Acciones", bonus: "Acciones adicionales", reaction: "Reacciones", legendary: "Acciones legendarias", lair: "Acciones de guarida" };
+    return (
+        <>
+            {order.filter(k => grouped[k]).map(k => (
+                <div key={k} style={{ marginTop: "0.75rem" }}>
+                    <h4 style={{ borderBottom: "1px solid var(--gold)", paddingBottom: "0.2rem", marginBottom: "0.4rem" }}>{titles[k]}</h4>
+                    {grouped[k].map(a => (
+                        <div key={a._id} style={{ marginBottom: "0.5rem", fontSize: "0.88rem" }}>
+                            <strong>{a.name}.</strong>{" "}
+                            {(a.attackBonus !== undefined && a.attackBonus !== null && a.attackBonus !== "") && (
+                                <em>Ataque: {a.attackBonus >= 0 ? "+" : ""}{a.attackBonus} al golpe{a.reach && `, alcance ${a.reach}`}. Impacto: {a.damage}{a.damageType ? ` de daño ${a.damageType}` : ""}.</em>
+                            )}{" "}
+                            <span style={{ whiteSpace: "pre-wrap" }}>{a.description}</span>
+                        </div>
+                    ))}
+                </div>
+            ))}
+        </>
+    );
+}
+
+// ─── Galería de encuentros ────────────────────────────────────────────────────
+
+function EncounterGallery({ campaign }) {
+    const [modalMonsterId, setModalMonsterId] = useState(null);
+    const monsterMap = {};
+
+    (campaign.sessions || []).forEach(session => {
+        (session.log || []).forEach(entry => {
+            if (entry.kind !== "encounter") return;
+
+            // Formato nuevo: array de monstruos poblados
+            const monsters = entry.monsters?.length > 0
+                ? entry.monsters
+                : entry.monster ? [entry.monster] : [];
+
+            monsters.forEach(m => {
+                const id   = (m._id || m).toString();
+                const name = (typeof m === "object" && m.name) ? m.name
+                           : entry.monsterNames?.[0] || entry.monsterName || "Desconocido";
+                const type = typeof m === "object" ? m.type : null;
+                const cr   = typeof m === "object" ? m.challengeRating : null;
+
+                if (!monsterMap[id]) {
+                    monsterMap[id] = { id, name, type, cr, count: 0, sessions: [] };
+                }
+                monsterMap[id].count++;
+                if (!monsterMap[id].sessions.includes(session.title)) {
+                    monsterMap[id].sessions.push(session.title);
+                }
+            });
+        });
+    });
+
+    const entries = Object.values(monsterMap).sort((a, b) => b.count - a.count);
+
+    if (entries.length === 0) {
+        return <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Aún no hay encuentros registrados en esta campaña.</p>;
+    }
+
+    return (
+        <div>
+            {modalMonsterId && (
+                <MonsterDetailModal monsterId={modalMonsterId} onClose={() => setModalMonsterId(null)} />
+            )}
+            <p style={{ margin: "0 0 0.75rem", fontSize: "0.82rem", color: "var(--ink-faded)" }}>
+                {entries.length} criatura{entries.length !== 1 ? "s" : ""} distintas · {entries.reduce((s, e) => s + e.count, 0)} apariciones en total
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "0.6rem" }}>
+                {entries.map(m => {
+                    const { color, bg } = monsterTypeColor(m.type);
+                    return (
+                        <div
+                            key={m.id}
+                            onClick={() => setModalMonsterId(m.id)}
+                            style={{ background: bg, border: `1px solid ${color}33`, borderLeft: `3px solid ${color}`, borderRadius: "4px", padding: "0.65rem 0.85rem", cursor: "pointer", transition: "box-shadow 0.15s" }}
+                            onMouseEnter={e => e.currentTarget.style.boxShadow = `0 0 0 2px ${color}66`}
+                            onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+                        >
+                            <div style={{ fontWeight: 700, fontSize: "0.88rem", color, marginBottom: "0.2rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={m.name}>
+                                {m.name}
+                            </div>
+                            <div style={{ fontSize: "0.72rem", color: "var(--ink-faded)", marginBottom: "0.35rem" }}>
+                                {[m.type, m.cr != null ? `CR ${m.cr}` : null].filter(Boolean).join(" · ") || "Sin datos"}
+                            </div>
+                            <div style={{ fontSize: "0.8rem" }}>
+                                <strong style={{ color }}>{m.count}</strong>
+                                <span style={{ color: "var(--ink-faded)" }}> × · {m.sessions.length} sesión{m.sessions.length !== 1 ? "es" : ""}</span>
+                            </div>
+                            <div style={{ fontSize: "0.68rem", color: "var(--ink-faded)", marginTop: "0.25rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={m.sessions.join(", ")}>
+                                {m.sessions.join(", ")}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }
@@ -532,23 +747,31 @@ function ParticipantsPanel({ campaign, onChanged, onError, onFlash }) {
 
     return (
         <div>
-            <h3 style={{ marginTop: 0, fontSize: "0.95rem" }}>Aventureros ({campaign.participants?.length || 0})</h3>
+            <p style={{ margin: "0 0 0.75rem", fontSize: "0.82rem", color: "var(--ink-faded)" }}>
+                {campaign.participants?.length || 0} aventurero{campaign.participants?.length !== 1 ? "s" : ""} en la campaña
+            </p>
 
             {campaign.participants?.length > 0 ? (
-                <ul style={{ listStyle: "none", padding: 0, marginBottom: "1.25rem" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "0.6rem", marginBottom: "1.25rem" }}>
                     {campaign.participants.map(p => {
                         const c = p.character;
+                        const name = c?.name || p.characterName;
                         return (
-                            <li key={c?._id || p.characterName} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.45rem 0", borderBottom: "1px solid var(--parchment-shadow)" }}>
-                                <div>
-                                    <strong style={{ fontSize: "0.9rem" }}>{c?.name || p.characterName}</strong>
-                                    {c && <span style={{ fontSize: "0.78rem", color: "var(--ink-faded)", marginLeft: "0.4rem" }}>{c.charClass} nv.{c.level}</span>}
+                            <div key={c?._id || p.characterName}
+                                style={{ background: "var(--parchment)", border: "1px solid var(--parchment-shadow)", borderLeft: "3px solid var(--gold)", borderRadius: "4px", padding: "0.65rem 0.85rem" }}>
+                                <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--ink)", marginBottom: "0.2rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={name}>
+                                    {name}
                                 </div>
-                                <button className="btn btn-small" style={{ color: "var(--blood)" }} onClick={() => remove(c?._id)}>Quitar</button>
-                            </li>
+                                {c && (
+                                    <div style={{ fontSize: "0.72rem", color: "var(--ink-faded)", marginBottom: "0.4rem" }}>
+                                        {c.charClass} · Nv. {c.level}
+                                    </div>
+                                )}
+                                <button className="btn btn-small btn-danger" style={{ fontSize: "0.72rem", padding: "0.2rem 0.5rem" }} onClick={() => remove(c?._id)}>Quitar</button>
+                            </div>
                         );
                     })}
-                </ul>
+                </div>
             ) : (
                 <p style={{ color: "var(--ink-faded)", fontSize: "0.85rem", marginBottom: "1rem" }}>Ningún aventurero todavía.</p>
             )}
@@ -581,33 +804,113 @@ function ParticipantsPanel({ campaign, onChanged, onError, onFlash }) {
 // ─── Panel de notas DM ────────────────────────────────────────────────────────
 
 function NotesPanel({ campaign, onChanged, onError, onFlash }) {
-    const [notes, setNotes]   = useState(campaign.notes || "");
-    const [saving, setSaving] = useState(false);
+    const [adding, setAdding] = useState(false);
 
-    useEffect(() => setNotes(campaign.notes || ""), [campaign._id, campaign.notes]);
+    const addCard = async () => {
+        setAdding(true);
+        try {
+            await campaignsApi.addNoteCard(campaign._id, { content: "" });
+            onChanged();
+        } catch (e) { onError(e.message); }
+        finally { setAdding(false); }
+    };
+
+    const cards = campaign.noteCards || [];
+
+    return (
+        <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--ink-faded)" }}>
+                    {cards.length} nota{cards.length !== 1 ? "s" : ""}
+                </p>
+                <button className="btn btn-primary btn-small" onClick={addCard} disabled={adding}>
+                    + Nueva nota
+                </button>
+            </div>
+
+            {cards.length === 0 && (
+                <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Sin notas todavía. Añade tramas, secretos o recordatorios.</p>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.6rem", alignItems: "start" }}>
+                {cards.map(note => (
+                    <NoteCard
+                        key={note._id}
+                        note={note}
+                        campaignId={campaign._id}
+                        onDeleted={onChanged}
+                        onError={onError}
+                        onFlash={onFlash}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function NoteCard({ note, campaignId, onDeleted, onError, onFlash }) {
+    const [content,      setContent]      = useState(note.content);
+    const [savedContent, setSavedContent] = useState(note.content);
+    const [editing,      setEditing]      = useState(!note.content); // nueva nota vacía → entra directo en edición
+    const [saving,       setSaving]       = useState(false);
+    const dirty = content !== savedContent;
 
     const save = async () => {
         setSaving(true);
         try {
-            await campaignsApi.update(campaign._id, { notes });
-            onFlash("Notas guardadas");
-            onChanged();
+            await campaignsApi.updateNoteCard(campaignId, note._id, { content });
+            setSavedContent(content);
+            setEditing(false);
+            onFlash("Nota guardada");
         } catch (e) { onError(e.message); }
         finally { setSaving(false); }
     };
 
+    const cancel = () => {
+        setContent(savedContent);
+        setEditing(false);
+    };
+
+    const remove = async () => {
+        if (!confirm("¿Eliminar esta nota?")) return;
+        try {
+            await campaignsApi.removeNoteCard(campaignId, note._id);
+            onDeleted();
+        } catch (e) { onError(e.message); }
+    };
+
     return (
-        <div>
-            <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                rows={10}
-                placeholder="Notas privadas del DM: tramas, secretos, preparación de la siguiente sesión…"
-                style={{ width: "100%", resize: "vertical" }}
-            />
-            <button className="btn btn-primary" onClick={save} disabled={saving} style={{ marginTop: "0.5rem" }}>
-                {saving ? "Guardando…" : "Guardar notas"}
-            </button>
+        <div
+            style={{ background: "var(--parchment)", border: "1px solid var(--parchment-shadow)", borderLeft: "3px solid var(--gold)", borderRadius: "4px", padding: "0.7rem 0.85rem", display: "flex", flexDirection: "column", gap: "0.4rem", cursor: editing ? "default" : "pointer" }}
+            onClick={!editing ? () => setEditing(true) : undefined}
+        >
+            {editing ? (
+                <textarea
+                    autoFocus
+                    value={content}
+                    onChange={e => setContent(e.target.value)}
+                    rows={5}
+                    placeholder="Escribe aquí tu nota…"
+                    onClick={e => e.stopPropagation()}
+                    style={{ width: "100%", minWidth: 0, boxSizing: "border-box", resize: "vertical", background: "transparent", border: "none", outline: "none", fontSize: "0.85rem", lineHeight: 1.6, color: "var(--ink)", fontFamily: "inherit", padding: 0 }}
+                />
+            ) : (
+                <div style={{ minHeight: "4rem", fontSize: "0.85rem", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word", color: content ? "var(--ink)" : "var(--ink-faded)" }}>
+                    {content || "Haz clic para escribir…"}
+                </div>
+            )}
+
+            {editing && (
+                <div style={{ borderTop: "1px dashed var(--parchment-shadow)", paddingTop: "0.4rem", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                    <div style={{ display: "flex", gap: "0.3rem" }}>
+                        <button className="btn btn-small btn-primary" style={{ flex: 1, fontSize: "0.75rem" }} onMouseDown={e => e.preventDefault()} onClick={e => { e.stopPropagation(); save(); }} disabled={!dirty || saving}>
+                            {saving ? "Guardando" : "Guardar"}
+                        </button>
+                        <button className="btn btn-small" style={{ flex: 1, fontSize: "0.75rem" }} onMouseDown={e => e.preventDefault()} onClick={e => { e.stopPropagation(); cancel(); }}>Cancelar</button>
+                    </div>
+                    <button className="btn btn-small btn-danger" style={{ fontSize: "0.75rem" }} onMouseDown={e => e.preventDefault()} onClick={e => { e.stopPropagation(); remove(); }}>Eliminar</button>
+                </div>
+            )}
         </div>
     );
 }

@@ -32,6 +32,11 @@ export const addLogEntry    = async (req, res, next) => { try { res.status(201).
 export const updateLogEntry = async (req, res, next) => { try { res.json(await svc.updateLogEntry(req.params.id, req.params.sessionId, req.params.entryId, req.body, req.user._id)); }           catch (e) { handle(e, res, next); } };
 export const deleteLogEntry = async (req, res, next) => { try { res.json(await svc.removeLogEntry(req.params.id, req.params.sessionId, req.params.entryId, req.user._id)); }                     catch (e) { handle(e, res, next); } };
 
+// ─── Notas DM ─────────────────────────────────────────────────────────────────
+export const addNoteCard    = async (req, res, next) => { try { res.status(201).json(await svc.addNoteCard(req.params.id, req.body, req.user._id)); }                              catch (e) { handle(e, res, next); } };
+export const updateNoteCard = async (req, res, next) => { try { res.json(await svc.updateNoteCard(req.params.id, req.params.noteId, req.body, req.user._id)); }                   catch (e) { handle(e, res, next); } };
+export const removeNoteCard = async (req, res, next) => { try { res.json(await svc.removeNoteCard(req.params.id, req.params.noteId, req.user._id)); }                             catch (e) { handle(e, res, next); } };
+
 // ─── Pool de monstruos ────────────────────────────────────────────────────────
 export const addMonsterToPool = async (req, res, next) => {
     try {

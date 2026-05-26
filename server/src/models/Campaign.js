@@ -1,5 +1,11 @@
 import mongoose from "mongoose";
 
+// ─── Nota individual del DM ───────────────────────────────────────────────────
+const noteCardSchema = new mongoose.Schema(
+    { content: { type: String, default: "" } },
+    { timestamps: true }
+);
+
 // ─── Entrada del log de una sesión ───────────────────────────────────────────
 // kind:
 //   "diary"     → narración de lo sucedido (texto libre)
@@ -61,7 +67,8 @@ const campaignSchema = new mongoose.Schema(
         participants: [participantSchema],
         sessions:    [sessionSchema],
         monsters:    [{ type: mongoose.Schema.Types.ObjectId, ref: "Monster" }],
-        notes:       { type: String, default: "" }
+        notes:       { type: String, default: "" },
+        noteCards:   [noteCardSchema]
     },
     { timestamps: true }
 );
