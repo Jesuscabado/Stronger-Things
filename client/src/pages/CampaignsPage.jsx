@@ -54,6 +54,7 @@ function Campaigns() {
     // Navegación: campaña seleccionada → sesión seleccionada
     const [selectedCampaign, setSelectedCampaign] = useState(null);
     const [selectedSession,  setSelectedSession]  = useState(null);
+    const [expandedCard,     setExpandedCard]     = useState(null);
 
     // Formulario campaña
     const [showCampaignForm, setShowCampaignForm] = useState(false);
@@ -167,60 +168,54 @@ function Campaigns() {
                     <p style={{ color: "var(--ink-faded)" }}>Aún no tienes campañas. ¡Crea la primera!</p>
                 </div>
             ) : (
-                <div style={{ display: "grid", gridTemplateColumns: selectedCampaign ? "300px 1fr" : "1fr", gap: "1.25rem", alignItems: "start" }}>
+                (() => {
+                    const colorIdx = Object.fromEntries(
+                        [...campaigns]
+                            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                            .map((c, i) => [c._id, i])
+                    );
 
-                    {/* Lista de campañas */}
-                    {(() => {
-                        // Índice de color basado en orden de creación (más antigua = 0)
-                        const colorIdx = Object.fromEntries(
-                            [...campaigns]
-                                .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-                                .map((c, i) => [c._id, i])
+                    if (selectedCampaign) {
+                        return selectedSession ? (
+                            <SessionView
+                                campaign={selectedCampaign}
+                                colorIndex={colorIdx[selectedCampaign._id]}
+                                session={selectedSession}
+                                onBack={() => setSelectedSession(null)}
+                                onChanged={() => reloadCampaign(selectedCampaign._id)}
+                                onError={setError}
+                                onFlash={flash}
+                            />
+                        ) : (
+                            <CampaignDetail
+                                campaign={selectedCampaign}
+                                colorIndex={colorIdx[selectedCampaign._id]}
+                                onClose={() => { setSelectedCampaign(null); setSelectedSession(null); }}
+                                onSelectSession={setSelectedSession}
+                                onChanged={() => reloadCampaign(selectedCampaign._id)}
+                                onError={setError}
+                                onFlash={flash}
+                            />
                         );
-                        return (
-                            <>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                                {campaigns.map(c => (
-                                    <CampaignCard
-                                        key={c._id}
-                                        campaign={c}
-                                        colorIndex={colorIdx[c._id]}
-                                        isSelected={selectedCampaign?._id === c._id}
-                                        onClick={() => selectCampaign(c)}
-                                        onEdit={() => openEditCampaign(c)}
-                                        onDelete={() => deleteCampaign(c)}
-                                    />
-                                ))}
-                            </div>
+                    }
 
-                            {/* Panel derecho */}
-                            {selectedCampaign && (
-                                selectedSession ? (
-                                    <SessionView
-                                        campaign={selectedCampaign}
-                                        colorIndex={colorIdx[selectedCampaign._id]}
-                                        session={selectedSession}
-                                        onBack={() => setSelectedSession(null)}
-                                        onChanged={() => reloadCampaign(selectedCampaign._id)}
-                                        onError={setError}
-                                        onFlash={flash}
-                                    />
-                                ) : (
-                                    <CampaignDetail
-                                        campaign={selectedCampaign}
-                                        colorIndex={colorIdx[selectedCampaign._id]}
-                                        onClose={() => { setSelectedCampaign(null); setSelectedSession(null); }}
-                                        onSelectSession={setSelectedSession}
-                                        onChanged={() => reloadCampaign(selectedCampaign._id)}
-                                        onError={setError}
-                                        onFlash={flash}
-                                    />
-                                )
-                            )}
-                            </>
-                        );
-                    })()}
-                </div>
+                    return (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                            {campaigns.map(c => (
+                                <CampaignCard
+                                    key={c._id}
+                                    campaign={c}
+                                    colorIndex={colorIdx[c._id]}
+                                    expanded={expandedCard === c._id}
+                                    onToggle={() => setExpandedCard(id => id === c._id ? null : c._id)}
+                                    onOpen={() => selectCampaign(c)}
+                                    onEdit={() => openEditCampaign(c)}
+                                    onDelete={() => deleteCampaign(c)}
+                                />
+                            ))}
+                        </div>
+                    );
+                })()
             )}
         </div>
     );
@@ -228,39 +223,50 @@ function Campaigns() {
 
 // ─── Tarjeta de campaña ───────────────────────────────────────────────────────
 
-function CampaignCard({ campaign, colorIndex, isSelected, onClick, onEdit, onDelete }) {
+function CampaignCard({ campaign, colorIndex, expanded, onToggle, onOpen, onEdit, onDelete }) {
     const { color, bg } = campaignColor(colorIndex);
     return (
-        <div
-            className="scroll-card"
-            style={{
-                padding: "0.9rem 1.1rem",
-                cursor: "pointer",
-                borderLeft: `4px solid ${color}`,
-                background: isSelected ? bg : undefined,
-                boxShadow: isSelected ? `0 0 0 2px ${color}` : undefined
-            }}
-            onClick={onClick}
-        >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                        <strong style={{ fontSize: "0.95rem", color }}>{campaign.name}</strong>
+        <div className="scroll-card" style={{ padding: 0, overflow: "hidden" }}>
+            {/* Cabecera clicable */}
+            <div
+                onClick={onToggle}
+                style={{
+                    padding: "0.9rem 1.1rem",
+                    cursor: "pointer",
+                    borderLeft: `4px solid ${color}`,
+                    background: expanded ? bg : undefined,
+                }}
+            >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <strong style={{ fontSize: "0.95rem", color, display: "block", overflow: "hidden", textOverflow: expanded ? undefined : "ellipsis", whiteSpace: expanded ? undefined : "nowrap" }}>
+                            {campaign.name}
+                        </strong>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.2rem", flexWrap: "wrap" }}>
+                            <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--ink-faded)" }}>
+                                {campaign.sessions?.length || 0} sesión{campaign.sessions?.length !== 1 ? "es" : ""}
+                                {" · "}
+                                {campaign.participants?.length || 0} aventurero{campaign.participants?.length !== 1 ? "s" : ""}
+                            </p>
+                            <span style={{ fontSize: "0.72rem", color: STATUS_COLOR[campaign.status] }}>● {STATUS_LABEL[campaign.status]}</span>
+                        </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.2rem", flexWrap: "wrap" }}>
-                        <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--ink-faded)" }}>
-                            {campaign.sessions?.length || 0} sesión{campaign.sessions?.length !== 1 ? "es" : ""}
-                            {" · "}
-                            {campaign.participants?.length || 0} aventurero{campaign.participants?.length !== 1 ? "s" : ""}
-                        </p>
-                        <span style={{ fontSize: "0.72rem", color: STATUS_COLOR[campaign.status] }}>● {STATUS_LABEL[campaign.status]}</span>
-                    </div>
-                </div>
-                <div style={{ display: "flex", gap: "0.3rem", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                    <button className="btn btn-small" onClick={onEdit}><IconEdit /></button>
-                    <button className="btn btn-small" style={{ color: "var(--blood)" }} onClick={onDelete}>✕</button>
                 </div>
             </div>
+
+            {/* Detalle expandido */}
+            {expanded && (
+                <div style={{ padding: "0.75rem 1.1rem 1rem", borderTop: "1px dashed var(--parchment-shadow)" }}>
+                    {campaign.description && (
+                        <p style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: "var(--ink-faded)" }}>{campaign.description}</p>
+                    )}
+                    <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                        <button className="btn btn-small btn-primary" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onOpen(); }}>Abrir campaña</button>
+                        <button className="btn btn-small" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onEdit(); }}><IconEdit /> Editar</button>
+                        <button className="btn btn-small btn-danger" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onDelete(); }}>× Eliminar</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -313,6 +319,7 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
     const [showSessionForm, setShowSessionForm] = useState(false);
     const [sessionForm, setSessionForm]         = useState(emptySessionForm());
     const [editingSessionId, setEditingSessionId] = useState(null);
+    const [expandedSession,  setExpandedSession] = useState(null);
 
     const submitSession = async (e) => {
         e.preventDefault();
@@ -401,28 +408,40 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
                         <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Aún no hay sesiones. Crea la primera.</p>
                     ) : (
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                            {sessions.map((s, i) => (
-                                <div
-                                    key={s._id}
-                                    className="scroll-card"
-                                    style={{ padding: "0.75rem 1rem", cursor: "pointer", borderLeft: `4px solid ${color}` }}
-                                    onClick={() => onSelectSession(s)}
-                                >
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                        <div>
-                                            <strong style={{ fontSize: "0.9rem" }}>Sesión {i + 1}: {s.title}</strong>
-                                            {s.date && <span style={{ fontSize: "0.78rem", color: "var(--ink-faded)", marginLeft: "0.5rem" }}>{new Date(s.date).toLocaleDateString("es-ES")}</span>}
-                                            <p style={{ margin: "0.2rem 0 0", fontSize: "0.78rem", color: "var(--ink-faded)" }}>
-                                                {s.log?.length || 0} entrada{s.log?.length !== 1 ? "s" : ""} en el log
-                                            </p>
+                            {sessions.map((s, i) => {
+                                const isExp = expandedSession === s._id;
+                                return (
+                                    <div key={s._id} className="scroll-card" style={{ padding: 0, overflow: "hidden" }}>
+                                        {/* Cabecera clicable */}
+                                        <div
+                                            onClick={() => setExpandedSession(id => id === s._id ? null : s._id)}
+                                            style={{ padding: "0.75rem 1rem", cursor: "pointer", borderLeft: `4px solid ${color}`, background: isExp ? bg : undefined }}
+                                        >
+                                            <strong style={{ fontSize: "0.9rem", display: "block", overflow: "hidden", textOverflow: isExp ? undefined : "ellipsis", whiteSpace: isExp ? undefined : "nowrap" }}>
+                                                Sesión {i + 1}: {s.title}
+                                            </strong>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.15rem", flexWrap: "wrap" }}>
+                                                {s.date && <span style={{ fontSize: "0.78rem", color: "var(--ink-faded)" }}>{new Date(s.date).toLocaleDateString("es-ES")}</span>}
+                                                <span style={{ fontSize: "0.78rem", color: "var(--ink-faded)" }}>
+                                                    {s.log?.length || 0} entrada{s.log?.length !== 1 ? "s" : ""} en el log
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div style={{ display: "flex", gap: "0.3rem" }} onClick={e => e.stopPropagation()}>
-                                            <button className="btn btn-small" onClick={() => openEditSession(s)}><IconEdit /></button>
-                                            <button className="btn btn-small" style={{ color: "var(--blood)" }} onClick={() => deleteSession(s)}>✕</button>
-                                        </div>
+
+                                        {/* Detalle expandido */}
+                                        {isExp && (
+                                            <div style={{ padding: "0.6rem 1rem 0.75rem", borderTop: "1px dashed var(--parchment-shadow)" }}>
+                                                {s.summary && <p style={{ margin: "0 0 0.6rem", fontSize: "0.85rem", color: "var(--ink-faded)" }}>{s.summary}</p>}
+                                                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                                                    <button className="btn btn-small btn-primary" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onSelectSession(s); }}>Abrir sesión</button>
+                                                    <button className="btn btn-small" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); openEditSession(s); }}><IconEdit /> Editar</button>
+                                                    <button className="btn btn-small btn-danger" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); deleteSession(s); }}>× Eliminar</button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>

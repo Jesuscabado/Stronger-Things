@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/layout/Header.jsx";
 import Footer from "./components/layout/Footer.jsx";
 import ProtectedRoute from "./components/layout/ProtectedRoute.jsx";
+import { useAuth } from "./context/AuthContext.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import CharactersPage from "./pages/CharactersPage.jsx";
@@ -19,12 +20,18 @@ import PrivacyPage from "./pages/PrivacyPage.jsx";
 import TermsPage from "./pages/TermsPage.jsx";
 import AccountPage from "./pages/AccountPage.jsx";
 
+function HomeRedirect() {
+    const { user } = useAuth();
+    if (!user) return <Navigate to="/login" replace />;
+    return <Navigate to={user.isDM ? "/campaigns" : "/characters"} replace />;
+}
+
 export default function App() {
     return (
         <>
             <Header />
             <Routes>
-                <Route path="/" element={<Navigate to="/characters" replace />} />
+                <Route path="/" element={<HomeRedirect />} />
                 <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />

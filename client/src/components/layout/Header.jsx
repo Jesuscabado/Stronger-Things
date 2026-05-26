@@ -32,7 +32,7 @@ export default function Header() {
         <header className="app-header">
             <div className="app-header__inner">
                 <div className="app-header__brand">
-                    <Link to={user ? "/characters" : "/login"}>
+                    <Link to={user ? (user.isDM ? "/campaigns" : "/characters") : "/login"}>
                         <img src="/icon.svg" alt="" className="app-header__logo" aria-hidden="true" />
                         StrongerThings
                     </Link>
