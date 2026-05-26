@@ -607,9 +607,9 @@ function NotesPanel({ campaign, onChanged, onError, onFlash }) {
 // ─── Vista de sesión con log ──────────────────────────────────────────────────
 
 function SessionView({ campaign, colorIndex, session, onBack, onChanged, onError, onFlash }) {
-    const [logKind, setLogKind]       = useState("note");
-    const [logContent, setLogContent] = useState("");
-    const [logMonster, setLogMonster] = useState("");
+    const [logKind, setLogKind]         = useState("note");
+    const [logContent, setLogContent]   = useState("");
+    const [logMonsters, setLogMonsters] = useState([]);
     const [adding, setAdding]         = useState(false);
     const [editingEntry, setEditingEntry] = useState(null);
     const [monsterPopup, setMonsterPopup] = useState(null);
@@ -618,16 +618,16 @@ function SessionView({ campaign, colorIndex, session, onBack, onChanged, onError
 
     const addEntry = async () => {
         if (logKind !== "encounter" && !logContent.trim()) return;
-        if (logKind === "encounter" && !logMonster && !logContent.trim()) return;
+        if (logKind === "encounter" && !logMonsters.length && !logContent.trim()) return;
         setAdding(true);
         try {
             await campaignsApi.addLogEntry(campaign._id, session._id, {
                 kind: logKind,
                 content: logContent,
-                monsterId: logKind === "encounter" && logMonster ? logMonster : undefined
+                monsterIds: logKind === "encounter" ? logMonsters : []
             });
             setLogContent("");
-            setLogMonster("");
+            setLogMonsters([]);
             onChanged();
             onFlash("Entrada añadida");
         } catch (e) { onError(e.message); }
@@ -691,8 +691,8 @@ function SessionView({ campaign, colorIndex, session, onBack, onChanged, onError
 
                 {logKind === "encounter" && (
                     <MonsterPicker
-                        value={logMonster}
-                        onChange={setLogMonster}
+                        value={logMonsters}
+                        onChange={setLogMonsters}
                         campaignMonsters={campaign.monsters || []}
                     />
                 )}
@@ -747,22 +747,30 @@ function SessionView({ campaign, colorIndex, session, onBack, onChanged, onError
                                                 {" · "}
                                                 {new Date(entry.createdAt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                                             </span>
-                                            {entry.kind === "encounter" && (entry.monster || entry.monsterName) && (
-                                                <p style={{ margin: "0.15rem 0 0", fontSize: "0.85rem", fontWeight: 600 }}>
-                                                    {entry.monster?._id ? (
-                                                        <button
-                                                            onClick={() => setMonsterPopup(entry.monster._id)}
-                                                            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--blood)", fontWeight: 600, fontSize: "inherit", textDecoration: "underline dotted", textUnderlineOffset: "3px" }}
-                                                            title="Ver stat block"
-                                                        >
-                                                            ⚔️ {entry.monster.name}
+                                            {entry.kind === "encounter" && (() => {
+                                                const monsters = entry.monsters?.filter(Boolean) ?? [];
+                                                const legacy   = entry.monster;
+                                                const legacyNm = entry.monsterName;
+                                                if (!monsters.length && !legacy && !legacyNm) return null;
+                                                const monsterBtn = (m) => (
+                                                    <span key={m._id} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                                                        <button onClick={() => setMonsterPopup(m._id)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--blood)", fontWeight: 600, fontSize: "inherit", textDecoration: "underline dotted", textUnderlineOffset: "3px" }} title="Ver stat block">
+                                                            ⚔️ {m.name}
                                                         </button>
-                                                    ) : (
-                                                        <span style={{ color: "var(--blood)" }}>⚔️ {entry.monsterName}</span>
-                                                    )}
-                                                    {entry.monster?.challengeRating && <span style={{ fontWeight: 400, color: "var(--ink-faded)", marginLeft: "0.3rem" }}>CR {entry.monster.challengeRating}</span>}
-                                                </p>
-                                            )}
+                                                        {m.challengeRating && <span style={{ fontWeight: 400, color: "var(--ink-faded)", fontSize: "0.8em" }}>CR {m.challengeRating}</span>}
+                                                    </span>
+                                                );
+                                                return (
+                                                    <div style={{ margin: "0.15rem 0 0", fontSize: "0.85rem", fontWeight: 600, display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                                                        {monsters.length
+                                                            ? monsters.map(m => monsterBtn(m))
+                                                            : legacy?._id
+                                                                ? monsterBtn(legacy)
+                                                                : <span style={{ color: "var(--blood)" }}>⚔️ {legacyNm}</span>
+                                                        }
+                                                    </div>
+                                                );
+                                            })()}
                                             {entry.content && <p style={{ margin: "0.2rem 0 0", fontSize: "0.88rem", whiteSpace: "pre-wrap" }}>{entry.content}</p>}
                                         </div>
                                         <div style={{ display: "flex", gap: "0.25rem", flexShrink: 0 }}>
@@ -821,10 +829,10 @@ function SessionForm({ form, setForm, editingId, onSubmit, onCancel }) {
 
 function MonsterPicker({ value, onChange, campaignMonsters }) {
     const FILTERS = [["campaign", "Campaña"], ["mine", "Míos"], ["srd", "SRD"], ["all", "Todos"]];
-    const [filter, setFilter]       = useState("campaign");
-    const [search, setSearch]       = useState("");
+    const [filter, setFilter]           = useState("campaign");
+    const [search, setSearch]           = useState("");
     const [apiMonsters, setApiMonsters] = useState([]);
-    const [loading, setLoading]     = useState(false);
+    const [loading, setLoading]         = useState(false);
 
     useEffect(() => {
         if (filter === "campaign") return;
@@ -836,67 +844,66 @@ function MonsterPicker({ value, onChange, campaignMonsters }) {
             .finally(() => setLoading(false));
     }, [filter]);
 
+    const allKnown = [...campaignMonsters, ...apiMonsters];
     const source   = filter === "campaign" ? campaignMonsters : apiMonsters;
     const filtered = search.trim()
         ? source.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
         : source;
 
-    const selectedMonster = [...campaignMonsters, ...apiMonsters].find(m => m._id === value);
+    const add    = (m) => { if (!value.includes(m._id)) onChange([...value, m._id]); };
+    const remove = (id) => onChange(value.filter(v => v !== id));
 
     return (
         <div style={{ marginBottom: "0.5rem" }}>
-            <label style={lbl}>Monstruo (opcional)</label>
+            <label style={lbl}>Enemigos del encuentro</label>
 
-            {value ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.4rem 0.7rem", background: "rgba(139,0,0,0.1)", borderRadius: "4px", marginBottom: "0.4rem" }}>
-                    <span style={{ fontSize: "0.9rem", flex: 1 }}>⚔️ <strong>{selectedMonster?.name ?? "Monstruo seleccionado"}</strong></span>
-                    <button className="btn btn-small" style={{ padding: "0.1rem 0.5rem" }} onClick={() => onChange("")}>✕</button>
+            {/* Tags de monstruos seleccionados */}
+            {value.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginBottom: "0.5rem" }}>
+                    {value.map(id => {
+                        const m = allKnown.find(x => x._id === id);
+                        return (
+                            <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.2rem 0.6rem", background: "rgba(139,0,0,0.12)", border: "1px solid rgba(139,0,0,0.25)", borderRadius: "4px", fontSize: "0.83rem" }}>
+                                ⚔️ {m?.name ?? "Monstruo"}
+                                <button style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1, color: "var(--blood)", fontSize: "1rem" }} onClick={() => remove(id)}>×</button>
+                            </span>
+                        );
+                    })}
                 </div>
-            ) : (
-                <>
-                    <div style={{ display: "flex", gap: "0.3rem", marginBottom: "0.4rem", flexWrap: "wrap" }}>
-                        {FILTERS.map(([f, label]) => (
-                            <button
-                                key={f}
-                                className="btn btn-small"
-                                style={{ opacity: filter === f ? 1 : 0.5, fontWeight: filter === f ? 700 : 400 }}
-                                onClick={() => setFilter(f)}
-                            >
-                                {label}
-                            </button>
-                        ))}
-                    </div>
-
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        placeholder="Buscar monstruo…"
-                        style={{ width: "100%", marginBottom: "0.3rem" }}
-                    />
-
-                    <ul style={{ listStyle: "none", padding: 0, marginTop: 0, border: "1px solid var(--parchment-shadow)", borderRadius: "4px", overflow: "hidden", maxHeight: "160px", overflowY: "auto" }}>
-                        {loading ? (
-                            <li style={{ padding: "0.45rem 0.75rem", color: "var(--ink-faded)", fontSize: "0.85rem" }}>Cargando…</li>
-                        ) : filtered.length === 0 ? (
-                            <li style={{ padding: "0.45rem 0.75rem", color: "var(--ink-faded)", fontSize: "0.85rem" }}>
-                                {filter === "campaign" ? "Sin monstruos en el pool de esta campaña." : "Sin resultados."}
-                            </li>
-                        ) : (
-                            filtered.map(m => (
-                                <li
-                                    key={m._id}
-                                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.45rem 0.75rem", borderBottom: "1px solid var(--parchment-shadow)", cursor: "pointer" }}
-                                    onClick={() => onChange(m._id)}
-                                >
-                                    <span style={{ fontSize: "0.88rem" }}>{m.name}</span>
-                                    <span style={{ color: "var(--ink-faded)", fontSize: "0.78rem" }}>CR {m.challengeRating}</span>
-                                </li>
-                            ))
-                        )}
-                    </ul>
-                </>
             )}
+
+            {/* Filtros */}
+            <div style={{ display: "flex", gap: "0.3rem", marginBottom: "0.4rem", flexWrap: "wrap" }}>
+                {FILTERS.map(([f, label]) => (
+                    <button key={f} className="btn btn-small" style={{ opacity: filter === f ? 1 : 0.5, fontWeight: filter === f ? 700 : 400 }} onClick={() => setFilter(f)}>
+                        {label}
+                    </button>
+                ))}
+            </div>
+
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar y añadir enemigos…" style={{ width: "100%", marginBottom: "0.3rem" }} />
+
+            <ul style={{ listStyle: "none", padding: 0, marginTop: 0, border: "1px solid var(--parchment-shadow)", borderRadius: "4px", overflow: "hidden", maxHeight: "160px", overflowY: "auto" }}>
+                {loading ? (
+                    <li style={{ padding: "0.45rem 0.75rem", color: "var(--ink-faded)", fontSize: "0.85rem" }}>Cargando…</li>
+                ) : filtered.length === 0 ? (
+                    <li style={{ padding: "0.45rem 0.75rem", color: "var(--ink-faded)", fontSize: "0.85rem" }}>
+                        {filter === "campaign" ? "Sin monstruos en el pool de esta campaña." : "Sin resultados."}
+                    </li>
+                ) : filtered.map(m => {
+                    const selected = value.includes(m._id);
+                    return (
+                        <li
+                            key={m._id}
+                            onClick={() => selected ? remove(m._id) : add(m)}
+                            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.45rem 0.75rem", borderBottom: "1px solid var(--parchment-shadow)", cursor: "pointer", background: selected ? "rgba(139,0,0,0.07)" : undefined }}
+                        >
+                            <span style={{ fontSize: "0.88rem" }}>{selected ? "✓ " : ""}{m.name}</span>
+                            <span style={{ color: "var(--ink-faded)", fontSize: "0.78rem" }}>CR {m.challengeRating}</span>
+                        </li>
+                    );
+                })}
+            </ul>
         </div>
     );
 }

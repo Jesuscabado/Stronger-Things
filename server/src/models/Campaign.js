@@ -12,9 +12,13 @@ const logEntrySchema = new mongoose.Schema(
             enum: ["diary", "note", "encounter"],
             default: "note"
         },
-        content:     { type: String, default: "" },
-        monster:     { type: mongoose.Schema.Types.ObjectId, ref: "Monster" },
-        monsterName: { type: String, trim: true }
+        content:      { type: String, default: "" },
+        // Legacy — un solo monstruo (mantener para datos anteriores)
+        monster:      { type: mongoose.Schema.Types.ObjectId, ref: "Monster" },
+        monsterName:  { type: String, trim: true },
+        // Nuevo — varios monstruos por encuentro
+        monsters:     [{ type: mongoose.Schema.Types.ObjectId, ref: "Monster" }],
+        monsterNames: [{ type: String, trim: true }]
     },
     { timestamps: true }
 );

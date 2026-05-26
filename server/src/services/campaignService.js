@@ -21,7 +21,8 @@ const listPopulate = (q) =>
 const detailPopulate = (q) =>
     q
         .populate({ path: "participants.character", select: "name charClass level avatar" })
-        .populate({ path: "sessions.log.monster", select: "name challengeRating type" })
+        .populate({ path: "sessions.log.monster",  select: "name challengeRating type" })
+        .populate({ path: "sessions.log.monsters", select: "name challengeRating type" })
         .populate({ path: "monsters", select: "name challengeRating type size source" });
 
 // ─── Campañas ─────────────────────────────────────────────────────────────────
@@ -126,26 +127,27 @@ export const addLogEntry = async (id, sessionId, data, dmId) => {
     const session = campaign.sessions.id(sessionId);
     if (!session) throw notFound("Sesión no encontrada");
 
-    const { kind, content, monsterId } = data;
+    const { kind, content, monsterIds = [] } = data;
 
-    let monsterName;
-    if (monsterId) {
-        const monster = await Monster.findById(monsterId).select("name").lean();
-        if (!monster) throw notFound("Monstruo no encontrado");
-        monsterName = monster.name;
+    let monsterNames = [];
+    if (monsterIds.length) {
+        const found = await Monster.find({ _id: { $in: monsterIds } }).select("name").lean();
+        monsterNames = monsterIds
+            .map(id => found.find(m => m._id.toString() === id.toString())?.name)
+            .filter(Boolean);
     }
 
     session.log.push({
         kind: kind || "note",
         content: content || "",
-        monster: monsterId || undefined,
-        monsterName: monsterName || undefined
+        monsters: monsterIds,
+        monsterNames
     });
     await campaign.save();
 
-    // Devuelve sólo la entrada nueva (última del log)
     const updated = await Campaign.findById(id)
-        .populate({ path: "sessions.log.monster", select: "name challengeRating type" });
+        .populate({ path: "sessions.log.monster",  select: "name challengeRating type" })
+        .populate({ path: "sessions.log.monsters", select: "name challengeRating type" });
     const updatedSession = updated.sessions.id(sessionId);
     return updatedSession.log[updatedSession.log.length - 1];
 };
@@ -164,7 +166,8 @@ export const updateLogEntry = async (id, sessionId, entryId, data, dmId) => {
     await campaign.save();
 
     const updated = await Campaign.findById(id)
-        .populate({ path: "sessions.log.monster", select: "name challengeRating type" });
+        .populate({ path: "sessions.log.monster",  select: "name challengeRating type" })
+        .populate({ path: "sessions.log.monsters", select: "name challengeRating type" });
     return updated.sessions.id(sessionId).log.id(entryId);
 };
 
