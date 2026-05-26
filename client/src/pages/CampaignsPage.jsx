@@ -131,7 +131,7 @@ function Campaigns() {
     };
 
     const selectCampaign = async (c) => {
-        if (selectedCampaign?._id === c._id) { setSelectedCampaign(null); setSelectedSession(null); return; }
+        if (selectedCampaign?._id === c._id) return;
         setSelectedSession(null);
         try {
             const full = await campaignsApi.get(c._id);
@@ -195,6 +195,8 @@ function Campaigns() {
                                 onChanged={() => reloadCampaign(selectedCampaign._id)}
                                 onError={setError}
                                 onFlash={flash}
+                                onEdit={() => openEditCampaign(selectedCampaign)}
+                                onDelete={() => deleteCampaign(selectedCampaign)}
                               />)
                         : <div className="scroll-card" style={{ padding: "3rem 2rem", textAlign: "center", color: "var(--ink-faded)" }}>
                             <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>🗺️</div>
@@ -325,7 +327,7 @@ function CampaignForm({ form, setForm, editingId, onSubmit, onCancel }) {
 
 // ─── Detalle de campaña ───────────────────────────────────────────────────────
 
-function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChanged, onError, onFlash }) {
+function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChanged, onError, onFlash, onEdit, onDelete }) {
     const { color, bg } = campaignColor(colorIndex);
     const [tab, setTab]           = useState("sessions"); // "sessions" | "participants" | "notes"
     const [showSessionForm, setShowSessionForm] = useState(false);
@@ -378,7 +380,13 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
                     <span style={{ fontSize: "0.8rem", color: STATUS_COLOR[campaign.status] }}>● {STATUS_LABEL[campaign.status]}</span>
                     {campaign.description && <p style={{ margin: "0.3rem 0 0", color: "var(--ink-faded)", fontSize: "0.85rem" }}>{campaign.description}</p>}
                 </div>
-                <button className="btn btn-small" onClick={onClose}>✕</button>
+                <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0, alignItems: "flex-start" }}>
+                    <div className="mobile-only">
+                        <button className="btn btn-small" onClick={onEdit}><IconEdit /> Editar</button>
+                        <button className="btn btn-small btn-danger" onClick={onDelete}>× Eliminar</button>
+                    </div>
+                    <button className="btn btn-small" onClick={onClose}>✕</button>
+                </div>
             </div>
 
             {/* Pestañas internas */}

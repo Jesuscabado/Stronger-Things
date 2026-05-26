@@ -13,6 +13,11 @@
      ≤ 480px  → móvil pequeño
    ========================================================================= */
 
+/* Oculto en desktop; visible solo en móvil */
+.mobile-only {
+    display: none;
+}
+
 /* ─── Botón hamburguesa ──────────────────────────────────────────────────
    Por defecto está oculto. Solo se muestra en pantallas <900px.
    El nav por defecto se ve siempre; en móvil se oculta hasta que la
@@ -186,24 +191,22 @@
     }
 }
 
-/* ─── Móvil grande (≤ 768px) ─────────────────────────────────────────── */
+/* ─── Layout de campañas: columna única en móvil (≤ 900px) ───────────── */
+/* Cubre tanto móvil vertical como horizontal (ej. Pixel 851px de ancho)  */
 
-@media (max-width: 768px) {
-    body { font-size: 16px; }
-
-    .container {
-        padding: 1rem 1.2rem;
+@media (max-width: 900px) {
+    /* Botones de gestión que solo aparecen en el detalle en móvil */
+    .mobile-only {
+        display: flex;
+        gap: 0.4rem;
     }
 
-    /* En móvil el layout de campañas pasa a una sola columna */
     .campaigns-layout {
         grid-template-columns: 1fr;
     }
-    /* Oculta sidebar cuando hay una campaña seleccionada */
     .campaigns-layout[data-has-detail="true"] .campaigns-sidebar {
         display: none;
     }
-    /* Oculta el panel de detalle cuando no hay nada seleccionado */
     .campaigns-layout:not([data-has-detail="true"]) .campaigns-detail {
         display: none;
     }
@@ -211,6 +214,16 @@
         position: static;
         max-height: none;
         overflow-y: visible;
+    }
+}
+
+/* ─── Móvil grande (≤ 768px) ─────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    body { font-size: 16px; }
+
+    .container {
+        padding: 1rem 1.2rem;
     }
 
     h1 { font-size: 1.8rem; }
