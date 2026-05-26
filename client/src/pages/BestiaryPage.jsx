@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { monstersApi } from "../api/monsters.js";
+import PageIntro from "../components/layout/PageIntro.jsx";
 import { campaignsApi } from "../api/campaigns.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNameCheck } from "../hooks/useNameCheck.js";
@@ -277,6 +278,7 @@ function Bestiary() {
 
     return (
         <div className="container">
+            <PageIntro pageKey="bestiary" text="Tu colección de monstruos como Director de Juego. Consulta las criaturas del SRD, crea las tuyas propias y añádelas al pool de tus campañas para usarlas en sesiones." />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
                 <div>
                     <h1> Bestiario</h1>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { campaignsApi, charactersSearchApi } from "../api/campaigns.js";
+import PageIntro from "../components/layout/PageIntro.jsx";
 import { monstersApi } from "../api/monsters.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { campaignColor, monsterTypeColor } from "../utils/dndColors.js";
@@ -142,6 +143,7 @@ function Campaigns() {
 
     return (
         <div className="container">
+            <PageIntro pageKey="campaigns" text="Aquí gestionas tus campañas de D&D. Crea campañas, añade sesiones con su log de eventos y gestiona los aventureros que participan en cada una." />
             {/* Cabecera */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "0.75rem" }}>
                 <h1 style={{ margin: 0 }}>Campañas</h1>

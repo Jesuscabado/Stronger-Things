@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { objectsApi } from "../api/objects.js";
+import PageIntro from "../components/layout/PageIntro.jsx";
 import { useNameCheck } from "../hooks/useNameCheck.js";
 import { translateCategory } from "../utils/categoryLabels.js";
 import { rarityColor } from "../utils/dndColors.js";
@@ -200,6 +201,7 @@ export default function ObjectsPage() {
 
     return (
         <div className="container">
+            <PageIntro pageKey="objects" text="El catálogo de objetos de D&D 5e: armas, armaduras, pociones, objetos maravillosos y más. Los objetos del SRD son de solo lectura; los administradores pueden editarlos. Cualquier usuario puede crear objetos propios." />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
                 <h1>Catálogo de objetos</h1>
                 <button className="btn btn-primary" onClick={openCreate}>+ Nuevo objeto</button>

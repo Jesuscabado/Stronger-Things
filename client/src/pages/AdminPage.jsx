@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { adminApi } from "../api/admin.js";
+import PageIntro from "../components/layout/PageIntro.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function AdminPage() {
@@ -73,6 +74,7 @@ export default function AdminPage() {
 
     return (
         <div className="container">
+            <PageIntro pageKey="admin" text="Panel de administración. Gestiona usuarios y sus roles (DM, admin), supervisa las estadísticas globales y administra el contenido del SRD como objetos, hechizos y monstruos." />
             <h1> Panel de administración</h1>
 
             {error && <div className="alert">{error}</div>}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import PageIntro from "../components/layout/PageIntro.jsx";
 import { charactersApi } from "../api/characters.js";
 import { campaignsApi } from "../api/campaigns.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -33,6 +34,13 @@ export default function DiaryPage() {
 
     return (
         <div className="container">
+            <PageIntro
+                pageKey="diary"
+                text={isDM
+                    ? "El diario de tus campañas. Aquí se recoge el historial de sesiones de cada campaña, con sus entradas de log, notas y encuentros. También puedes ver el diario de tus aventureros."
+                    : "El diario combinado de todos tus personajes. Consulta en qué campañas participan y repasa el historial de sesiones en modo lectura."
+                }
+            />
             <div style={{ marginBottom: "1.5rem" }}>
                 <h1>📔 Crónicas</h1>
                 <p style={{ color: "var(--ink-faded)", margin: 0 }}>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { spellsApi } from "../api/spells.js";
+import PageIntro from "../components/layout/PageIntro.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNameCheck } from "../hooks/useNameCheck.js";
 import { CLASS_OPTIONS, translateClass } from "../utils/dndLabels.js";
@@ -154,6 +155,7 @@ export default function SpellsPage() {
 
     return (
         <div className="container">
+            <PageIntro pageKey="spells" text="Todos los hechizos de D&D 5e, organizados por escuela de magia. Los hechizos del SRD son de consulta; los administradores pueden editarlos. Puedes crear hechizos propios para personalizarlos." />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
                 <h1>📜 Catálogo de hechizos</h1>
                 <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>

@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/layout/Header.jsx";
 import Footer from "./components/layout/Footer.jsx";
 import ProtectedRoute from "./components/layout/ProtectedRoute.jsx";
+import WelcomeGuide from "./components/layout/WelcomeGuide.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
@@ -27,9 +29,24 @@ function HomeRedirect() {
 }
 
 export default function App() {
+    const { user } = useAuth();
+    const [showWelcome, setShowWelcome] = useState(false);
+
+    useEffect(() => {
+        if (user && localStorage.getItem("st_welcome_pending") === "1") {
+            setShowWelcome(true);
+        }
+    }, [user]);
+
+    const closeWelcome = () => {
+        localStorage.removeItem("st_welcome_pending");
+        setShowWelcome(false);
+    };
+
     return (
         <>
             <Header />
+            {showWelcome && <WelcomeGuide user={user} onClose={closeWelcome} />}
             <Routes>
                 <Route path="/" element={<HomeRedirect />} />
                 <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
