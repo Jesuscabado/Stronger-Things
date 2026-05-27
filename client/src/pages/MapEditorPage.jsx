@@ -70,13 +70,14 @@ function buildEmptyMap(cols = 20, rows = 15) {
 
 export default function MapEditorPage() {
     const { user } = useAuth();
-    if (!user?.isDM) {
+    const canMaps = user?.role === "admin" || user?.features?.includes("maps");
+    if (!canMaps) {
         return (
             <div className="container">
                 <div className="scroll-card" style={{ textAlign: "center", padding: "3rem" }}>
                     <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔒</div>
                     <h1>Acceso restringido</h1>
-                    <p style={{ color: "var(--ink-faded)" }}>Solo los DM pueden editar mapas.</p>
+                    <p style={{ color: "var(--ink-faded)" }}>Un administrador debe habilitarte el acceso a los mapas.</p>
                 </div>
             </div>
         );
@@ -1138,7 +1139,7 @@ function MapSetup({ sessionFromQuery, onStart, onStartFromAI, onBack }) {
 
     const handleManual = (e) => {
         e.preventDefault();
-        if (!name.trim()) return;
+        if (!name.trim()) { setError("El nombre del mapa es obligatorio"); return; }
         const [cols, rows] = size.split("x").map(Number);
         onStart(name.trim(), cols, rows);
     };
@@ -1197,19 +1198,26 @@ function MapSetup({ sessionFromQuery, onStart, onStartFromAI, onBack }) {
                             </label>
                             <input
                                 value={name}
-                                onChange={e => setName(e.target.value)}
+                                onChange={e => { setName(e.target.value); if (error) setError(""); }}
                                 placeholder="La Taberna del Ciervo Negro…"
-                                style={{ width: "100%", boxSizing: "border-box" }}
+                                style={{
+                                    width: "100%", boxSizing: "border-box",
+                                    borderColor: error ? "var(--blood)" : undefined
+                                }}
                                 autoFocus
-                                required
                             />
+                            {error && (
+                                <p style={{ margin: "0.35rem 0 0", fontSize: "0.8rem", color: "var(--blood)" }}>
+                                    {error}
+                                </p>
+                            )}
                         </div>
                         <div style={{ marginBottom: "1.5rem" }}>
                             <label style={{ display: "block", marginBottom: "0.3rem", fontWeight: 600 }}>Tamaño</label>
                             <SizeCards size={size} setSize={setSize} />
                         </div>
                         <div style={{ display: "flex", gap: "0.5rem" }}>
-                            <button type="submit" className="btn btn-primary" disabled={!name.trim()}>
+                            <button type="submit" className="btn btn-primary">
                                 Abrir editor
                             </button>
                             <button type="button" className="btn" onClick={onBack}>Cancelar</button>

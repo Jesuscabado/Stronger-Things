@@ -3,13 +3,13 @@ import {
     listMaps, getMap, createMap, updateMap, deleteMap, generateMap
 } from "../controllers/mapController.js";
 import { authRequired }              from "../middlewares/authRequired.js";
-import { dmRequired }                from "../middlewares/dmRequired.js";
+import { featureRequired }           from "../middlewares/featureRequired.js";
 import { validateBody, validateObjectId } from "../middlewares/validateBody.js";
 
 const router = Router();
 
 router.use(authRequired);
-router.use(dmRequired);
+router.use(featureRequired("maps"));
 
 // POST /generate debe ir antes de /:id para que "generate" no sea capturado
 // como un ObjectId (validateObjectId lo rechazaría de todos modos, pero

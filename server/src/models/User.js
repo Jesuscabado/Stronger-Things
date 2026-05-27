@@ -23,7 +23,8 @@ const userSchema = new mongoose.Schema(
             enum: ["user", "admin"],
             default: "user"
         },
-        isDM: { type: Boolean, default: false },
+        isDM:     { type: Boolean, default: false },
+        features: { type: [String], default: [] },
         googleId: {
             type: String,
             index: true,

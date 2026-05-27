@@ -3,24 +3,22 @@ import { useNavigate } from "react-router-dom";
 import { mapsApi } from "../api/maps.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
+const canUseMaps = (u) => u?.role === "admin" || u?.features?.includes("maps");
+
 export default function MapsPage() {
     const { user } = useAuth();
-    if (!user?.isDM) return <NoDMAccess />;
-    return <MapsList />;
-}
-
-function NoDMAccess() {
-    return (
+    if (!canUseMaps(user)) return (
         <div className="container">
             <div className="scroll-card" style={{ textAlign: "center", padding: "3rem 2rem" }}>
                 <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🔒</div>
                 <h1>Acceso restringido</h1>
                 <p style={{ color: "var(--ink-faded)", maxWidth: "480px", margin: "1rem auto" }}>
-                    Los mapas tácticos están disponibles únicamente para los Directores de Juego.
+                    El acceso al editor de mapas debe ser habilitado por un administrador.
                 </p>
             </div>
         </div>
     );
+    return <MapsList />;
 }
 
 function MapsList() {

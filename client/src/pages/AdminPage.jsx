@@ -59,6 +59,21 @@ export default function AdminPage() {
         }
     };
 
+    const handleToggleFeature = async (user, feature) => {
+        const hasFeat = (user.features ?? []).includes(feature);
+        const next    = !hasFeat;
+        const labels  = { maps: "acceso a Mapas" };
+        const action  = next ? `dar ${labels[feature]}` : `quitar ${labels[feature]}`;
+        if (!confirm(`¿${action} a ${user.username}?`)) return;
+        try {
+            await adminApi.updateFeature(user._id, feature, next);
+            flash(`${labels[feature]} ${next ? "concedido" : "retirado"}`);
+            load();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     const handleDelete = async (user) => {
         if (!confirm(`¿Eliminar a ${user.username}? Se borrarán también todos sus personajes. Esta acción no se puede deshacer.`)) return;
         try {
@@ -117,6 +132,7 @@ export default function AdminPage() {
                                     <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Email</th>
                                     <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Rol</th>
                                     <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>DM</th>
+                                    <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Mapas</th>
                                     <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Creado</th>
                                     <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Acciones</th>
                                 </tr>
@@ -141,6 +157,23 @@ export default function AdminPage() {
                                             <td style={{ padding: "0.6rem" }}>
                                                 {u.isDM && (
                                                     <span className="class-badge" style={{ color: "var(--gold)" }}>DM</span>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: "0.6rem" }}>
+                                                {u.role === "admin" ? (
+                                                    <span style={{ fontSize: "0.75rem", color: "var(--ink-faded)" }}>siempre</span>
+                                                ) : (
+                                                    <button
+                                                        className="btn btn-small"
+                                                        onClick={() => handleToggleFeature(u, "maps")}
+                                                        disabled={isMe}
+                                                        style={{
+                                                            color: (u.features ?? []).includes("maps") ? "var(--blood)" : "var(--gold)",
+                                                            minWidth: 80
+                                                        }}
+                                                    >
+                                                        {(u.features ?? []).includes("maps") ? "✕ Revocar" : "✓ Conceder"}
+                                                    </button>
                                                 )}
                                             </td>
                                             <td style={{ padding: "0.6rem", color: "var(--ink-faded)", fontSize: "0.85rem" }}>
