@@ -1,8 +1,11 @@
 import { api } from "./client.js";
 
 export const objectsApi = {
-    list: () => api.get("/api/objects"),
-    create: (data) => api.post("/api/objects", data),
+    list:    ()           => api.get("/api/objects"),
+    get:     (id)         => api.get(`/api/objects/${id}`),
+    create:  (data)       => api.post("/api/objects", data),
+    update:  (id, data)   => api.put(`/api/objects/${id}`, data),
+    remove:  (id)         => api.del(`/api/objects/${id}`),
     checkName: (name, excludeId) => {
         const qs = new URLSearchParams({ name });
         if (excludeId) qs.set("excludeId", excludeId);

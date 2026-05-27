@@ -1,24 +1,15 @@
 import { useEffect, useState } from "react";
 import { spellsApi } from "../api/spells.js";
+import PageIntro from "../components/layout/PageIntro.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNameCheck } from "../hooks/useNameCheck.js";
 import { CLASS_OPTIONS, translateClass } from "../utils/dndLabels.js";
+import { spellSchoolColor } from "../utils/dndColors.js";
 
 const SCHOOLS = [
     "Abjuración", "Conjuración", "Adivinación", "Encantamiento",
     "Evocación", "Ilusión", "Nigromancia", "Transmutación"
 ];
-
-const SCHOOL_COLORS = {
-    "Abjuración":     "#3b6dff",
-    "Conjuración":    "#1eb7b7",
-    "Adivinación":    "#a347c4",
-    "Encantamiento":  "#e08000",
-    "Evocación":      "#a02020",
-    "Ilusión":        "#a0a0b0",
-    "Nigromancia":    "#8a8a9a",
-    "Transmutación":  "#2d6a2d"
-};
 
 const LEVEL_LABEL = (lvl) => lvl === 0 ? "Truco" : `Nivel ${lvl}`;
 
@@ -164,6 +155,7 @@ export default function SpellsPage() {
 
     return (
         <div className="container">
+            <PageIntro pageKey="spells" text="Todos los hechizos de D&D 5e, organizados por escuela de magia. Los hechizos del SRD son de consulta; los administradores pueden editarlos. Puedes crear hechizos propios para personalizarlos." />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
                 <h1>📜 Catálogo de hechizos</h1>
                 <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
@@ -449,7 +441,7 @@ export default function SpellsPage() {
                                             spell={spell}
                                             expanded={expanded === spell._id}
                                             onToggle={() => setExpanded(expanded === spell._id ? null : spell._id)}
-                                            onDelete={isAdmin ? () => handleDelete(spell) : null}
+                                            onDelete={(!spell.isPublic || isAdmin) ? () => handleDelete(spell) : null}
                                         />
                                     ))}
                                 </div>
@@ -463,7 +455,7 @@ export default function SpellsPage() {
                                     spell={spell}
                                     expanded={expanded === spell._id}
                                     onToggle={() => setExpanded(expanded === spell._id ? null : spell._id)}
-                                    onDelete={isAdmin ? () => handleDelete(spell) : null}
+                                    onDelete={(!spell.isPublic || isAdmin) ? () => handleDelete(spell) : null}
                                     showLevelBadge
                                 />
                             ))}
@@ -476,7 +468,7 @@ export default function SpellsPage() {
 }
 
 function SpellCard({ spell, expanded, onToggle, onDelete, showLevelBadge }) {
-    const schoolColor = SCHOOL_COLORS[spell.school] || "#666";
+    const { color: schoolColor, bg: schoolBg } = spellSchoolColor(spell.school);
 
     const componentLetters = [
         spell.components?.verbal && "V",
@@ -513,8 +505,8 @@ function SpellCard({ spell, expanded, onToggle, onDelete, showLevelBadge }) {
                             </span>
                         )}
                         <span
-                            className="class-badge"
-                            style={{ color: schoolColor, borderColor: schoolColor }}
+                            className="badge-tag"
+                            style={{ color: schoolColor, background: schoolBg, border: `1px solid ${schoolColor}40` }}
                         >
                             {spell.school}
                         </span>

@@ -43,7 +43,9 @@ const spellSchema = new mongoose.Schema(
         damageAtSlot: { type: Map, of: String, default: {} },       // { "1": "1d8", "2": "2d8", ... }
 
         // Clases que pueden lanzarlo (claves en inglés del modelo Character.charClass)
-        classes: { type: [String], default: [] }                    // ["Wizard", "Sorcerer"]
+        classes: { type: [String], default: [] },                   // ["Wizard", "Sorcerer"]
+
+        isPublic: { type: Boolean, default: false }                 // true = SRD, solo editable por admin
     },
     { timestamps: true }
 );

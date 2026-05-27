@@ -17,17 +17,19 @@ const checkOwner = (campaign, dmId) => {
 const listPopulate = (q) =>
     q.populate({ path: "participants.character", select: "name charClass level" });
 
-// Populate completo para detalle (log entries con monstruo)
+// Populate completo para detalle (log entries con monstruo + pool de monstruos)
 const detailPopulate = (q) =>
     q
         .populate({ path: "participants.character", select: "name charClass level avatar" })
-        .populate({ path: "sessions.log.monster", select: "name challengeRating type" });
+        .populate({ path: "sessions.log.monster",  select: "name challengeRating type" })
+        .populate({ path: "sessions.log.monsters", select: "name challengeRating type" })
+        .populate({ path: "monsters", select: "name challengeRating type size source" });
 
 // ─── Campañas ─────────────────────────────────────────────────────────────────
 
 export const list = (dmId) =>
     listPopulate(
-        Campaign.find({ dm: dmId }, "name description status participants sessions createdAt")
+        Campaign.find({ dm: dmId }, "name description status participants sessions notes createdAt")
             .sort({ createdAt: -1 })
     ).lean();
 
@@ -125,26 +127,27 @@ export const addLogEntry = async (id, sessionId, data, dmId) => {
     const session = campaign.sessions.id(sessionId);
     if (!session) throw notFound("Sesión no encontrada");
 
-    const { kind, content, monsterId } = data;
+    const { kind, content, monsterIds = [] } = data;
 
-    let monsterName;
-    if (monsterId) {
-        const monster = await Monster.findById(monsterId).select("name").lean();
-        if (!monster) throw notFound("Monstruo no encontrado");
-        monsterName = monster.name;
+    let monsterNames = [];
+    if (monsterIds.length) {
+        const found = await Monster.find({ _id: { $in: monsterIds } }).select("name").lean();
+        monsterNames = monsterIds
+            .map(id => found.find(m => m._id.toString() === id.toString())?.name)
+            .filter(Boolean);
     }
 
     session.log.push({
         kind: kind || "note",
         content: content || "",
-        monster: monsterId || undefined,
-        monsterName: monsterName || undefined
+        monsters: monsterIds,
+        monsterNames
     });
     await campaign.save();
 
-    // Devuelve sólo la entrada nueva (última del log)
     const updated = await Campaign.findById(id)
-        .populate({ path: "sessions.log.monster", select: "name challengeRating type" });
+        .populate({ path: "sessions.log.monster",  select: "name challengeRating type" })
+        .populate({ path: "sessions.log.monsters", select: "name challengeRating type" });
     const updatedSession = updated.sessions.id(sessionId);
     return updatedSession.log[updatedSession.log.length - 1];
 };
@@ -163,7 +166,8 @@ export const updateLogEntry = async (id, sessionId, entryId, data, dmId) => {
     await campaign.save();
 
     const updated = await Campaign.findById(id)
-        .populate({ path: "sessions.log.monster", select: "name challengeRating type" });
+        .populate({ path: "sessions.log.monster",  select: "name challengeRating type" })
+        .populate({ path: "sessions.log.monsters", select: "name challengeRating type" });
     return updated.sessions.id(sessionId).log.id(entryId);
 };
 
@@ -177,4 +181,55 @@ export const removeLogEntry = async (id, sessionId, entryId, dmId) => {
     entry.deleteOne();
     await campaign.save();
     return { deleted: true };
+};
+
+// ─── Pool de monstruos de la campaña ─────────────────────────────────────────
+
+export const addMonsterToPool = async (id, monsterId, dmId) => {
+    const campaign = await Campaign.findById(id);
+    checkOwner(campaign, dmId);
+    const monster = await Monster.findById(monsterId).lean();
+    if (!monster) throw notFound("Monstruo no encontrado");
+    if (campaign.monsters.some(m => m.equals(monsterId))) throw conflict("Monstruo ya en el pool de la campaña");
+    campaign.monsters.push(monsterId);
+    await campaign.save();
+    return detailPopulate(Campaign.findById(id)).lean();
+};
+
+// ─── Notas DM (cards) ─────────────────────────────────────────────────────────
+
+export const addNoteCard = async (id, data, dmId) => {
+    const campaign = await Campaign.findById(id);
+    checkOwner(campaign, dmId);
+    campaign.noteCards.push({ content: data.content || "" });
+    await campaign.save();
+    return campaign.noteCards[campaign.noteCards.length - 1];
+};
+
+export const updateNoteCard = async (id, noteId, data, dmId) => {
+    const campaign = await Campaign.findById(id);
+    checkOwner(campaign, dmId);
+    const note = campaign.noteCards.id(noteId);
+    if (!note) throw notFound("Nota no encontrada");
+    if (data.content !== undefined) note.content = data.content;
+    await campaign.save();
+    return { updated: true };
+};
+
+export const removeNoteCard = async (id, noteId, dmId) => {
+    const campaign = await Campaign.findById(id);
+    checkOwner(campaign, dmId);
+    const note = campaign.noteCards.id(noteId);
+    if (!note) throw notFound("Nota no encontrada");
+    note.deleteOne();
+    await campaign.save();
+    return { deleted: true };
+};
+
+export const removeMonsterFromPool = async (id, monsterId, dmId) => {
+    const campaign = await Campaign.findById(id);
+    checkOwner(campaign, dmId);
+    campaign.monsters = campaign.monsters.filter(m => !m.equals(monsterId));
+    await campaign.save();
+    return detailPopulate(Campaign.findById(id)).lean();
 };

@@ -20,22 +20,18 @@ export const createBaseObject = async (data) => {
     return BaseObject.create(data);
 };
 
-export const updateBaseObject = async (id, data) => {
-    const updated = await BaseObject.findByIdAndUpdate(id, data, { new: true, runValidators: true });
-    if (!updated) {
-        const err = new Error("BaseObject no encontrado");
-        err.status = 404;
-        throw err;
-    }
-    return updated;
+export const updateBaseObject = async (id, data, isAdmin = false) => {
+    const obj = await BaseObject.findById(id);
+    if (!obj) throw Object.assign(new Error("Objeto no encontrado"), { status: 404 });
+    if (obj.isPublic && !isAdmin) throw Object.assign(new Error("Solo los administradores pueden modificar objetos del catálogo SRD"), { status: 403 });
+    Object.assign(obj, data);
+    return obj.save();
 };
 
-export const deleteBaseObject = async (id) => {
-    const deleted = await BaseObject.findByIdAndDelete(id);
-    if (!deleted) {
-        const err = new Error("BaseObject no encontrado");
-        err.status = 404;
-        throw err;
-    }
+export const deleteBaseObject = async (id, isAdmin = false) => {
+    const obj = await BaseObject.findById(id);
+    if (!obj) throw Object.assign(new Error("Objeto no encontrado"), { status: 404 });
+    if (obj.isPublic && !isAdmin) throw Object.assign(new Error("Solo los administradores pueden eliminar objetos del catálogo SRD"), { status: 403 });
+    await obj.deleteOne();
     return { deleted: true, id };
 };

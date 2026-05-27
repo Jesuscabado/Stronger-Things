@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { charactersApi } from "../api/characters.js";
+import PageIntro from "../components/layout/PageIntro.jsx";
 import { useNameCheck } from "../hooks/useNameCheck.js";
 import {
     translateClass,
@@ -82,6 +83,7 @@ export default function CharactersPage() {
 
     return (
         <div className="container">
+            <PageIntro pageKey="characters" text="Aquí viven tus personajes de D&D 5e. Crea fichas completas con atributos, habilidades, trasfondo, equipo y hechizos. También puedes imprimir la hoja de personaje." />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
                 <h1>Mis personajes</h1>
                 {!showCreate && (

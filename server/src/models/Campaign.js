@@ -1,5 +1,11 @@
 import mongoose from "mongoose";
 
+// ─── Nota individual del DM ───────────────────────────────────────────────────
+const noteCardSchema = new mongoose.Schema(
+    { content: { type: String, default: "" } },
+    { timestamps: true }
+);
+
 // ─── Entrada del log de una sesión ───────────────────────────────────────────
 // kind:
 //   "diary"     → narración de lo sucedido (texto libre)
@@ -12,9 +18,13 @@ const logEntrySchema = new mongoose.Schema(
             enum: ["diary", "note", "encounter"],
             default: "note"
         },
-        content:     { type: String, default: "" },
-        monster:     { type: mongoose.Schema.Types.ObjectId, ref: "Monster" },
-        monsterName: { type: String, trim: true }
+        content:      { type: String, default: "" },
+        // Legacy — un solo monstruo (mantener para datos anteriores)
+        monster:      { type: mongoose.Schema.Types.ObjectId, ref: "Monster" },
+        monsterName:  { type: String, trim: true },
+        // Nuevo — varios monstruos por encuentro
+        monsters:     [{ type: mongoose.Schema.Types.ObjectId, ref: "Monster" }],
+        monsterNames: [{ type: String, trim: true }]
     },
     { timestamps: true }
 );
@@ -56,7 +66,9 @@ const campaignSchema = new mongoose.Schema(
         },
         participants: [participantSchema],
         sessions:    [sessionSchema],
-        notes:       { type: String, default: "" }
+        monsters:    [{ type: mongoose.Schema.Types.ObjectId, ref: "Monster" }],
+        notes:       { type: String, default: "" },
+        noteCards:   [noteCardSchema]
     },
     { timestamps: true }
 );

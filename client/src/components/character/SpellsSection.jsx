@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { spellsApi } from "../../api/spells.js";
 import { abilityMod, formatMod } from "../../utils/dndCalc.js";
+import { spellSchoolColor } from "../../utils/dndColors.js";
 
 const SLOT_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -242,7 +243,10 @@ function SpellLevelGroup({ level, title, spells, onTogglePrepared, onRemove }) {
                                 >
                                     <strong>{sp.name}</strong>
                                     <div className="spell-item__meta">
-                                        {sp.school}
+                                        {sp.school && (() => {
+                                            const { color, bg } = spellSchoolColor(sp.school);
+                                            return <span className="badge-tag" style={{ color, background: bg, border: `1px solid ${color}40` }}>{sp.school}</span>;
+                                        })()}
                                         {sp.concentration && <span className="badge-tag">Concentración</span>}
                                         {sp.ritual && <span className="badge-tag">Ritual</span>}
                                         {sp.damageType && <span> • Daño: {sp.damageType}</span>}

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { campaignsApi, charactersSearchApi } from "../api/campaigns.js";
+import PageIntro from "../components/layout/PageIntro.jsx";
 import { monstersApi } from "../api/monsters.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { campaignColor, monsterTypeColor } from "../utils/dndColors.js";
 
 // ─── Iconos SVG ──────────────────────────────────────────────────────────────
 
@@ -53,6 +55,7 @@ function Campaigns() {
     // Navegación: campaña seleccionada → sesión seleccionada
     const [selectedCampaign, setSelectedCampaign] = useState(null);
     const [selectedSession,  setSelectedSession]  = useState(null);
+    const [expandedCard,     setExpandedCard]     = useState(null);
 
     // Formulario campaña
     const [showCampaignForm, setShowCampaignForm] = useState(false);
@@ -128,7 +131,7 @@ function Campaigns() {
     };
 
     const selectCampaign = async (c) => {
-        if (selectedCampaign?._id === c._id) { setSelectedCampaign(null); setSelectedSession(null); return; }
+        if (selectedCampaign?._id === c._id) return;
         setSelectedSession(null);
         try {
             const full = await campaignsApi.get(c._id);
@@ -140,6 +143,7 @@ function Campaigns() {
 
     return (
         <div className="container">
+            <PageIntro pageKey="campaigns" text="Aquí gestionas tus campañas de D&D. Crea campañas, añade sesiones con su log de eventos y gestiona los aventureros que participan en cada una." />
             {/* Cabecera */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "0.75rem" }}>
                 <h1 style={{ margin: 0 }}>Campañas</h1>
@@ -149,93 +153,134 @@ function Campaigns() {
             {error   && <div className="alert" style={{ cursor: "pointer" }} onClick={() => setError("")}>{error}</div>}
             {success && <div className="alert-success" style={{ marginBottom: "1rem", padding: "0.75rem 1rem", borderRadius: "4px" }}>{success}</div>}
 
-            {showCampaignForm && (
-                <CampaignForm
-                    form={campaignForm}
-                    setForm={setCampaignForm}
-                    editingId={editingCampaignId}
-                    onSubmit={submitCampaign}
-                    onCancel={() => setShowCampaignForm(false)}
-                />
-            )}
-
             {loading ? (
                 <p style={{ color: "var(--ink-faded)" }}>Cargando campañas…</p>
             ) : campaigns.length === 0 && !showCampaignForm ? (
                 <div className="scroll-card" style={{ textAlign: "center", padding: "2rem" }}>
                     <p style={{ color: "var(--ink-faded)" }}>Aún no tienes campañas. ¡Crea la primera!</p>
                 </div>
-            ) : (
-                <div style={{ display: "grid", gridTemplateColumns: selectedCampaign ? "300px 1fr" : "1fr", gap: "1.25rem", alignItems: "start" }}>
+            ) : (() => {
+                const colorIdx = Object.fromEntries(
+                    [...campaigns]
+                        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                        .map((c, i) => [c._id, i])
+                );
 
-                    {/* Lista de campañas */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                        {campaigns.map(c => (
-                            <CampaignCard
-                                key={c._id}
-                                campaign={c}
-                                isSelected={selectedCampaign?._id === c._id}
-                                onClick={() => selectCampaign(c)}
-                                onEdit={() => openEditCampaign(c)}
-                                onDelete={() => deleteCampaign(c)}
-                            />
-                        ))}
-                    </div>
+                const campaignForm_ = <CampaignForm
+                    form={campaignForm}
+                    setForm={setCampaignForm}
+                    editingId={editingCampaignId}
+                    onSubmit={submitCampaign}
+                    onCancel={() => setShowCampaignForm(false)}
+                />;
 
-                    {/* Panel derecho */}
-                    {selectedCampaign && (
-                        selectedSession ? (
-                            <SessionView
+                const detailPanel = showCampaignForm
+                    ? campaignForm_
+                    : selectedCampaign
+                        ? (selectedSession
+                            ? <SessionView
                                 campaign={selectedCampaign}
+                                colorIndex={colorIdx[selectedCampaign._id]}
                                 session={selectedSession}
                                 onBack={() => setSelectedSession(null)}
                                 onChanged={() => reloadCampaign(selectedCampaign._id)}
                                 onError={setError}
                                 onFlash={flash}
-                            />
-                        ) : (
-                            <CampaignDetail
+                              />
+                            : <CampaignDetail
                                 campaign={selectedCampaign}
-                                onClose={() => { setSelectedCampaign(null); setSelectedSession(null); }}
+                                colorIndex={colorIdx[selectedCampaign._id]}
+                                onClose={() => { setSelectedCampaign(null); setSelectedSession(null); setExpandedCard(null); }}
                                 onSelectSession={setSelectedSession}
                                 onChanged={() => reloadCampaign(selectedCampaign._id)}
                                 onError={setError}
                                 onFlash={flash}
-                            />
-                        )
-                    )}
-                </div>
-            )}
+                                onEdit={() => openEditCampaign(selectedCampaign)}
+                                onDelete={() => deleteCampaign(selectedCampaign)}
+                              />)
+                        : <div className="scroll-card" style={{ padding: "3rem 2rem", textAlign: "center", color: "var(--ink-faded)" }}>
+                            <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>🗺️</div>
+                            <p style={{ margin: 0 }}>Selecciona una campaña para ver sus detalles</p>
+                          </div>;
+
+                // Sin campañas aún pero abriendo el formulario de creación
+                if (campaigns.length === 0) {
+                    return campaignForm_;
+                }
+
+                return (
+                    <div className="campaigns-layout" data-has-detail={(selectedCampaign || showCampaignForm) ? "true" : undefined}>
+                        <div className="campaigns-sidebar">
+                            {campaigns.map(c => (
+                                <CampaignCard
+                                    key={c._id}
+                                    campaign={c}
+                                    colorIndex={colorIdx[c._id]}
+                                    isSelected={selectedCampaign?._id === c._id}
+                                    expanded={expandedCard === c._id}
+                                    onToggle={() => {
+                                        const next = expandedCard === c._id ? null : c._id;
+                                        setExpandedCard(next);
+                                        if (next !== null) selectCampaign(c);
+                                    }}
+                                    onEdit={() => openEditCampaign(c)}
+                                    onDelete={() => deleteCampaign(c)}
+                                />
+                            ))}
+                        </div>
+                        <div className="campaigns-detail">
+                            {detailPanel}
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }
 
 // ─── Tarjeta de campaña ───────────────────────────────────────────────────────
 
-function CampaignCard({ campaign, isSelected, onClick, onEdit, onDelete }) {
+function CampaignCard({ campaign, colorIndex, isSelected, expanded, onToggle, onEdit, onDelete }) {
+    const { color, bg } = campaignColor(colorIndex);
     return (
-        <div
-            className="scroll-card"
-            style={{ padding: "0.9rem 1.1rem", cursor: "pointer", borderColor: isSelected ? "var(--gold)" : undefined, boxShadow: isSelected ? "0 0 0 2px var(--gold)" : undefined }}
-            onClick={onClick}
-        >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
+        <div className="scroll-card" style={{ padding: 0, overflow: "hidden", boxShadow: isSelected ? `0 0 0 2px ${color}` : undefined }}>
+            {/* Cabecera clicable */}
+            <div
+                onClick={onToggle}
+                style={{
+                    padding: "0.9rem 1.1rem",
+                    cursor: "pointer",
+                    borderLeft: `4px solid ${color}`,
+                    background: expanded || isSelected ? bg : undefined,
+                }}
+            >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                        <strong style={{ fontSize: "0.95rem" }}>{campaign.name}</strong>
+                    <strong style={{ fontSize: "0.95rem", color, display: "block", overflow: "hidden", textOverflow: expanded ? undefined : "ellipsis", whiteSpace: expanded ? undefined : "nowrap" }}>
+                        {campaign.name}
+                    </strong>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.2rem", flexWrap: "wrap" }}>
+                        <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--ink-faded)" }}>
+                            {campaign.sessions?.length || 0} sesión{campaign.sessions?.length !== 1 ? "es" : ""}
+                            {" · "}
+                            {campaign.participants?.length || 0} aventurero{campaign.participants?.length !== 1 ? "s" : ""}
+                        </p>
                         <span style={{ fontSize: "0.72rem", color: STATUS_COLOR[campaign.status] }}>● {STATUS_LABEL[campaign.status]}</span>
                     </div>
-                    <p style={{ margin: "0.2rem 0 0", fontSize: "0.78rem", color: "var(--ink-faded)" }}>
-                        {campaign.sessions?.length || 0} sesión{campaign.sessions?.length !== 1 ? "es" : ""}
-                        {" · "}
-                        {campaign.participants?.length || 0} aventurero{campaign.participants?.length !== 1 ? "s" : ""}
-                    </p>
-                </div>
-                <div style={{ display: "flex", gap: "0.3rem", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                    <button className="btn btn-small" onClick={onEdit}><IconEdit /></button>
-                    <button className="btn btn-small" style={{ color: "var(--blood)" }} onClick={onDelete}>✕</button>
                 </div>
             </div>
+
+            {/* Detalle expandido: solo botones de gestión */}
+            {expanded && (
+                <div style={{ padding: "0.6rem 1.1rem 0.75rem", borderTop: "1px dashed var(--parchment-shadow)" }}>
+                    {campaign.description && (
+                        <p style={{ margin: "0 0 0.6rem", fontSize: "0.82rem", color: "var(--ink-faded)" }}>{campaign.description}</p>
+                    )}
+                    <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                        <button className="btn btn-small" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onEdit(); }}><IconEdit /> Editar</button>
+                        <button className="btn btn-small btn-danger" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onDelete(); }}>× Eliminar</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -282,11 +327,13 @@ function CampaignForm({ form, setForm, editingId, onSubmit, onCancel }) {
 
 // ─── Detalle de campaña ───────────────────────────────────────────────────────
 
-function CampaignDetail({ campaign, onClose, onSelectSession, onChanged, onError, onFlash }) {
-    const [tab, setTab]           = useState("sessions"); // "sessions" | "participants" | "notes"
+function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChanged, onError, onFlash, onEdit, onDelete }) {
+    const { color, bg } = campaignColor(colorIndex);
+    const [tab, setTab]           = useState("sessions"); // "sessions" | "participants" | "gallery" | "notes"
     const [showSessionForm, setShowSessionForm] = useState(false);
     const [sessionForm, setSessionForm]         = useState(emptySessionForm());
     const [editingSessionId, setEditingSessionId] = useState(null);
+    const [expandedSession,  setExpandedSession] = useState(null);
 
     const submitSession = async (e) => {
         e.preventDefault();
@@ -326,23 +373,29 @@ function CampaignDetail({ campaign, onClose, onSelectSession, onChanged, onError
     });
 
     return (
-        <div className="scroll-card" style={{ padding: "1.4rem" }}>
+        <div className="scroll-card" style={{ padding: "1.4rem", borderTop: `4px solid ${color}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
-                <div>
-                    <h2 style={{ margin: 0 }}>{campaign.name}</h2>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <h2 style={{ margin: 0, color }}>{campaign.name}</h2>
                     <span style={{ fontSize: "0.8rem", color: STATUS_COLOR[campaign.status] }}>● {STATUS_LABEL[campaign.status]}</span>
                     {campaign.description && <p style={{ margin: "0.3rem 0 0", color: "var(--ink-faded)", fontSize: "0.85rem" }}>{campaign.description}</p>}
                 </div>
-                <button className="btn btn-small" onClick={onClose}>✕</button>
+                <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0, alignItems: "flex-start" }}>
+                    <div className="mobile-only">
+                        <button className="btn btn-small" onClick={onEdit}><IconEdit /> Editar</button>
+                        <button className="btn btn-small btn-danger" onClick={onDelete}>× Eliminar</button>
+                    </div>
+                    <button className="btn btn-small" onClick={onClose}>✕</button>
+                </div>
             </div>
 
             {/* Pestañas internas */}
-            <div style={{ display: "flex", gap: "0.3rem", borderBottom: "2px solid var(--parchment-shadow)", marginBottom: "1rem" }}>
-                {[["sessions", "Sesiones"], ["participants", "Aventureros"], ["notes", "Notas DM"]].map(([id, label]) => (
+            <div style={{ display: "flex", gap: "0.3rem", borderBottom: `2px solid ${color}`, marginBottom: "1rem" }}>
+                {[["sessions", "Sesiones"], ["participants", "Aventureros"], ["gallery", "⚔️ Galería"], ["notes", "Notas DM"]].map(([id, label]) => (
                     <button
                         key={id}
                         className="btn btn-small"
-                        style={{ borderRadius: "4px 4px 0 0", borderBottom: "none", opacity: tab === id ? 1 : 0.55, fontWeight: tab === id ? 700 : 400, background: tab === id ? "var(--parchment-shadow)" : undefined }}
+                        style={{ borderRadius: "4px 4px 0 0", borderBottom: "none", opacity: tab === id ? 1 : 0.55, fontWeight: tab === id ? 700 : 400, background: tab === id ? bg : undefined, color: tab === id ? color : undefined }}
                         onClick={() => setTab(id)}
                     >
                         {label}
@@ -353,11 +406,13 @@ function CampaignDetail({ campaign, onClose, onSelectSession, onChanged, onError
             {/* ── Sesiones ── */}
             {tab === "sessions" && (
                 <div>
-                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.75rem" }}>
-                        <button className="btn btn-primary" onClick={() => { setSessionForm(emptySessionForm()); setEditingSessionId(null); setShowSessionForm(true); }}>
-                            + Nueva sesión
-                        </button>
-                    </div>
+                    {!showSessionForm && (
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.75rem" }}>
+                            <button className="btn btn-primary" onClick={() => { setSessionForm(emptySessionForm()); setEditingSessionId(null); setShowSessionForm(true); }}>
+                                + Nueva sesión
+                            </button>
+                        </div>
+                    )}
 
                     {showSessionForm && (
                         <SessionForm
@@ -365,38 +420,55 @@ function CampaignDetail({ campaign, onClose, onSelectSession, onChanged, onError
                             setForm={setSessionForm}
                             editingId={editingSessionId}
                             onSubmit={submitSession}
-                            onCancel={() => setShowSessionForm(false)}
+                            onCancel={() => { setShowSessionForm(false); setEditingSessionId(null); }}
                         />
                     )}
 
-                    {sessions.length === 0 ? (
+                    {!showSessionForm && (sessions.length === 0 ? (
                         <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Aún no hay sesiones. Crea la primera.</p>
                     ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                            {sessions.map((s, i) => (
-                                <div
-                                    key={s._id}
-                                    className="scroll-card"
-                                    style={{ padding: "0.75rem 1rem", cursor: "pointer" }}
-                                    onClick={() => onSelectSession(s)}
-                                >
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                        <div>
-                                            <strong style={{ fontSize: "0.9rem" }}>Sesión {i + 1}: {s.title}</strong>
-                                            {s.date && <span style={{ fontSize: "0.78rem", color: "var(--ink-faded)", marginLeft: "0.5rem" }}>{new Date(s.date).toLocaleDateString("es-ES")}</span>}
-                                            <p style={{ margin: "0.2rem 0 0", fontSize: "0.78rem", color: "var(--ink-faded)" }}>
-                                                {s.log?.length || 0} entrada{s.log?.length !== 1 ? "s" : ""} en el log
-                                            </p>
+                        <>
+                            <p style={{ margin: "0 0 0.75rem", fontSize: "0.82rem", color: "var(--ink-faded)" }}>
+                                {sessions.length} sesión{sessions.length !== 1 ? "es" : ""}
+                            </p>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.6rem" }}>
+                                {sessions.map((s, i) => {
+                                    const isExp = expandedSession === s._id;
+                                    return (
+                                        <div
+                                            key={s._id}
+                                            style={{ background: isExp ? bg : "var(--parchment)", border: `1px solid ${color}33`, borderLeft: `3px solid ${color}`, borderRadius: "4px", overflow: "hidden", cursor: "pointer" }}
+                                            onClick={() => setExpandedSession(id => id === s._id ? null : s._id)}
+                                        >
+                                            <div style={{ padding: "0.65rem 0.85rem" }}>
+                                                <div style={{ fontSize: "0.68rem", color, fontFamily: "Cinzel, serif", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.15rem" }}>
+                                                    Sesión {i + 1}
+                                                </div>
+                                                <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--ink)", overflow: "hidden", textOverflow: isExp ? undefined : "ellipsis", whiteSpace: isExp ? undefined : "nowrap", marginBottom: "0.2rem" }} title={s.title}>
+                                                    {s.title}
+                                                </div>
+                                                <div style={{ fontSize: "0.72rem", color: "var(--ink-faded)" }}>
+                                                    {s.date ? new Date(s.date).toLocaleDateString("es-ES") + " · " : ""}
+                                                    {s.log?.length || 0} entrada{s.log?.length !== 1 ? "s" : ""}
+                                                </div>
+                                            </div>
+
+                                            {isExp && (
+                                                <div style={{ padding: "0.5rem 0.85rem 0.7rem", borderTop: `1px dashed ${color}44` }} onClick={e => e.stopPropagation()}>
+                                                    {s.summary && <p style={{ margin: "0 0 0.5rem", fontSize: "0.82rem", color: "var(--ink-faded)" }}>{s.summary}</p>}
+                                                    <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
+                                                        <button className="btn btn-small btn-primary" onClick={() => onSelectSession(s)}>Abrir</button>
+                                                        <button className="btn btn-small" onClick={() => openEditSession(s)}><IconEdit /> Editar</button>
+                                                        <button className="btn btn-small btn-danger" onClick={() => deleteSession(s)}>× Eliminar</button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div style={{ display: "flex", gap: "0.3rem" }} onClick={e => e.stopPropagation()}>
-                                            <button className="btn btn-small" onClick={() => openEditSession(s)}><IconEdit /></button>
-                                            <button className="btn btn-small" style={{ color: "var(--blood)" }} onClick={() => deleteSession(s)}>✕</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                                    );
+                                })}
+                            </div>
+                        </>
+                    ))}
                 </div>
             )}
 
@@ -410,6 +482,9 @@ function CampaignDetail({ campaign, onClose, onSelectSession, onChanged, onError
                 />
             )}
 
+            {/* ── Galería de encuentros ── */}
+            {tab === "gallery" && <EncounterGallery campaign={campaign} />}
+
             {/* ── Notas DM ── */}
             {tab === "notes" && (
                 <NotesPanel
@@ -419,6 +494,213 @@ function CampaignDetail({ campaign, onClose, onSelectSession, onChanged, onError
                     onFlash={onFlash}
                 />
             )}
+        </div>
+    );
+}
+
+// ─── Modal de detalle de monstruo ────────────────────────────────────────────
+
+function MonsterDetailModal({ monsterId, onClose }) {
+    const [monster, setMonster] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error,   setError]   = useState("");
+
+    useEffect(() => {
+        monstersApi.get(monsterId)
+            .then(m => setMonster(m))
+            .catch(e => setError(e.message))
+            .finally(() => setLoading(false));
+    }, [monsterId]);
+
+    const abil = (key) => {
+        const v = monster?.abilityScores?.[key] ?? 10;
+        const mod = Math.floor((v - 10) / 2);
+        return `${v} (${mod >= 0 ? "+" : ""}${mod})`;
+    };
+
+    const { color, bg } = monster ? monsterTypeColor(monster.type) : { color: "var(--gold)", bg: "transparent" };
+
+    return (
+        <div className="modal-overlay" onClick={onClose} style={{ zIndex: 200 }}>
+            <div
+                className="scroll-card"
+                onClick={e => e.stopPropagation()}
+                style={{ maxWidth: "620px", width: "90%", maxHeight: "85vh", overflowY: "auto", margin: "auto", borderTop: `4px solid ${color}` }}
+            >
+                {loading && <p style={{ color: "var(--ink-faded)" }}>Cargando…</p>}
+                {error   && <p style={{ color: "var(--blood)" }}>{error}</p>}
+                {monster && (
+                    <>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
+                            <div style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
+                                {monster.image?.cloudinaryUrl && (
+                                    <img src={monster.image.cloudinaryUrl} alt={monster.name}
+                                        style={{ width: "64px", height: "64px", objectFit: "cover", borderRadius: "2px", border: "1px solid var(--ink-faded)", flexShrink: 0 }} />
+                                )}
+                                <div>
+                                    <h2 style={{ margin: 0, color }}>{monster.name}</h2>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.3rem" }}>
+                                        <span className="badge-tag">{monster.size}</span>
+                                        <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
+                                            {monster.type}{monster.subtype ? ` (${monster.subtype})` : ""}
+                                        </span>
+                                        <span className="badge-tag" style={{ background: "rgba(160,32,32,0.15)" }}>CR {monster.challengeRating}</span>
+                                        {monster.alignment && <span style={{ fontSize: "0.82rem", color: "var(--ink-faded)", alignSelf: "center" }}>{monster.alignment}</span>}
+                                    </div>
+                                </div>
+                            </div>
+                            <button className="btn btn-small" onClick={onClose}>✕</button>
+                        </div>
+
+                        <div style={{ fontSize: "0.9rem", lineHeight: 1.7, marginBottom: "0.75rem" }}>
+                            <div><strong>CA:</strong> {monster.armorClass}{monster.armorClassNote && ` (${monster.armorClassNote})`}</div>
+                            <div><strong>Puntos de golpe:</strong> {monster.hitPoints?.average}{monster.hitPoints?.roll && ` (${monster.hitPoints.roll})`}</div>
+                            <div><strong>Velocidad:</strong> {(monster.speed || []).join(", ") || "—"}</div>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "0.4rem", margin: "0.75rem 0", fontSize: "0.85rem", textAlign: "center" }}>
+                            {["strength","dexterity","constitution","intelligence","wisdom","charisma"].map(k => (
+                                <div key={k}>
+                                    <div style={{ fontFamily: "Cinzel, serif", fontSize: "0.65rem", color: "var(--ink-faded)", textTransform: "uppercase" }}>{k.slice(0,3)}</div>
+                                    <strong>{abil(k)}</strong>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ fontSize: "0.85rem", lineHeight: 1.6, marginBottom: "0.5rem" }}>
+                            {monster.senses?.length > 0           && <div><strong>Sentidos:</strong> {monster.senses.join(", ")}, Percepción pasiva {monster.passivePerception}</div>}
+                            {monster.languages?.length > 0        && <div><strong>Idiomas:</strong> {monster.languages.join(", ")}</div>}
+                            {monster.damageResistances?.length > 0 && <div><strong>Resistencias:</strong> {monster.damageResistances.join(", ")}</div>}
+                            {monster.damageImmunities?.length > 0  && <div><strong>Inmunidades:</strong> {monster.damageImmunities.join(", ")}</div>}
+                            {monster.conditionImmunities?.length > 0 && <div><strong>Inmunidad a condiciones:</strong> {monster.conditionImmunities.join(", ")}</div>}
+                        </div>
+
+                        {monster.actions?.length > 0 && <ActionsGroup actions={monster.actions} />}
+
+                        {monster.spellcastingNote && (
+                            <div style={{ marginTop: "0.75rem", padding: "0.6rem", background: "rgba(184,134,11,0.08)", borderLeft: "3px solid var(--gold)", borderRadius: "2px", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>
+                                <strong>Lanzamiento de conjuros:</strong> {monster.spellcastingNote}
+                            </div>
+                        )}
+                        {monster.description && (
+                            <div style={{ marginTop: "0.75rem", fontStyle: "italic", whiteSpace: "pre-wrap", fontSize: "0.9rem" }}>{monster.description}</div>
+                        )}
+                        {monster.dmNotes && (
+                            <div style={{ marginTop: "0.75rem", padding: "0.6rem", background: "rgba(139,0,0,0.08)", borderLeft: "3px solid var(--blood)", borderRadius: "2px", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>
+                                <strong>📝 Notas del DM:</strong><br />{monster.dmNotes}
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function ActionsGroup({ actions }) {
+    const grouped = {};
+    for (const a of actions) {
+        const key = a.kind || "action";
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(a);
+    }
+    const order  = ["trait", "action", "bonus", "reaction", "legendary", "lair"];
+    const titles = { trait: "Rasgos", action: "Acciones", bonus: "Acciones adicionales", reaction: "Reacciones", legendary: "Acciones legendarias", lair: "Acciones de guarida" };
+    return (
+        <>
+            {order.filter(k => grouped[k]).map(k => (
+                <div key={k} style={{ marginTop: "0.75rem" }}>
+                    <h4 style={{ borderBottom: "1px solid var(--gold)", paddingBottom: "0.2rem", marginBottom: "0.4rem" }}>{titles[k]}</h4>
+                    {grouped[k].map(a => (
+                        <div key={a._id} style={{ marginBottom: "0.5rem", fontSize: "0.88rem" }}>
+                            <strong>{a.name}.</strong>{" "}
+                            {(a.attackBonus !== undefined && a.attackBonus !== null && a.attackBonus !== "") && (
+                                <em>Ataque: {a.attackBonus >= 0 ? "+" : ""}{a.attackBonus} al golpe{a.reach && `, alcance ${a.reach}`}. Impacto: {a.damage}{a.damageType ? ` de daño ${a.damageType}` : ""}.</em>
+                            )}{" "}
+                            <span style={{ whiteSpace: "pre-wrap" }}>{a.description}</span>
+                        </div>
+                    ))}
+                </div>
+            ))}
+        </>
+    );
+}
+
+// ─── Galería de encuentros ────────────────────────────────────────────────────
+
+function EncounterGallery({ campaign }) {
+    const [modalMonsterId, setModalMonsterId] = useState(null);
+    const monsterMap = {};
+
+    (campaign.sessions || []).forEach(session => {
+        (session.log || []).forEach(entry => {
+            if (entry.kind !== "encounter") return;
+
+            // Formato nuevo: array de monstruos poblados
+            const monsters = entry.monsters?.length > 0
+                ? entry.monsters
+                : entry.monster ? [entry.monster] : [];
+
+            monsters.forEach(m => {
+                const id   = (m._id || m).toString();
+                const name = (typeof m === "object" && m.name) ? m.name
+                           : entry.monsterNames?.[0] || entry.monsterName || "Desconocido";
+                const type = typeof m === "object" ? m.type : null;
+                const cr   = typeof m === "object" ? m.challengeRating : null;
+
+                if (!monsterMap[id]) {
+                    monsterMap[id] = { id, name, type, cr, count: 0, sessions: [] };
+                }
+                monsterMap[id].count++;
+                if (!monsterMap[id].sessions.includes(session.title)) {
+                    monsterMap[id].sessions.push(session.title);
+                }
+            });
+        });
+    });
+
+    const entries = Object.values(monsterMap).sort((a, b) => b.count - a.count);
+
+    if (entries.length === 0) {
+        return <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Aún no hay encuentros registrados en esta campaña.</p>;
+    }
+
+    return (
+        <div>
+            {modalMonsterId && (
+                <MonsterDetailModal monsterId={modalMonsterId} onClose={() => setModalMonsterId(null)} />
+            )}
+            <p style={{ margin: "0 0 0.75rem", fontSize: "0.82rem", color: "var(--ink-faded)" }}>
+                {entries.length} criatura{entries.length !== 1 ? "s" : ""} distintas · {entries.reduce((s, e) => s + e.count, 0)} apariciones en total
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "0.6rem" }}>
+                {entries.map(m => {
+                    const { color, bg } = monsterTypeColor(m.type);
+                    return (
+                        <div
+                            key={m.id}
+                            onClick={() => setModalMonsterId(m.id)}
+                            style={{ background: bg, border: `1px solid ${color}33`, borderLeft: `3px solid ${color}`, borderRadius: "4px", padding: "0.65rem 0.85rem", cursor: "pointer", transition: "box-shadow 0.15s" }}
+                            onMouseEnter={e => e.currentTarget.style.boxShadow = `0 0 0 2px ${color}66`}
+                            onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+                        >
+                            <div style={{ fontWeight: 700, fontSize: "0.88rem", color, marginBottom: "0.2rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={m.name}>
+                                {m.name}
+                            </div>
+                            <div style={{ fontSize: "0.72rem", color: "var(--ink-faded)", marginBottom: "0.35rem" }}>
+                                {[m.type, m.cr != null ? `CR ${m.cr}` : null].filter(Boolean).join(" · ") || "Sin datos"}
+                            </div>
+                            <div style={{ fontSize: "0.8rem" }}>
+                                <strong style={{ color }}>{m.count}</strong>
+                                <span style={{ color: "var(--ink-faded)" }}> × · {m.sessions.length} sesión{m.sessions.length !== 1 ? "es" : ""}</span>
+                            </div>
+                            <div style={{ fontSize: "0.68rem", color: "var(--ink-faded)", marginTop: "0.25rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={m.sessions.join(", ")}>
+                                {m.sessions.join(", ")}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }
@@ -465,23 +747,31 @@ function ParticipantsPanel({ campaign, onChanged, onError, onFlash }) {
 
     return (
         <div>
-            <h3 style={{ marginTop: 0, fontSize: "0.95rem" }}>Aventureros ({campaign.participants?.length || 0})</h3>
+            <p style={{ margin: "0 0 0.75rem", fontSize: "0.82rem", color: "var(--ink-faded)" }}>
+                {campaign.participants?.length || 0} aventurero{campaign.participants?.length !== 1 ? "s" : ""} en la campaña
+            </p>
 
             {campaign.participants?.length > 0 ? (
-                <ul style={{ listStyle: "none", padding: 0, marginBottom: "1.25rem" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "0.6rem", marginBottom: "1.25rem" }}>
                     {campaign.participants.map(p => {
                         const c = p.character;
+                        const name = c?.name || p.characterName;
                         return (
-                            <li key={c?._id || p.characterName} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.45rem 0", borderBottom: "1px solid var(--parchment-shadow)" }}>
-                                <div>
-                                    <strong style={{ fontSize: "0.9rem" }}>{c?.name || p.characterName}</strong>
-                                    {c && <span style={{ fontSize: "0.78rem", color: "var(--ink-faded)", marginLeft: "0.4rem" }}>{c.charClass} nv.{c.level}</span>}
+                            <div key={c?._id || p.characterName}
+                                style={{ background: "var(--parchment)", border: "1px solid var(--parchment-shadow)", borderLeft: "3px solid var(--gold)", borderRadius: "4px", padding: "0.65rem 0.85rem" }}>
+                                <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--ink)", marginBottom: "0.2rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={name}>
+                                    {name}
                                 </div>
-                                <button className="btn btn-small" style={{ color: "var(--blood)" }} onClick={() => remove(c?._id)}>Quitar</button>
-                            </li>
+                                {c && (
+                                    <div style={{ fontSize: "0.72rem", color: "var(--ink-faded)", marginBottom: "0.4rem" }}>
+                                        {c.charClass} · Nv. {c.level}
+                                    </div>
+                                )}
+                                <button className="btn btn-small btn-danger" style={{ fontSize: "0.72rem", padding: "0.2rem 0.5rem" }} onClick={() => remove(c?._id)}>Quitar</button>
+                            </div>
                         );
                     })}
-                </ul>
+                </div>
             ) : (
                 <p style={{ color: "var(--ink-faded)", fontSize: "0.85rem", marginBottom: "1rem" }}>Ningún aventurero todavía.</p>
             )}
@@ -514,65 +804,141 @@ function ParticipantsPanel({ campaign, onChanged, onError, onFlash }) {
 // ─── Panel de notas DM ────────────────────────────────────────────────────────
 
 function NotesPanel({ campaign, onChanged, onError, onFlash }) {
-    const [notes, setNotes]   = useState(campaign.notes || "");
-    const [saving, setSaving] = useState(false);
+    const [adding, setAdding] = useState(false);
 
-    useEffect(() => setNotes(campaign.notes || ""), [campaign._id, campaign.notes]);
+    const addCard = async () => {
+        setAdding(true);
+        try {
+            await campaignsApi.addNoteCard(campaign._id, { content: "" });
+            onChanged();
+        } catch (e) { onError(e.message); }
+        finally { setAdding(false); }
+    };
+
+    const cards = campaign.noteCards || [];
+
+    return (
+        <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--ink-faded)" }}>
+                    {cards.length} nota{cards.length !== 1 ? "s" : ""}
+                </p>
+                <button className="btn btn-primary btn-small" onClick={addCard} disabled={adding}>
+                    + Nueva nota
+                </button>
+            </div>
+
+            {cards.length === 0 && (
+                <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Sin notas todavía. Añade tramas, secretos o recordatorios.</p>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.6rem", alignItems: "start" }}>
+                {cards.map(note => (
+                    <NoteCard
+                        key={note._id}
+                        note={note}
+                        campaignId={campaign._id}
+                        onDeleted={onChanged}
+                        onError={onError}
+                        onFlash={onFlash}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function NoteCard({ note, campaignId, onDeleted, onError, onFlash }) {
+    const [content,      setContent]      = useState(note.content);
+    const [savedContent, setSavedContent] = useState(note.content);
+    const [editing,      setEditing]      = useState(!note.content); // nueva nota vacía → entra directo en edición
+    const [saving,       setSaving]       = useState(false);
+    const dirty = content !== savedContent;
 
     const save = async () => {
         setSaving(true);
         try {
-            await campaignsApi.update(campaign._id, { notes });
-            onFlash("Notas guardadas");
-            onChanged();
+            await campaignsApi.updateNoteCard(campaignId, note._id, { content });
+            setSavedContent(content);
+            setEditing(false);
+            onFlash("Nota guardada");
         } catch (e) { onError(e.message); }
         finally { setSaving(false); }
     };
 
+    const cancel = () => {
+        setContent(savedContent);
+        setEditing(false);
+    };
+
+    const remove = async () => {
+        if (!confirm("¿Eliminar esta nota?")) return;
+        try {
+            await campaignsApi.removeNoteCard(campaignId, note._id);
+            onDeleted();
+        } catch (e) { onError(e.message); }
+    };
+
     return (
-        <div>
-            <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                rows={10}
-                placeholder="Notas privadas del DM: tramas, secretos, preparación de la siguiente sesión…"
-                style={{ width: "100%", resize: "vertical" }}
-            />
-            <button className="btn btn-primary" onClick={save} disabled={saving} style={{ marginTop: "0.5rem" }}>
-                {saving ? "Guardando…" : "Guardar notas"}
-            </button>
+        <div
+            style={{ background: "var(--parchment)", border: "1px solid var(--parchment-shadow)", borderLeft: "3px solid var(--gold)", borderRadius: "4px", padding: "0.7rem 0.85rem", display: "flex", flexDirection: "column", gap: "0.4rem", cursor: editing ? "default" : "pointer" }}
+            onClick={!editing ? () => setEditing(true) : undefined}
+        >
+            {editing ? (
+                <textarea
+                    autoFocus
+                    value={content}
+                    onChange={e => setContent(e.target.value)}
+                    rows={5}
+                    placeholder="Escribe aquí tu nota…"
+                    onClick={e => e.stopPropagation()}
+                    style={{ width: "100%", minWidth: 0, boxSizing: "border-box", resize: "vertical", background: "transparent", border: "none", outline: "none", fontSize: "0.85rem", lineHeight: 1.6, color: "var(--ink)", fontFamily: "inherit", padding: 0 }}
+                />
+            ) : (
+                <div style={{ minHeight: "4rem", fontSize: "0.85rem", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word", color: content ? "var(--ink)" : "var(--ink-faded)" }}>
+                    {content || "Haz clic para escribir…"}
+                </div>
+            )}
+
+            {editing && (
+                <div style={{ borderTop: "1px dashed var(--parchment-shadow)", paddingTop: "0.4rem", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                    <div style={{ display: "flex", gap: "0.3rem" }}>
+                        <button className="btn btn-small btn-primary" style={{ flex: 1, fontSize: "0.75rem" }} onMouseDown={e => e.preventDefault()} onClick={e => { e.stopPropagation(); save(); }} disabled={!dirty || saving}>
+                            {saving ? "Guardando" : "Guardar"}
+                        </button>
+                        <button className="btn btn-small" style={{ flex: 1, fontSize: "0.75rem" }} onMouseDown={e => e.preventDefault()} onClick={e => { e.stopPropagation(); cancel(); }}>Cancelar</button>
+                    </div>
+                    <button className="btn btn-small btn-danger" style={{ fontSize: "0.75rem" }} onMouseDown={e => e.preventDefault()} onClick={e => { e.stopPropagation(); remove(); }}>Eliminar</button>
+                </div>
+            )}
         </div>
     );
 }
 
 // ─── Vista de sesión con log ──────────────────────────────────────────────────
 
-function SessionView({ campaign, session, onBack, onChanged, onError, onFlash }) {
-    const [monsters, setMonsters]     = useState([]);
-    const [logKind, setLogKind]       = useState("note");
-    const [logContent, setLogContent] = useState("");
-    const [logMonster, setLogMonster] = useState("");
+function SessionView({ campaign, colorIndex, session, onBack, onChanged, onError, onFlash }) {
+    const [logKind, setLogKind]         = useState("note");
+    const [logContent, setLogContent]   = useState("");
+    const [logMonsters, setLogMonsters] = useState([]);
     const [adding, setAdding]         = useState(false);
-    const [editingEntry, setEditingEntry] = useState(null); // { _id, content }
-
-    useEffect(() => {
-        monstersApi.list().then(setMonsters).catch(() => {});
-    }, []);
+    const [editingEntry, setEditingEntry] = useState(null);
+    const [monsterPopup, setMonsterPopup] = useState(null);
 
     const log = [...(session.log || [])].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
     const addEntry = async () => {
         if (logKind !== "encounter" && !logContent.trim()) return;
-        if (logKind === "encounter" && !logMonster && !logContent.trim()) return;
+        if (logKind === "encounter" && !logMonsters.length && !logContent.trim()) return;
         setAdding(true);
         try {
             await campaignsApi.addLogEntry(campaign._id, session._id, {
                 kind: logKind,
                 content: logContent,
-                monsterId: logKind === "encounter" && logMonster ? logMonster : undefined
+                monsterIds: logKind === "encounter" ? logMonsters : []
             });
             setLogContent("");
-            setLogMonster("");
+            setLogMonsters([]);
             onChanged();
             onFlash("Entrada añadida");
         } catch (e) { onError(e.message); }
@@ -599,14 +965,16 @@ function SessionView({ campaign, session, onBack, onChanged, onError, onFlash })
 
     const sessions = [...(campaign.sessions || [])].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     const sessionIndex = sessions.findIndex(s => s._id === session._id);
+    const { color: sessionColor, bg: sessionBg } = campaignColor(colorIndex);
 
     return (
-        <div className="scroll-card" style={{ padding: "1.4rem" }}>
+        <>
+        <div className="scroll-card" style={{ padding: "1.4rem", borderTop: `4px solid ${sessionColor}` }}>
             {/* Cabecera sesión */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
                 <div>
-                    <button className="btn btn-small" onClick={onBack} style={{ marginBottom: "0.4rem" }}>← {campaign.name}</button>
-                    <h2 style={{ margin: 0, fontSize: "1.1rem" }}>
+                    <button className="btn btn-small" onClick={onBack} style={{ marginBottom: "0.4rem", borderColor: sessionColor, color: sessionColor }}>← {campaign.name}</button>
+                    <h2 style={{ margin: 0, fontSize: "1.1rem", color: sessionColor }}>
                         Sesión {sessionIndex + 1}: {session.title}
                     </h2>
                     {session.date && <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem", color: "var(--ink-faded)" }}>{new Date(session.date).toLocaleDateString("es-ES")}</p>}
@@ -624,7 +992,7 @@ function SessionView({ campaign, session, onBack, onChanged, onError, onFlash })
                         <button
                             key={k}
                             className="btn btn-small"
-                            style={{ fontWeight: logKind === k ? 700 : 400, opacity: logKind === k ? 1 : 0.6, borderColor: logKind === k ? "var(--gold)" : undefined }}
+                            style={{ fontWeight: logKind === k ? 700 : 400, opacity: logKind === k ? 1 : 0.6, borderColor: logKind === k ? sessionColor : undefined }}
                             onClick={() => setLogKind(k)}
                         >
                             {LOG_KIND_ICON[k]} {label}
@@ -633,15 +1001,11 @@ function SessionView({ campaign, session, onBack, onChanged, onError, onFlash })
                 </div>
 
                 {logKind === "encounter" && (
-                    <div style={{ marginBottom: "0.5rem" }}>
-                        <label style={lbl}>Monstruo del bestiario</label>
-                        <select value={logMonster} onChange={e => setLogMonster(e.target.value)} style={{ width: "100%" }}>
-                            <option value="">— Sin monstruo concreto —</option>
-                            {monsters.map(m => (
-                                <option key={m._id} value={m._id}>{m.name} (CR {m.challengeRating})</option>
-                            ))}
-                        </select>
-                    </div>
+                    <MonsterPicker
+                        value={logMonsters}
+                        onChange={setLogMonsters}
+                        campaignMonsters={campaign.monsters || []}
+                    />
                 )}
 
                 <textarea
@@ -694,12 +1058,30 @@ function SessionView({ campaign, session, onBack, onChanged, onError, onFlash })
                                                 {" · "}
                                                 {new Date(entry.createdAt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                                             </span>
-                                            {entry.kind === "encounter" && (entry.monster || entry.monsterName) && (
-                                                <p style={{ margin: "0.15rem 0 0", fontSize: "0.85rem", fontWeight: 600, color: "var(--blood)" }}>
-                                                    ⚔️ {entry.monster?.name || entry.monsterName}
-                                                    {entry.monster?.challengeRating && <span style={{ fontWeight: 400, color: "var(--ink-faded)", marginLeft: "0.3rem" }}>CR {entry.monster.challengeRating}</span>}
-                                                </p>
-                                            )}
+                                            {entry.kind === "encounter" && (() => {
+                                                const monsters = entry.monsters?.filter(Boolean) ?? [];
+                                                const legacy   = entry.monster;
+                                                const legacyNm = entry.monsterName;
+                                                if (!monsters.length && !legacy && !legacyNm) return null;
+                                                const monsterBtn = (m) => (
+                                                    <span key={m._id} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                                                        <button onClick={() => setMonsterPopup(m._id)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--blood)", fontWeight: 600, fontSize: "inherit", textDecoration: "underline dotted", textUnderlineOffset: "3px" }} title="Ver stat block">
+                                                            ⚔️ {m.name}
+                                                        </button>
+                                                        {m.challengeRating && <span style={{ fontWeight: 400, color: "var(--ink-faded)", fontSize: "0.8em" }}>CR {m.challengeRating}</span>}
+                                                    </span>
+                                                );
+                                                return (
+                                                    <div style={{ margin: "0.15rem 0 0", fontSize: "0.85rem", fontWeight: 600, display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                                                        {monsters.length
+                                                            ? monsters.map(m => monsterBtn(m))
+                                                            : legacy?._id
+                                                                ? monsterBtn(legacy)
+                                                                : <span style={{ color: "var(--blood)" }}>⚔️ {legacyNm}</span>
+                                                        }
+                                                    </div>
+                                                );
+                                            })()}
                                             {entry.content && <p style={{ margin: "0.2rem 0 0", fontSize: "0.88rem", whiteSpace: "pre-wrap" }}>{entry.content}</p>}
                                         </div>
                                         <div style={{ display: "flex", gap: "0.25rem", flexShrink: 0 }}>
@@ -716,6 +1098,11 @@ function SessionView({ campaign, session, onBack, onChanged, onError, onFlash })
                 </div>
             )}
         </div>
+
+        {monsterPopup && (
+            <MonsterStatModal monsterId={monsterPopup} onClose={() => setMonsterPopup(null)} />
+        )}
+        </>
     );
 }
 
@@ -746,6 +1133,234 @@ function SessionForm({ form, setForm, editingId, onSubmit, onCancel }) {
                 </div>
             </form>
         </div>
+    );
+}
+
+// ─── Selector de monstruo con filtros y buscador ─────────────────────────────
+
+function MonsterPicker({ value, onChange, campaignMonsters }) {
+    const FILTERS = [["campaign", "Campaña"], ["mine", "Míos"], ["srd", "SRD"], ["all", "Todos"]];
+    const [filter, setFilter]           = useState("campaign");
+    const [search, setSearch]           = useState("");
+    const [apiMonsters, setApiMonsters] = useState([]);
+    const [loading, setLoading]         = useState(false);
+
+    useEffect(() => {
+        if (filter === "campaign") return;
+        setLoading(true);
+        const params = filter === "all" ? {} : { source: filter };
+        monstersApi.list(params)
+            .then(setApiMonsters)
+            .catch(() => {})
+            .finally(() => setLoading(false));
+    }, [filter]);
+
+    const allKnown = [...campaignMonsters, ...apiMonsters];
+    const source   = filter === "campaign" ? campaignMonsters : apiMonsters;
+    const filtered = search.trim()
+        ? source.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
+        : source;
+
+    const add    = (m) => { if (!value.includes(m._id)) onChange([...value, m._id]); };
+    const remove = (id) => onChange(value.filter(v => v !== id));
+
+    return (
+        <div style={{ marginBottom: "0.5rem" }}>
+            <label style={lbl}>Enemigos del encuentro</label>
+
+            {/* Tags de monstruos seleccionados */}
+            {value.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginBottom: "0.5rem" }}>
+                    {value.map(id => {
+                        const m = allKnown.find(x => x._id === id);
+                        return (
+                            <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.2rem 0.6rem", background: "rgba(139,0,0,0.12)", border: "1px solid rgba(139,0,0,0.25)", borderRadius: "4px", fontSize: "0.83rem" }}>
+                                ⚔️ {m?.name ?? "Monstruo"}
+                                <button style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1, color: "var(--blood)", fontSize: "1rem" }} onClick={() => remove(id)}>×</button>
+                            </span>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Filtros */}
+            <div style={{ display: "flex", gap: "0.3rem", marginBottom: "0.4rem", flexWrap: "wrap" }}>
+                {FILTERS.map(([f, label]) => (
+                    <button key={f} className="btn btn-small" style={{ opacity: filter === f ? 1 : 0.5, fontWeight: filter === f ? 700 : 400 }} onClick={() => setFilter(f)}>
+                        {label}
+                    </button>
+                ))}
+            </div>
+
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar y añadir enemigos…" style={{ width: "100%", marginBottom: "0.3rem" }} />
+
+            <ul style={{ listStyle: "none", padding: 0, marginTop: 0, border: "1px solid var(--parchment-shadow)", borderRadius: "4px", overflow: "hidden", maxHeight: "160px", overflowY: "auto" }}>
+                {loading ? (
+                    <li style={{ padding: "0.45rem 0.75rem", color: "var(--ink-faded)", fontSize: "0.85rem" }}>Cargando…</li>
+                ) : filtered.length === 0 ? (
+                    <li style={{ padding: "0.45rem 0.75rem", color: "var(--ink-faded)", fontSize: "0.85rem" }}>
+                        {filter === "campaign" ? "Sin monstruos en el pool de esta campaña." : "Sin resultados."}
+                    </li>
+                ) : filtered.map(m => {
+                    const selected = value.includes(m._id);
+                    return (
+                        <li
+                            key={m._id}
+                            onClick={() => selected ? remove(m._id) : add(m)}
+                            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.45rem 0.75rem", borderBottom: "1px solid var(--parchment-shadow)", cursor: "pointer", background: selected ? "rgba(139,0,0,0.07)" : undefined }}
+                        >
+                            <span style={{ fontSize: "0.88rem" }}>{selected ? "✓ " : ""}{m.name}</span>
+                            <span style={{ color: "var(--ink-faded)", fontSize: "0.78rem" }}>CR {m.challengeRating}</span>
+                        </li>
+                    );
+                })}
+            </ul>
+        </div>
+    );
+}
+
+// ─── Modal stat block de monstruo ────────────────────────────────────────────
+
+function MonsterStatModal({ monsterId, onClose }) {
+    const [monster, setMonster] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError]     = useState("");
+
+    useEffect(() => {
+        setLoading(true);
+        setError("");
+        monstersApi.get(monsterId)
+            .then(setMonster)
+            .catch(e => setError(e.message))
+            .finally(() => setLoading(false));
+    }, [monsterId]);
+
+    useEffect(() => {
+        const onKey = (e) => { if (e.key === "Escape") onClose(); };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [onClose]);
+
+    const abil = (m, key) => {
+        const v = m.abilityScores?.[key] ?? 10;
+        const mod = Math.floor((v - 10) / 2);
+        return `${v} (${mod >= 0 ? "+" : ""}${mod})`;
+    };
+
+    return (
+        <div className="modal-overlay modal-overlay--form" onClick={onClose}>
+            <div className="modal-content modal-content--form" style={{ maxWidth: "600px" }} onClick={e => e.stopPropagation()}>
+                <div style={{ padding: "1.5rem 2rem", borderBottom: "1px solid var(--parchment-shadow)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h2 style={{ margin: 0, fontSize: "1.2rem" }}>Stat Block</h2>
+                    <button className="btn btn-small" onClick={onClose}>✕ Cerrar</button>
+                </div>
+
+                <div style={{ padding: "1.5rem 2rem", overflowY: "auto" }}>
+                    {loading && <p style={{ color: "var(--ink-faded)" }}>Cargando…</p>}
+                    {error   && <p style={{ color: "var(--blood)" }}>{error}</p>}
+                    {monster && (
+                        <>
+                            {/* Cabecera */}
+                            <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "1rem" }}>
+                                {monster.image?.cloudinaryUrl && (
+                                    <img src={monster.image.cloudinaryUrl} alt={monster.name}
+                                        style={{ width: "72px", height: "72px", objectFit: "cover", borderRadius: "2px", border: "1px solid var(--ink-faded)", flexShrink: 0 }} />
+                                )}
+                                <div>
+                                    <h3 style={{ margin: "0 0 0.3rem" }}>{monster.name}</h3>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", fontSize: "0.85rem" }}>
+                                        <span className="badge-tag">{monster.size}</span>
+                                        {(() => {
+                                            const { color, bg } = monsterTypeColor(monster.type);
+                                            return (
+                                                <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
+                                                    {monster.type}{monster.subtype ? ` (${monster.subtype})` : ""}
+                                                </span>
+                                            );
+                                        })()}
+                                        <span className="badge-tag" style={{ background: "rgba(160,32,32,0.15)" }}>CR {monster.challengeRating}</span>
+                                        {monster.isPublic && <span className="badge-tag" style={{ background: "rgba(59,109,255,0.15)", color: "#3b6dff" }}>SRD</span>}
+                                    </div>
+                                    <p style={{ margin: "0.3rem 0 0", fontSize: "0.85rem", color: "var(--ink-faded)" }}>{monster.alignment}</p>
+                                </div>
+                            </div>
+
+                            {/* Defensas */}
+                            <div style={{ fontSize: "0.9rem", lineHeight: 1.7, marginBottom: "1rem", borderTop: "1px dashed var(--parchment-shadow)", paddingTop: "0.75rem" }}>
+                                <div><strong>Clase de armadura:</strong> {monster.armorClass}{monster.armorClassNote && ` (${monster.armorClassNote})`}</div>
+                                <div><strong>Puntos de golpe:</strong> {monster.hitPoints?.average}{monster.hitPoints?.roll && ` (${monster.hitPoints.roll})`}</div>
+                                <div><strong>Velocidad:</strong> {(monster.speed || []).join(", ") || "—"}</div>
+                            </div>
+
+                            {/* Atributos */}
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: "0.4rem", margin: "0.75rem 0 1rem", fontSize: "0.85rem", textAlign: "center", borderTop: "1px dashed var(--parchment-shadow)", paddingTop: "0.75rem" }}>
+                                {["strength","dexterity","constitution","intelligence","wisdom","charisma"].map(k => (
+                                    <div key={k}>
+                                        <div style={{ fontFamily: "Cinzel,serif", fontSize: "0.68rem", color: "var(--ink-faded)", textTransform: "uppercase" }}>{k.slice(0,3)}</div>
+                                        <strong>{abil(monster, k)}</strong>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Sentidos y resistencias */}
+                            <div style={{ fontSize: "0.85rem", lineHeight: 1.7, marginBottom: "0.75rem" }}>
+                                {monster.senses?.length > 0     && <div><strong>Sentidos:</strong> {monster.senses.join(", ")}, Percepción pasiva {monster.passivePerception}</div>}
+                                {monster.languages?.length > 0  && <div><strong>Idiomas:</strong> {monster.languages.join(", ")}</div>}
+                                {monster.damageResistances?.length > 0  && <div><strong>Resistencias:</strong> {monster.damageResistances.join(", ")}</div>}
+                                {monster.damageImmunities?.length > 0   && <div><strong>Inmunidades:</strong> {monster.damageImmunities.join(", ")}</div>}
+                                {monster.conditionImmunities?.length > 0 && <div><strong>Inmunidad a condiciones:</strong> {monster.conditionImmunities.join(", ")}</div>}
+                            </div>
+
+                            {/* Acciones */}
+                            {monster.actions?.length > 0 && <MonsterActionsGroup actions={monster.actions} />}
+
+                            {monster.spellcastingNote && (
+                                <div style={{ marginTop: "1rem", padding: "0.6rem", background: "rgba(184,134,11,0.08)", borderLeft: "3px solid var(--gold)", borderRadius: "2px", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>
+                                    <strong>Lanzamiento de conjuros:</strong> {monster.spellcastingNote}
+                                </div>
+                            )}
+                            {monster.description && (
+                                <p style={{ marginTop: "1rem", fontStyle: "italic", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>{monster.description}</p>
+                            )}
+                            {monster.dmNotes && (
+                                <div style={{ marginTop: "1rem", padding: "0.6rem", background: "rgba(139,0,0,0.08)", borderLeft: "3px solid var(--blood)", borderRadius: "2px", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>
+                                    <strong>📝 Notas del DM:</strong><br />{monster.dmNotes}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function MonsterActionsGroup({ actions }) {
+    const grouped = {};
+    for (const a of actions) {
+        const k = a.kind || "action";
+        if (!grouped[k]) grouped[k] = [];
+        grouped[k].push(a);
+    }
+    const order  = ["trait","action","bonus","reaction","legendary","lair"];
+    const titles = { trait:"Rasgos", action:"Acciones", bonus:"Acciones adicionales", reaction:"Reacciones", legendary:"Acciones legendarias", lair:"Acciones de guarida" };
+    return (
+        <>
+            {order.filter(k => grouped[k]).map(k => (
+                <div key={k} style={{ marginTop: "1rem" }}>
+                    <h4 style={{ borderBottom: "1px solid var(--gold)", paddingBottom: "0.2rem", marginBottom: "0.4rem" }}>{titles[k]}</h4>
+                    {grouped[k].map(a => (
+                        <div key={a._id} style={{ marginBottom: "0.6rem", fontSize: "0.9rem" }}>
+                            <strong>{a.name}.</strong>{" "}
+                            {(a.attackBonus !== undefined && a.attackBonus !== null && a.attackBonus !== "") && (
+                                <em>Ataque: {a.attackBonus >= 0 ? "+" : ""}{a.attackBonus} al golpe{a.reach && `, alcance ${a.reach}`}. Impacto: {a.damage}{a.damageType ? ` de daño ${a.damageType}` : ""}.</em>
+                            )}{" "}
+                            <span style={{ whiteSpace: "pre-wrap" }}>{a.description}</span>
+                        </div>
+                    ))}
+                </div>
+            ))}
+        </>
     );
 }
 

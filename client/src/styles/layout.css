@@ -4,15 +4,33 @@
    ========================================================================= */
 
 .container {
-    max-width: 1200px;
+    max-width: 1440px;
     margin: 0 auto;
-    padding: 1.5rem;
+    padding: 1.5rem 2rem;
 }
 
 /* Grid genérico, usado en muchas pantallas */
 .grid { display: grid; gap: 1.5rem; }
 .grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 .grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+/* Sidebar + detalle: campañas */
+.campaigns-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 1.25rem;
+    align-items: start;
+}
+.campaigns-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    /* sticky para que la lista no se desplace al hacer scroll del detalle */
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+}
 
 /* Cards (pergamino con bordes dorados) */
 .scroll-card {
@@ -48,7 +66,7 @@
     box-shadow: 0 4px 12px var(--shadow);
 }
 .app-header__inner {
-    max-width: 1200px;
+    max-width: 1440px;
     margin: 0 auto;
     display: flex;
     align-items: center;

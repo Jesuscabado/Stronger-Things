@@ -1,5 +1,8 @@
 import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { sessionsApi, charactersSearchApi } from "../api/sessions.js";
+import { mapsApi } from "../api/maps.js";
+import { TILE_BY_ID, TILE_DEFAULT } from "../utils/tileCatalog.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const STATUS_LABEL = {
@@ -318,6 +321,7 @@ function SessionForm({ form, setForm, editingId, saving, onSubmit, onCancel }) {
 }
 
 function SessionDetail({ session, onClose, onParticipantChange, onError }) {
+    const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [searching, setSearching] = useState(false);
@@ -496,6 +500,199 @@ function SessionDetail({ session, onClose, onParticipantChange, onError }) {
                     </p>
                 )}
             </div>
+
+            <MapSection
+                session={session}
+                onMapChange={onParticipantChange}
+                onError={onError}
+                navigate={navigate}
+            />
         </div>
+    );
+}
+
+// ─── Map section ──────────────────────────────────────────────────────────────
+
+function MapSection({ session, onMapChange, onError, navigate }) {
+    const [maps,       setMaps]       = useState(null);   // list for selector
+    const [loadingMaps, setLoadingMaps] = useState(false);
+    const [selectedId, setSelectedId] = useState("");
+    const [mapDetail,  setMapDetail]  = useState(null);   // full map for thumbnail
+    const [working,    setWorking]    = useState(false);
+
+    const assignedMap = session.map;                   // populated object or null
+    const assignedId  = assignedMap?._id ?? assignedMap;
+
+    // Load map detail for thumbnail, or load maps list for selector
+    useEffect(() => {
+        setMapDetail(null);
+        setMaps(null);
+        setSelectedId("");
+        if (assignedId) {
+            mapsApi.get(assignedId)
+                .then(m => setMapDetail(m))
+                .catch(() => {});                          // thumbnail is non-critical
+        } else {
+            setLoadingMaps(true);
+            mapsApi.list()
+                .then(list => setMaps(list))
+                .catch(err => onError(err.message))
+                .finally(() => setLoadingMaps(false));
+        }
+    }, [assignedId, session._id]);
+
+    const linkMap = async (mapId) => {
+        setWorking(true);
+        try {
+            await sessionsApi.update(session._id, { map: mapId });
+            await onMapChange();
+        } catch (err) {
+            onError(err.message);
+        } finally {
+            setWorking(false);
+        }
+    };
+
+    const unlinkMap = async () => {
+        if (!confirm("¿Desvincular el mapa de esta sesión?")) return;
+        setWorking(true);
+        try {
+            await sessionsApi.update(session._id, { map: null });
+            await onMapChange();
+        } catch (err) {
+            onError(err.message);
+        } finally {
+            setWorking(false);
+        }
+    };
+
+    return (
+        <div style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--parchment-shadow)" }}>
+            <h3 style={{ fontSize: "1rem", marginBottom: "0.75rem" }}>Mapa táctico</h3>
+
+            {assignedId ? (
+                /* ── Map assigned ── */
+                <div>
+                    {mapDetail && (
+                        <MapThumbnail
+                            map={mapDetail}
+                            onClick={() => navigate(`/maps/${assignedId}/edit`)}
+                        />
+                    )}
+                    <p style={{ margin: "0.3rem 0 0.6rem", fontWeight: 600, fontSize: "0.9rem" }}>
+                        {assignedMap?.name ?? "Mapa vinculado"}
+                        {assignedMap?.grid && (
+                            <span style={{ fontWeight: 400, color: "var(--ink-faded)", fontSize: "0.8rem", marginLeft: "0.5rem" }}>
+                                {assignedMap.grid.cols}×{assignedMap.grid.rows}
+                            </span>
+                        )}
+                    </p>
+                    <div style={{ display: "flex", gap: "0.4rem" }}>
+                        <button
+                            className="btn btn-small btn-primary"
+                            onClick={() => navigate(`/maps/${assignedId}/edit`)}
+                        >
+                            Abrir editor
+                        </button>
+                        <button
+                            className="btn btn-small"
+                            style={{ color: "var(--blood)" }}
+                            onClick={unlinkMap}
+                            disabled={working}
+                        >
+                            Desvincular
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                /* ── No map ── */
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                    {loadingMaps ? (
+                        <p style={{ fontSize: "0.85rem", color: "var(--ink-faded)", margin: 0 }}>
+                            Cargando mapas…
+                        </p>
+                    ) : maps && maps.length > 0 ? (
+                        <div style={{ display: "flex", gap: "0.4rem", alignItems: "flex-end" }}>
+                            <select
+                                value={selectedId}
+                                onChange={e => setSelectedId(e.target.value)}
+                                style={{ flex: 1 }}
+                            >
+                                <option value="">— Selecciona un mapa —</option>
+                                {maps.map(m => (
+                                    <option key={m._id} value={m._id}>
+                                        {m.name}{m.grid ? ` (${m.grid.cols}×${m.grid.rows})` : ""}
+                                    </option>
+                                ))}
+                            </select>
+                            <button
+                                className="btn btn-small btn-primary"
+                                disabled={!selectedId || working}
+                                onClick={() => linkMap(selectedId)}
+                            >
+                                Vincular
+                            </button>
+                        </div>
+                    ) : maps !== null ? (
+                        <p style={{ fontSize: "0.85rem", color: "var(--ink-faded)", margin: 0 }}>
+                            No tienes mapas creados aún.
+                        </p>
+                    ) : null}
+
+                    <button
+                        className="btn btn-small"
+                        onClick={() => navigate(`/maps/new?session=${session._id}`)}
+                        style={{ alignSelf: "flex-start" }}
+                    >
+                        + Crear mapa para esta sesión
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Map thumbnail (plain canvas, no Konva dependency) ───────────────────────
+
+const THUMB_CELL = 4; // px per cell in the thumbnail
+
+function MapThumbnail({ map, onClick }) {
+    const canvasRef = useRef(null);
+    const cols = map.grid?.cols ?? 20;
+    const rows = map.grid?.rows ?? 15;
+    const w    = cols * THUMB_CELL;
+    const h    = rows * THUMB_CELL;
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !Array.isArray(map.terrain)) return;
+        const ctx = canvas.getContext("2d");
+        map.terrain.forEach((row, r) => {
+            if (!Array.isArray(row)) return;
+            row.forEach((tileId, c) => {
+                const tile = TILE_BY_ID[tileId] || TILE_DEFAULT;
+                ctx.fillStyle = tile.color;
+                ctx.fillRect(c * THUMB_CELL, r * THUMB_CELL, THUMB_CELL, THUMB_CELL);
+            });
+        });
+    }, [map._id]);
+
+    return (
+        <canvas
+            ref={canvasRef}
+            width={w}
+            height={h}
+            title="Abrir en el editor"
+            onClick={onClick}
+            style={{
+                display: "block",
+                cursor: "pointer",
+                borderRadius: 3,
+                border: "1px solid var(--parchment-shadow)",
+                marginBottom: "0.5rem",
+                maxWidth: "100%",
+                imageRendering: "pixelated"
+            }}
+        />
     );
 }

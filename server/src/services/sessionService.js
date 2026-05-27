@@ -20,10 +20,9 @@ const conflict = (msg) => {
 };
 
 const populateParticipants = (query) =>
-    query.populate({
-        path: "participants.character",
-        select: "name charClass level avatar"
-    });
+    query
+        .populate({ path: "participants.character", select: "name charClass level avatar" })
+        .populate({ path: "map", select: "name description grid" });
 
 export const list = async (dmId) => {
     return populateParticipants(
@@ -49,11 +48,12 @@ export const update = async (id, data, dmId) => {
     if (!session.dm.equals(dmId)) throw forbidden();
 
     const { name, description, date, status, notes } = data;
-    if (name !== undefined) session.name = name;
+    if (name        !== undefined) session.name        = name;
     if (description !== undefined) session.description = description;
-    if (date !== undefined) session.date = date;
-    if (status !== undefined) session.status = status;
-    if (notes !== undefined) session.notes = notes;
+    if (date        !== undefined) session.date        = date;
+    if (status      !== undefined) session.status      = status;
+    if (notes       !== undefined) session.notes       = notes;
+    if ("map" in data) session.map = data.map || null;
 
     await session.save();
     return populateParticipants(Session.findById(id)).lean();

@@ -35,6 +35,19 @@ export const updateUserDM = async (id, isDM) => {
     return user;
 };
 
+export const updateUserFeature = async (id, feature, enabled) => {
+    const update = enabled
+        ? { $addToSet: { features: feature } }
+        : { $pull:     { features: feature } };
+    const user = await User.findByIdAndUpdate(id, update, { new: true });
+    if (!user) {
+        const err = new Error("Usuario no encontrado");
+        err.status = 404;
+        throw err;
+    }
+    return user;
+};
+
 export const deleteUser = async (id) => {
     const user = await User.findById(id);
     if (!user) {

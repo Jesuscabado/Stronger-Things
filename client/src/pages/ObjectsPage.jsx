@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { objectsApi } from "../api/objects.js";
+import PageIntro from "../components/layout/PageIntro.jsx";
 import { useNameCheck } from "../hooks/useNameCheck.js";
 import { translateCategory } from "../utils/categoryLabels.js";
+import { rarityColor } from "../utils/dndColors.js";
+import { useAuth } from "../context/AuthContext.jsx";
+
+const IconEdit = ({ size = 13 }) => (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M11.5 2.5a1.414 1.414 0 0 1 2 2L5 13H3v-2L11.5 2.5z" />
+    </svg>
+);
 
 const CATEGORIES = ["weapon", "armor", "shield", "potion", "scroll", "wondrous", "tool", "gear", "ammunition"];
 const RARITIES = ["common", "uncommon", "rare", "very rare", "legendary", "artifact"];
@@ -17,45 +26,100 @@ const RARITY_LABELS = {
 
 const translateRarity = (en) => RARITY_LABELS[en?.toLowerCase()] || en || "Común";
 
-const rarityColor = {
-    common: "#666",
-    uncommon: "#1eb7b7",
-    rare: "#3b6dff",
-    "very rare": "#a347c4",
-    legendary: "#e08000",
-    artifact: "#a02020"
-};
+const emptyForm = () => ({
+    name: "", description: "", category: "weapon", cost: 0,
+    damage: "", damageType: "", armorClass: "", weight: 0, rarity: "common"
+});
+
+// ─── Tarjeta de objeto (expandible) ─────────────────────────────────────────
+
+function ObjectCard({ o, isAdmin, expanded, onToggle, onEdit, onDelete }) {
+    const { color, bg } = rarityColor(o.stats?.rarity);
+    const canEdit = !o.isPublic || isAdmin;
+
+    return (
+        <div className="scroll-card" style={{ padding: 0, overflow: "hidden" }}>
+            {/* Cabecera clicable */}
+            <div
+                onClick={onToggle}
+                style={{ padding: "1rem 1.25rem", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem" }}
+            >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{ margin: "0 0 0.3rem", ...(expanded ? {} : { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }) }}>{o.name}</h3>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", alignItems: "center" }}>
+                        <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
+                            {translateRarity(o.stats?.rarity)}
+                        </span>
+                        <span className="badge-tag">{translateCategory(o.category)}</span>
+                        {o.isPublic && (
+                            <span className="badge-tag" style={{ background: "rgba(59,109,255,0.15)", color: "#3b6dff" }}>SRD</span>
+                        )}
+                    </div>
+                </div>
+                <span style={{ fontSize: "1.2rem", color: "var(--ink-faded)", flexShrink: 0 }}>
+                    {expanded ? "▾" : "▸"}
+                </span>
+            </div>
+
+            {/* Detalle expandido */}
+            {expanded && (
+                <div style={{ padding: "0 1.25rem 1rem", borderTop: "1px dashed var(--parchment-shadow)" }}>
+                    {o.description && (
+                        <p style={{ fontSize: "0.9rem", lineHeight: 1.6, margin: "0.85rem 0 0.6rem", whiteSpace: "pre-wrap" }}>{o.description}</p>
+                    )}
+                    <div style={{ fontSize: "0.85rem", color: "var(--ink-faded)", lineHeight: 1.8, marginTop: o.description ? 0 : "0.85rem" }}>
+                        {o.stats?.damage     && <div>⚔ <strong>Daño:</strong> {o.stats.damage}{o.stats.damageType ? ` ${o.stats.damageType}` : ""}</div>}
+                        {o.stats?.armorClass && <div>🛡 <strong>CA:</strong> {o.stats.armorClass}</div>}
+                        {(o.stats?.properties || []).length > 0 && <div>🔸 <strong>Propiedades:</strong> {o.stats.properties.join(", ")}</div>}
+                        {o.cost > 0          && <div>💰 <strong>Coste:</strong> {o.cost} po</div>}
+                        {o.stats?.weight > 0 && <div>⚖ <strong>Peso:</strong> {o.stats.weight} lb</div>}
+                    </div>
+
+                    {canEdit && (
+                        <div style={{ display: "flex", gap: "0.4rem", marginTop: "1rem", flexWrap: "wrap" }}>
+                            <button className="btn btn-small" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onEdit(); }}>
+                                <IconEdit /> Editar
+                            </button>
+                            <button className="btn btn-small btn-danger" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onDelete(); }}>
+                                × Eliminar
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Página principal ────────────────────────────────────────────────────────
 
 export default function ObjectsPage() {
-    const [objects, setObjects] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const { user } = useAuth();
+    const isAdmin = user?.role === "admin";
+    const [objects, setObjects]   = useState([]);
+    const [loading, setLoading]   = useState(true);
+    const [error, setError]       = useState("");
+    const [success, setSuccess]   = useState("");
     const [showForm, setShowForm] = useState(false);
-    const [filter, setFilter] = useState("all");
-    // Búsqueda por nombre. El catálogo se filtra en cliente, no se llama
-    // al servidor: el listado ya vive en memoria desde la carga inicial.
-    const [search, setSearch] = useState("");
-    const [form, setForm] = useState({
-        name: "", description: "", category: "weapon", cost: 0,
-        damage: "", damageType: "", armorClass: "", weight: 0, rarity: "common"
-    });
+    const [editingId, setEditingId] = useState(null);
+    const [expanded, setExpanded] = useState(null);
+    const [filter, setFilter]     = useState("all");
+    const [search, setSearch]     = useState("");
+    const [form, setForm]         = useState(emptyForm());
 
-    const { nameError, nameChecking } = useNameCheck(objectsApi.checkName, form.name);
+    const { nameError, nameChecking } = useNameCheck(objectsApi.checkName, form.name, editingId);
+
+    const flash = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(""), 2500); };
 
     useEffect(() => {
-        if (showForm) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "";
-        }
+        document.body.style.overflow = showForm ? "hidden" : "";
         return () => { document.body.style.overflow = ""; };
     }, [showForm]);
 
     const load = async () => {
         try {
             setLoading(true);
-            const data = await objectsApi.list();
-            setObjects(data);
+            setObjects(await objectsApi.list());
         } catch (err) {
             setError(err.message);
         } finally {
@@ -65,23 +129,60 @@ export default function ObjectsPage() {
 
     useEffect(() => { load(); }, []);
 
-    const handleCreate = async (e) => {
+    const openCreate = () => {
+        setForm(emptyForm());
+        setEditingId(null);
+        setShowForm(true);
+    };
+
+    const openEdit = (o) => {
+        setForm({
+            name:        o.name        || "",
+            description: o.description || "",
+            category:    o.category    || "weapon",
+            cost:        o.cost        ?? 0,
+            damage:      o.stats?.damage     || "",
+            damageType:  o.stats?.damageType || "",
+            armorClass:  o.stats?.armorClass || "",
+            weight:      o.stats?.weight     ?? 0,
+            rarity:      o.stats?.rarity     || "common",
+        });
+        setEditingId(o._id);
+        setShowForm(true);
+    };
+
+    const closeForm = () => { setShowForm(false); setEditingId(null); };
+
+    const buildPayload = () => {
+        const stats = { rarity: form.rarity, weight: Number(form.weight) || 0 };
+        if (form.damage)     stats.damage     = form.damage;
+        if (form.damageType) stats.damageType = form.damageType;
+        if (form.armorClass) stats.armorClass = Number(form.armorClass);
+        return { name: form.name, description: form.description, category: form.category, cost: Number(form.cost) || 0, stats };
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const stats = { rarity: form.rarity, weight: Number(form.weight) || 0 };
-            if (form.damage) stats.damage = form.damage;
-            if (form.damageType) stats.damageType = form.damageType;
-            if (form.armorClass) stats.armorClass = Number(form.armorClass);
+            if (editingId) {
+                await objectsApi.update(editingId, buildPayload());
+                flash("Objeto actualizado");
+            } else {
+                await objectsApi.create(buildPayload());
+                flash("Objeto creado");
+            }
+            closeForm();
+            load();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
 
-            await objectsApi.create({
-                name: form.name,
-                description: form.description,
-                category: form.category,
-                cost: Number(form.cost) || 0,
-                stats
-            });
-            setForm({ name: "", description: "", category: "weapon", cost: 0, damage: "", damageType: "", armorClass: "", weight: 0, rarity: "common" });
-            setShowForm(false);
+    const handleDelete = async (o) => {
+        if (!confirm(`¿Eliminar "${o.name}"? Esta acción no se puede deshacer.`)) return;
+        try {
+            await objectsApi.remove(o._id);
+            flash("Objeto eliminado");
             load();
         } catch (err) {
             setError(err.message);
@@ -100,21 +201,21 @@ export default function ObjectsPage() {
 
     return (
         <div className="container">
+            <PageIntro pageKey="objects" text="El catálogo de objetos de D&D 5e: armas, armaduras, pociones, objetos maravillosos y más. Los objetos del SRD son de solo lectura; los administradores pueden editarlos. Cualquier usuario puede crear objetos propios." />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
                 <h1>Catálogo de objetos</h1>
-                <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-                    {showForm ? "Cancelar" : "+ Nuevo objeto"}
-                </button>
+                <button className="btn btn-primary" onClick={openCreate}>+ Nuevo objeto</button>
             </div>
 
-            {error && <div className="alert">{error}</div>}
+            {error   && <div className="alert" style={{ cursor: "pointer" }} onClick={() => setError("")}>{error}</div>}
+            {success && <div className="alert-success" style={{ marginBottom: "1rem", padding: "0.75rem 1rem", borderRadius: "4px" }}>{success}</div>}
 
             {showForm && (
-                <div className="modal-overlay modal-overlay--form" onClick={() => setShowForm(false)}>
+                <div className="modal-overlay modal-overlay--form" onClick={closeForm}>
                 <div className="modal-content--form" onClick={(e) => e.stopPropagation()}>
                 <div className="scroll-card">
-                    <h2>Forjar objeto</h2>
-                    <form id="object-form" onSubmit={handleCreate}>
+                    <h2>{editingId ? "Editar objeto" : "Forjar objeto"}</h2>
+                    <form id="object-form" onSubmit={handleSubmit}>
                         <div className="grid grid-2">
                             <div className="field">
                                 <label>Nombre</label>
@@ -171,8 +272,10 @@ export default function ObjectsPage() {
                     </form>
                 </div>
                 <div className="modal-form-footer">
-                    <button type="submit" form="object-form" className="btn btn-primary" disabled={!!nameError}>Crear</button>
-                    <button type="button" className="btn" onClick={() => setShowForm(false)}>Cancelar</button>
+                    <button type="submit" form="object-form" className="btn btn-primary" disabled={!!nameError}>
+                        {editingId ? "Guardar cambios" : "Crear"}
+                    </button>
+                    <button type="button" className="btn" onClick={closeForm}>Cancelar</button>
                 </div>
                 </div>
                 </div>
@@ -238,24 +341,15 @@ export default function ObjectsPage() {
                     </p>
                     <div className="grid grid-3">
                         {filtered.map(o => (
-                            <div key={o._id} className="scroll-card">
-                                <h3 style={{ marginBottom: "0.3rem" }}>{o.name}</h3>
-                                <div style={{ marginBottom: "0.5rem" }}>
-                                    <span className="class-badge" style={{ color: rarityColor[o.stats?.rarity] }}>
-                                        {translateRarity(o.stats?.rarity)}
-                                    </span>{" "}
-                                    <span style={{ color: "var(--ink-faded)", fontSize: "0.85rem" }}>
-                                        {translateCategory(o.category)}
-                                    </span>
-                                </div>
-                                {o.description && <p style={{ fontSize: "0.9rem", marginBottom: "0.6rem" }}>{o.description}</p>}
-                                <div style={{ fontSize: "0.85rem", color: "var(--ink-faded)" }}>
-                                    {o.stats?.damage && <div>⚔ {o.stats.damage} {o.stats.damageType}</div>}
-                                    {o.stats?.armorClass && <div>🛡 CA {o.stats.armorClass}</div>}
-                                    {o.cost > 0 && <div>💰 {o.cost} oro</div>}
-                                    {o.stats?.weight > 0 && <div>⚖ {o.stats.weight} lb</div>}
-                                </div>
-                            </div>
+                            <ObjectCard
+                                key={o._id}
+                                o={o}
+                                isAdmin={isAdmin}
+                                expanded={expanded === o._id}
+                                onToggle={() => setExpanded(expanded === o._id ? null : o._id)}
+                                onEdit={() => openEdit(o)}
+                                onDelete={() => handleDelete(o)}
+                            />
                         ))}
                     </div>
                 </>

@@ -44,6 +44,12 @@ export const upsertSpellByName = async (data) => {
     );
 };
 
-export const deleteSpell = (id) => Spell.findByIdAndDelete(id);
+export const deleteSpell = async (id, isAdmin = false) => {
+    const spell = await Spell.findById(id);
+    if (!spell) throw Object.assign(new Error("Hechizo no encontrado"), { status: 404 });
+    if (spell.isPublic && !isAdmin) throw Object.assign(new Error("Solo los administradores pueden eliminar hechizos del catálogo SRD"), { status: 403 });
+    await spell.deleteOne();
+    return { deleted: true };
+};
 
 export const countSpells = () => Spell.countDocuments();

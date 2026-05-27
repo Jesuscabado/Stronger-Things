@@ -40,7 +40,8 @@ const baseObjectSchema = new mongoose.Schema(
             default: "gear"
         },
         cost: { type: Number, default: 0 },                // precio base en piezas de oro
-        stats: { type: statsSchema, default: () => ({}) }
+        stats: { type: statsSchema, default: () => ({}) },
+        isPublic: { type: Boolean, default: false }        // true = SRD, no editable por el usuario
     },
     { timestamps: true }
 );

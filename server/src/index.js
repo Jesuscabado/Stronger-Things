@@ -12,6 +12,8 @@ import adminRoutes from "./routes/adminRoutes.js";
 import spellRoutes from "./routes/spellRoutes.js";
 import monsterRoutes from "./routes/monsterRoutes.js";
 import campaignRoutes from "./routes/campaignRoutes.js";
+import sessionRoutes from "./routes/sessionRoutes.js";
+import mapRoutes from "./routes/mapRoutes.js";
 import { errorHandler, notFoundHandler, requestLogger } from "./middlewares/errorHandler.js";
 import { logger } from "./utils/logger.js";
 
@@ -38,7 +40,9 @@ app.use("/api/characters", characterRoutes);
 app.use("/api/spells", spellRoutes);
 app.use("/api/monsters", monsterRoutes);
 app.use("/api/campaigns", campaignRoutes);
-app.use("/api/admin", adminRoutes);
+app.use("/api/sessions",  sessionRoutes);
+app.use("/api/maps",      mapRoutes);
+app.use("/api/admin",     adminRoutes);
    // Middleware global de errores
 
 app.use(notFoundHandler);

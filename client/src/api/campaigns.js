@@ -23,6 +23,15 @@ export const campaignsApi = {
     addLogEntry:    (id, sessionId, data)           => api.post(`${base}/${id}/sessions/${sessionId}/log`, data),
     updateLogEntry: (id, sessionId, entryId, data)  => api.put(`${base}/${id}/sessions/${sessionId}/log/${entryId}`, data),
     removeLogEntry: (id, sessionId, entryId)        => api.del(`${base}/${id}/sessions/${sessionId}/log/${entryId}`),
+
+    // Notas DM (cards)
+    addNoteCard:    (id, data)           => api.post(`${base}/${id}/notecards`, data),
+    updateNoteCard: (id, noteId, data)   => api.put(`${base}/${id}/notecards/${noteId}`, data),
+    removeNoteCard: (id, noteId)         => api.del(`${base}/${id}/notecards/${noteId}`),
+
+    // Pool de monstruos
+    addMonster:    (id, monsterId) => api.post(`${base}/${id}/monsters`, { monsterId }),
+    removeMonster: (id, monsterId) => api.del(`${base}/${id}/monsters/${monsterId}`),
 };
 
 export const charactersSearchApi = {

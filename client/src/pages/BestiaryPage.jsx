@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { monstersApi } from "../api/monsters.js";
+import PageIntro from "../components/layout/PageIntro.jsx";
+import { campaignsApi } from "../api/campaigns.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNameCheck } from "../hooks/useNameCheck.js";
+import { monsterTypeColor } from "../utils/dndColors.js";
 
 const SIZES = ["Diminuto", "Pequeño", "Mediano", "Grande", "Enorme", "Gargantuesco"];
 const TYPES = [
@@ -91,6 +94,7 @@ function Bestiary() {
     const { user } = useAuth();
 
     const [monsters, setMonsters] = useState([]);
+    const [campaigns, setCampaigns] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
@@ -136,6 +140,10 @@ function Bestiary() {
         const handle = setTimeout(load, 250);
         return () => clearTimeout(handle);
     }, [search, filterType, filterSize, filterCR, filterSource]);
+
+    useEffect(() => {
+        campaignsApi.list().then(setCampaigns).catch(() => {});
+    }, []);
 
     const openCreate = () => {
         setForm(emptyMonster);
@@ -226,6 +234,15 @@ function Bestiary() {
         }
     };
 
+    const handleAddToCampaign = async (monsterId, campaignId) => {
+        try {
+            await campaignsApi.addMonster(campaignId, monsterId);
+            flash("Monstruo añadido al pool de la campaña");
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     /* ─── Helpers para los arrays "lista de strings" (speed, idiomas, etc.) ─── */
     const updateStringList = (field, idx, value) => {
         setForm(prev => {
@@ -261,6 +278,7 @@ function Bestiary() {
 
     return (
         <div className="container">
+            <PageIntro pageKey="bestiary" text="Tu colección de monstruos como Director de Juego. Consulta las criaturas del SRD, crea las tuyas propias y añádelas al pool de tus campañas para usarlas en sesiones." />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
                 <div>
                     <h1> Bestiario</h1>
@@ -350,11 +368,14 @@ function Bestiary() {
                         <MonsterCard
                             key={m._id}
                             monster={m}
+                            campaigns={campaigns}
+                            isAdmin={user?.role === "admin"}
                             expanded={expanded === m._id}
                             onToggle={() => setExpanded(expanded === m._id ? null : m._id)}
                             onEdit={() => openEdit(m)}
                             onDelete={() => handleDelete(m)}
                             onClone={() => handleClone(m)}
+                            onAddToCampaign={(campaignId) => handleAddToCampaign(m._id, campaignId)}
                         />
                     ))}
                 </div>
@@ -366,7 +387,9 @@ function Bestiary() {
 /* ─────────────────────────────────────────────────────────────────────
    Tarjeta de monstruo (modo lectura, expandible).
    ───────────────────────────────────────────────────────────────────── */
-function MonsterCard({ monster, expanded, onToggle, onEdit, onDelete, onClone }) {
+function MonsterCard({ monster, campaigns, isAdmin, expanded, onToggle, onEdit, onDelete, onClone, onAddToCampaign }) {
+    const [selectedCampaign, setSelectedCampaign] = useState("");
+
     const abil = (key) => {
         const v = monster.abilityScores?.[key] ?? 10;
         const mod = Math.floor((v - 10) / 2);
@@ -397,15 +420,22 @@ function MonsterCard({ monster, expanded, onToggle, onEdit, onDelete, onClone })
                     <h3 style={{ margin: 0, marginBottom: "0.3rem" }}>{monster.name}</h3>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center", fontSize: "0.85rem", color: "var(--ink-faded)" }}>
                         <span className="badge-tag">{monster.size}</span>
-                        <span className="badge-tag">{monster.type}{monster.subtype ? ` (${monster.subtype})` : ""}</span>
+                        {(() => {
+                            const { color, bg } = monsterTypeColor(monster.type);
+                            return (
+                                <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
+                                    {monster.type}{monster.subtype ? ` (${monster.subtype})` : ""}
+                                </span>
+                            );
+                        })()}
                         <span className="badge-tag" style={{ background: "rgba(160, 32, 32, 0.15)" }}>CR {monster.challengeRating}</span>
                         <span>·</span>
                         <span>{monster.alignment}</span>
                         {monster.isPublic && (
-    <span className="badge-tag" style={{ background: "rgba(59, 109, 255, 0.15)", color: "#3b6dff" }}>
-        SRD
-    </span>
-)}
+                            <span className="badge-tag" style={{ background: "rgba(59, 109, 255, 0.15)", color: "#3b6dff" }}>
+                                SRD
+                            </span>
+                        )}
                     </div>
                 </div>
                 <span style={{ fontSize: "1.3rem", color: "var(--ink-faded)" }}>
@@ -478,8 +508,8 @@ function MonsterCard({ monster, expanded, onToggle, onEdit, onDelete, onClone })
                     )}
 
                     {/* Acciones */}
-                    <div style={{ display: "flex", gap: "0.4rem", marginTop: "1rem" }}>
-                        {monster.isPublic ? (
+                    <div style={{ display: "flex", gap: "0.4rem", marginTop: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+                        {monster.isPublic && !isAdmin ? (
                             <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); onClone(); }}>
                                 📋 Clonar para editar
                             </button>
@@ -488,6 +518,24 @@ function MonsterCard({ monster, expanded, onToggle, onEdit, onDelete, onClone })
                                 <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); onEdit(); }}>Editar</button>
                                 <button className="btn btn-small btn-danger" onClick={(e) => { e.stopPropagation(); onDelete(); }}>Eliminar</button>
                             </>
+                        )}
+                        {campaigns.length > 0 && (
+                            <div style={{ display: "flex", gap: "0.3rem", alignItems: "center", marginLeft: "auto" }} onClick={e => e.stopPropagation()}>
+                                <select
+                                    value={selectedCampaign}
+                                    onChange={e => setSelectedCampaign(e.target.value)}
+                                >
+                                    <option value="">Añadir a campaña…</option>
+                                    {campaigns.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                                </select>
+                                <button
+                                    className="btn btn-small btn-gold"
+                                    disabled={!selectedCampaign}
+                                    onClick={() => { onAddToCampaign(selectedCampaign); setSelectedCampaign(""); }}
+                                >
+                                    ＋
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>

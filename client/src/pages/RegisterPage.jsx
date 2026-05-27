@@ -19,6 +19,7 @@ export default function RegisterPage() {
         setLoading(true);
         try {
             await register(form.username, form.email, form.password);
+            localStorage.setItem("st_welcome_pending", "1");
             navigate("/characters");
         } catch (err) {
             setError(err.message);

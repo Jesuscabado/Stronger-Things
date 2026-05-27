@@ -28,7 +28,8 @@ const sessionSchema = new mongoose.Schema(
             default: "planning"
         },
         participants: [participantSchema],
-        notes: { type: String, default: "" }
+        notes: { type: String, default: "" },
+        map: { type: mongoose.Schema.Types.ObjectId, ref: "Map", default: null }
     },
     { timestamps: true }
 );
