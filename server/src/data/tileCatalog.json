@@ -1,0 +1,17 @@
+[
+  { "id": "floor-stone", "name": "Suelo de piedra",   "category": "terrain" },
+  { "id": "floor-wood",  "name": "Suelo de madera",   "category": "terrain" },
+  { "id": "floor-grass", "name": "Hierba",             "category": "terrain" },
+  { "id": "floor-dirt",  "name": "Tierra",             "category": "terrain" },
+  { "id": "water",       "name": "Agua",               "category": "terrain" },
+  { "id": "lava",        "name": "Lava",               "category": "terrain" },
+  { "id": "wall-stone",  "name": "Muro de piedra",     "category": "wall"    },
+  { "id": "wall-brick",  "name": "Muro de ladrillo",   "category": "wall"    },
+  { "id": "door",        "name": "Puerta",             "category": "furniture" },
+  { "id": "stairs-up",   "name": "Escaleras arriba",   "category": "furniture" },
+  { "id": "stairs-down", "name": "Escaleras abajo",    "category": "furniture" },
+  { "id": "chest",       "name": "Cofre",              "category": "furniture" },
+  { "id": "table",       "name": "Mesa",               "category": "furniture" },
+  { "id": "bed",         "name": "Cama",               "category": "furniture" },
+  { "id": "altar",       "name": "Altar",              "category": "furniture" }
+]

@@ -3,7 +3,7 @@
  * al español usando Anthropic Claude. Mantiene caché persistente en disco
  * para evitar pagar por traducciones repetidas.
  */
-import Anthropic from "@anthropic-ai/sdk";
+import { ensureClient, askClaude, cleanJSON } from "./anthropicClient.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,19 +11,8 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CACHE_FILE = path.resolve(__dirname, "..", "data", "translations.json");
 
-let client = null;
 let cache = null;
 let saving = false;
-
-const ensureClient = () => {
-    if (!client) {
-        if (!process.env.ANTHROPIC_API_KEY) {
-            throw new Error("ANTHROPIC_API_KEY no está definida en .env");
-        }
-        client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    }
-    return client;
-};
 
 const loadCache = async () => {
     if (cache !== null) return cache;
@@ -51,21 +40,6 @@ const persistCache = async () => {
     } finally {
         saving = false;
     }
-};
-
-const askClaude = async (prompt) => {
-    const res = await ensureClient().messages.create({
-        model: "claude-haiku-4-5",
-        max_tokens: 1024,
-        messages: [{ role: "user", content: prompt }]
-    });
-    const text = res.content[0]?.type === "text" ? res.content[0].text : "";
-    return text.trim();
-};
-
-const cleanJSON = (text) => {
-    // Algunas respuestas vienen entre ```json ... ```
-    return text.replace(/```json\s*|```/g, "").trim();
 };
 
 /* ─────────────── ITEMS (existente) ─────────────── */
