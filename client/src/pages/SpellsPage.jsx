@@ -527,7 +527,7 @@ function SpellCard({ spell, expanded, onToggle, onDelete, showLevelBadge }) {
 
             {expanded && (
                 <div style={{ padding: "0 1.5rem 1rem", borderTop: "1px dashed var(--parchment-shadow)" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.8rem", margin: "1rem 0", fontSize: "0.9rem" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "0.8rem", margin: "1rem 0", fontSize: "0.9rem" }}>
                         <div>
                             <div style={{ fontSize: "0.7rem", color: "var(--ink-faded)", textTransform: "uppercase", fontFamily: "Cinzel" }}>Lanzamiento</div>
                             <div><strong>{spell.castingTime}</strong></div>

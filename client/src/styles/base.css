@@ -3,11 +3,27 @@
    procedural y enlaces.
    ========================================================================= */
 
+html {
+    overflow-x: hidden;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
+
+/* Evita que palabras largas (emails, nombres, URLs) desborden su contenedor */
+p, li, td, th, label, h1, h2, h3, h4 {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+/* Elementos que suelen causar overflow horizontal */
+img, video, iframe, svg, table, pre, code {
+    max-width: 100%;
+}
+/* canvas queda excluido: el editor de mapas (Konva) lo dimensiona por JS */
 
 body {
     font-family: "EB Garamond", "Times New Roman", serif;
@@ -27,7 +43,7 @@ body {
 #root {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    flex: 1;
 }
 
 #root > *:not(.app-header):not(.app-footer) {

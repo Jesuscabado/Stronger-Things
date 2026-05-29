@@ -259,7 +259,7 @@ function SessionForm({ form, setForm, editingId, saving, onSubmit, onCancel }) {
         <div className="scroll-card" style={{ marginBottom: "1.5rem", padding: "1.5rem" }}>
             <h2 style={{ marginTop: 0 }}>{editingId ? "Editar sesión" : "Nueva sesión"}</h2>
             <form onSubmit={onSubmit}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="form-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                     <div style={{ gridColumn: "1 / -1" }}>
                         <label style={{ display: "block", marginBottom: "0.3rem", fontWeight: 600 }}>Nombre *</label>
                         <input

@@ -5,10 +5,10 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 export default function AdminPage() {
     const { user: currentUser } = useAuth();
-    const [users, setUsers] = useState([]);
-    const [stats, setStats] = useState(null);
+    const [users, setUsers]   = useState([]);
+    const [stats, setStats]   = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const [error,   setError]   = useState("");
     const [success, setSuccess] = useState("");
 
     const load = async () => {
@@ -34,55 +34,33 @@ export default function AdminPage() {
         setTimeout(() => setSuccess(""), 2500);
     };
 
-    const handleToggleRole = async (user) => {
-        const newRole = user.role === "admin" ? "user" : "admin";
-        if (!confirm(`¿Cambiar a ${user.username} de "${user.role}" a "${newRole}"?`)) return;
-        try {
-            await adminApi.updateRole(user._id, newRole);
-            flash("Rol actualizado");
-            load();
-        } catch (err) {
-            setError(err.message);
-        }
+    const handleToggleRole = async (u) => {
+        const newRole = u.role === "admin" ? "user" : "admin";
+        if (!confirm(`¿Cambiar a ${u.username} de "${u.role}" a "${newRole}"?`)) return;
+        try { await adminApi.updateRole(u._id, newRole); flash("Rol actualizado"); load(); }
+        catch (err) { setError(err.message); }
     };
 
-    const handleToggleDM = async (user) => {
-        const next = !user.isDM;
-        const action = next ? "asignar rol DM" : "quitar rol DM";
-        if (!confirm(`¿${action} a ${user.username}?`)) return;
-        try {
-            await adminApi.updateDM(user._id, next);
-            flash(`Rol DM ${next ? "asignado" : "retirado"}`);
-            load();
-        } catch (err) {
-            setError(err.message);
-        }
+    const handleToggleDM = async (u) => {
+        const next = !u.isDM;
+        if (!confirm(`¿${next ? "Asignar" : "Quitar"} rol DM a ${u.username}?`)) return;
+        try { await adminApi.updateDM(u._id, next); flash(`Rol DM ${next ? "asignado" : "retirado"}`); load(); }
+        catch (err) { setError(err.message); }
     };
 
-    const handleToggleFeature = async (user, feature) => {
-        const hasFeat = (user.features ?? []).includes(feature);
+    const handleToggleFeature = async (u, feature) => {
+        const hasFeat = (u.features ?? []).includes(feature);
         const next    = !hasFeat;
         const labels  = { maps: "acceso a Mapas" };
-        const action  = next ? `dar ${labels[feature]}` : `quitar ${labels[feature]}`;
-        if (!confirm(`¿${action} a ${user.username}?`)) return;
-        try {
-            await adminApi.updateFeature(user._id, feature, next);
-            flash(`${labels[feature]} ${next ? "concedido" : "retirado"}`);
-            load();
-        } catch (err) {
-            setError(err.message);
-        }
+        if (!confirm(`¿${next ? "Dar" : "Quitar"} ${labels[feature]} a ${u.username}?`)) return;
+        try { await adminApi.updateFeature(u._id, feature, next); flash(`${labels[feature]} ${next ? "concedido" : "retirado"}`); load(); }
+        catch (err) { setError(err.message); }
     };
 
-    const handleDelete = async (user) => {
-        if (!confirm(`¿Eliminar a ${user.username}? Se borrarán también todos sus personajes. Esta acción no se puede deshacer.`)) return;
-        try {
-            await adminApi.deleteUser(user._id);
-            flash("Usuario eliminado");
-            load();
-        } catch (err) {
-            setError(err.message);
-        }
+    const handleDelete = async (u) => {
+        if (!confirm(`¿Eliminar a ${u.username}? Se borrarán también todos sus personajes. Esta acción no se puede deshacer.`)) return;
+        try { await adminApi.deleteUser(u._id); flash("Usuario eliminado"); load(); }
+        catch (err) { setError(err.message); }
     };
 
     if (loading) return <div className="loading">Consultando los registros del Maestro...</div>;
@@ -90,130 +68,120 @@ export default function AdminPage() {
     return (
         <div className="container">
             <PageIntro pageKey="admin" text="Panel de administración. Gestiona usuarios y sus roles (DM, admin), supervisa las estadísticas globales y administra el contenido del SRD como objetos, hechizos y monstruos." />
-            <h1> Panel de administración</h1>
+            <h1>Panel de administración</h1>
 
-            {error && <div className="alert">{error}</div>}
+            {error   && <div className="alert">{error}</div>}
             {success && <div className="alert alert-success">{success}</div>}
 
+            {/* ── Estadísticas ── */}
             {stats && (
-                <div className="scroll-card">
+                <div className="scroll-card" style={{ marginBottom: "1.5rem" }}>
                     <h2>Estadísticas</h2>
                     <div className="grid grid-3">
-                        <div style={{ textAlign: "center", padding: "1rem" }}>
-                            <div style={{ fontSize: "2.5rem", fontFamily: "Cinzel", color: "var(--gold)" }}>{stats.users}</div>
-                            <div style={{ color: "var(--ink-faded)", fontFamily: "Cinzel", textTransform: "uppercase", fontSize: "0.85rem" }}>Aventureros totales</div>
-                        </div>
-                        <div style={{ textAlign: "center", padding: "1rem" }}>
-                            <div style={{ fontSize: "2.5rem", fontFamily: "Cinzel", color: "var(--blood)" }}>{stats.admins}</div>
-                            <div style={{ color: "var(--ink-faded)", fontFamily: "Cinzel", textTransform: "uppercase", fontSize: "0.85rem" }}>Administradores</div>
-                        </div>
-                        <div style={{ textAlign: "center", padding: "1rem" }}>
-                            <div style={{ fontSize: "2.5rem", fontFamily: "Cinzel", color: "var(--gold)" }}>{stats.dms}</div>
-                            <div style={{ color: "var(--ink-faded)", fontFamily: "Cinzel", textTransform: "uppercase", fontSize: "0.85rem" }}>Directores de juego</div>
-                        </div>
-                        <div style={{ textAlign: "center", padding: "1rem" }}>
-                            <div style={{ fontSize: "2.5rem", fontFamily: "Cinzel", color: "var(--ink)" }}>{stats.characters}</div>
-                            <div style={{ color: "var(--ink-faded)", fontFamily: "Cinzel", textTransform: "uppercase", fontSize: "0.85rem" }}>Personajes creados</div>
-                        </div>
+                        <StatBox value={stats.users}      label="Aventureros totales" color="var(--gold)" />
+                        <StatBox value={stats.admins}     label="Administradores"     color="var(--blood)" />
+                        <StatBox value={stats.dms}        label="Directores de juego" color="var(--gold)" />
+                        <StatBox value={stats.characters} label="Personajes creados"  color="var(--ink)" />
                     </div>
                 </div>
             )}
 
+            {/* ── Lista de usuarios ── */}
             <div className="scroll-card">
                 <h2>Usuarios</h2>
                 {users.length === 0 ? (
                     <div className="empty">No hay usuarios.</div>
                 ) : (
-                    <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                            <thead>
-                                <tr style={{ borderBottom: "2px solid var(--ink)", textAlign: "left" }}>
-                                    <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Aventurero</th>
-                                    <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Email</th>
-                                    <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Rol</th>
-                                    <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>DM</th>
-                                    <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Mapas</th>
-                                    <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Creado</th>
-                                    <th style={{ padding: "0.6rem", fontFamily: "Cinzel", fontSize: "0.85rem", textTransform: "uppercase" }}>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {users.map(u => {
-                                    const isMe = u._id === currentUser._id;
-                                    return (
-                                        <tr key={u._id} style={{ borderBottom: "1px dashed var(--parchment-shadow)" }}>
-                                            <td style={{ padding: "0.6rem", fontFamily: "Cinzel" }}>
-                                                {u.username}
-                                                {isMe && <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem", color: "var(--gold)" }}>(tú)</span>}
-                                            </td>
-                                            <td style={{ padding: "0.6rem", color: "var(--ink-faded)" }}>{u.email}</td>
-                                            <td style={{ padding: "0.6rem" }}>
-                                                <span className="class-badge" style={{
-                                                    color: u.role === "admin" ? "var(--blood)" : "var(--ink-faded)"
-                                                }}>
-                                                    {u.role}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: "0.6rem" }}>
-                                                {u.isDM && (
-                                                    <span className="class-badge" style={{ color: "var(--gold)" }}>DM</span>
-                                                )}
-                                            </td>
-                                            <td style={{ padding: "0.6rem" }}>
-                                                {u.role === "admin" ? (
-                                                    <span style={{ fontSize: "0.75rem", color: "var(--ink-faded)" }}>siempre</span>
-                                                ) : (
-                                                    <button
-                                                        className="btn btn-small"
-                                                        onClick={() => handleToggleFeature(u, "maps")}
-                                                        disabled={isMe}
-                                                        style={{
-                                                            color: (u.features ?? []).includes("maps") ? "var(--blood)" : "var(--gold)",
-                                                            minWidth: 80
-                                                        }}
-                                                    >
-                                                        {(u.features ?? []).includes("maps") ? "✕ Revocar" : "✓ Conceder"}
-                                                    </button>
-                                                )}
-                                            </td>
-                                            <td style={{ padding: "0.6rem", color: "var(--ink-faded)", fontSize: "0.85rem" }}>
-                                                {new Date(u.createdAt).toLocaleDateString()}
-                                            </td>
-                                            <td style={{ padding: "0.6rem" }}>
-                                                <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
-                                                    <button
-                                                        className="btn btn-small"
-                                                        onClick={() => handleToggleRole(u)}
-                                                        disabled={isMe}
-                                                        title={isMe ? "No puedes cambiar tu propio rol" : ""}
-                                                    >
-                                                        {u.role === "admin" ? "↓ Degradar" : "↑ Promover"}
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-small"
-                                                        onClick={() => handleToggleDM(u)}
-                                                        disabled={isMe}
-                                                        title={isMe ? "No puedes cambiar tu propio rol DM" : ""}
-                                                        style={{ color: u.isDM ? "var(--blood)" : "var(--gold)" }}
-                                                    >
-                                                        {u.isDM ? "✕ Quitar DM" : "🎲 Asignar DM"}
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-small btn-danger"
-                                                        onClick={() => handleDelete(u)}
-                                                        disabled={isMe}
-                                                    >
-                                                        Eliminar
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                    <div className="admin-users">
+                        {users.map(u => (
+                            <UserCard
+                                key={u._id}
+                                user={u}
+                                isMe={u._id === currentUser._id}
+                                onToggleRole={handleToggleRole}
+                                onToggleDM={handleToggleDM}
+                                onToggleFeature={handleToggleFeature}
+                                onDelete={handleDelete}
+                            />
+                        ))}
                     </div>
                 )}
+            </div>
+        </div>
+    );
+}
+
+function StatBox({ value, label, color }) {
+    return (
+        <div style={{ textAlign: "center", padding: "1rem" }}>
+            <div style={{ fontSize: "2.5rem", fontFamily: "Cinzel", color }}>{value}</div>
+            <div style={{ color: "var(--ink-faded)", fontFamily: "Cinzel", textTransform: "uppercase", fontSize: "0.85rem" }}>{label}</div>
+        </div>
+    );
+}
+
+function UserCard({ user: u, isMe, onToggleRole, onToggleDM, onToggleFeature, onDelete }) {
+    const hasMaps = (u.features ?? []).includes("maps");
+    const isAdmin = u.role === "admin";
+
+    return (
+        <div className="admin-user-card">
+            {/* Info */}
+            <div className="admin-user-card__info">
+                <div className="admin-user-card__name">
+                    <span style={{ fontFamily: "Cinzel", fontWeight: 600 }}>{u.username}</span>
+                    {isMe && <span className="admin-badge admin-badge--gold">tú</span>}
+                    <span className={`admin-badge ${isAdmin ? "admin-badge--blood" : "admin-badge--faded"}`}>
+                        {u.role}
+                    </span>
+                    {u.isDM && <span className="admin-badge admin-badge--gold">DM</span>}
+                    {hasMaps && !isAdmin && <span className="admin-badge admin-badge--purple">Mapas</span>}
+                </div>
+                <div className="admin-user-card__email">{u.email}</div>
+                <div className="admin-user-card__date">
+                    Registrado {new Date(u.createdAt).toLocaleDateString("es-ES")}
+                </div>
+            </div>
+
+            {/* Acciones — grid 2 columnas */}
+            <div className="admin-user-card__actions">
+                <button
+                    className="btn btn-small"
+                    onClick={() => onToggleRole(u)}
+                    disabled={isMe}
+                >
+                    {isAdmin ? "↓ Degradar" : "↑ Promover"}
+                </button>
+
+                <button
+                    className="btn btn-small"
+                    onClick={() => onToggleDM(u)}
+                    disabled={isMe}
+                    style={{ color: u.isDM ? "var(--blood)" : "var(--gold)" }}
+                >
+                    {u.isDM ? "✕ DM" : "🎲 DM"}
+                </button>
+
+                {isAdmin ? (
+                    <span className="admin-perm-label">Mapas ∞</span>
+                ) : (
+                    <button
+                        className="btn btn-small"
+                        onClick={() => onToggleFeature(u, "maps")}
+                        disabled={isMe}
+                        style={{ color: hasMaps ? "var(--blood)" : "var(--gold)" }}
+                    >
+                        {hasMaps ? "✕ Mapas" : "✓ Mapas"}
+                    </button>
+                )}
+
+                <button
+                    className="btn btn-small btn-danger"
+                    onClick={() => onDelete(u)}
+                    disabled={isMe}
+                >
+                    Eliminar
+                </button>
             </div>
         </div>
     );

@@ -112,7 +112,8 @@
         display: flex;
     }
 
-    .app-header__inner {
+    /* El nav se posiciona relativo al .app-header (full-width), no al inner */
+    .app-header {
         position: relative;
     }
 
@@ -269,6 +270,42 @@
     }
 }
 
+
+/* ─── Tablet 712px — ajustes para encajar sin scroll horizontal ──────
+   Cubre dispositivos 7" en portrait (712-768px).
+   ───────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    /* Asegura que el container no desborde */
+    .container {
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Tablas siempre con scroll interno, nunca desbordan la página */
+    table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Inputs y selects nunca más anchos que su contenedor */
+    input, select, textarea {
+        max-width: 100%;
+    }
+
+    /* Imágenes y vídeos acotados (canvas excluido — lo gestiona Konva por JS) */
+    img, video {
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* El editor de mapa es fullscreen fijo — no participa del flujo */
+    .map-editor-overlay {
+        max-width: none;
+    }
+}
+
 /* ─── Móvil pequeño (≤ 480px) ────────────────────────────────────────── */
 
 @media (max-width: 480px) {
@@ -375,5 +412,219 @@
     .modal-form-footer .btn {
         flex: 1;
         text-align: center;
+    }
+}
+
+/* ─── Móvil 393px (iPhone moderno y similares) ───────────────────────
+   Ajustes finos para la anchura de teléfonos modernos (~393px).
+   Todo lo de ≤480px ya aplica; aquí solo se tocan los casos que aún
+   se ven apretados: cabecera, cards, formularios y grids de 2 cols.
+   ───────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 430px) {
+    /* Cabecera: reducir padding y tamaño de marca */
+    .app-header {
+        padding: 0.55rem 0.75rem;
+    }
+
+    .app-header__brand {
+        font-size: 1.15rem;
+        letter-spacing: 0.04em;
+    }
+
+    .app-header__logo {
+        width: 1.3rem;
+        height: 1.3rem;
+    }
+
+    /* Container: padding mínimo para maximizar el área útil */
+    .container {
+        padding: 0.75rem;
+    }
+
+    /* Cards: padding interior compacto */
+    .scroll-card {
+        padding: 0.85rem 1rem;
+    }
+
+    /* Tipografía */
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.1rem; }
+
+    /* Stats de atributos: 2 columnas ya, pero más pequeñas */
+    .stats-grid {
+        gap: 0.35rem;
+    }
+
+    .stat__value { font-size: 1.3rem; }
+
+    /* Filas de listas D&D (habilidades / salvaciones) */
+    .dnd-list-row {
+        font-size: 0.85rem;
+        padding: 0.3rem 0.4rem;
+    }
+
+    /* Pestañas: texto más pequeño para que quepan más sin scroll */
+    .tab-btn {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.65rem;
+    }
+
+    /* Modal: sin márgenes laterales en móvil pequeño */
+    .modal-content {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        border-radius: 0;
+    }
+
+    .modal-overlay--form {
+        padding: 0;
+    }
+
+    /* Formularios de creación/edición: botones a ancho completo */
+    .modal-form-footer {
+        flex-direction: column;
+    }
+
+    .modal-form-footer .btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Formularios de 2 columnas → colapsan a 1 en móvil pequeño.
+       Cubre CampaignsPage, SessionsPage y cualquier otro form con 1fr 1fr. */
+    .form-grid-2 {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* MapSetup: padding mínimo */
+    .map-setup {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .map-setup__card {
+        padding: 1rem 0.85rem;
+    }
+
+    /* Cards de mapas: compactar */
+    .map-card {
+        padding: 0.75rem 0.85rem;
+    }
+
+    /* Botones: tap targets suficientes pero no exagerados */
+    .btn {
+        padding: 0.6rem 1rem;
+    }
+
+    .btn-small {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* ─── Móvil landscape: sidebar fija en la izquierda ─────────────────
+   Se activa cuando el dispositivo está en horizontal Y la altura es
+   reducida (teléfonos landscape, típicamente < 500px de alto).
+   El header se convierte en una barra lateral fija. El hamburger
+   desaparece y el nav queda siempre visible en columna.
+   ───────────────────────────────────────────────────────────────────── */
+
+@media (orientation: landscape) and (max-width: 1200px) {
+    /* Empuja el contenido para que no quede bajo la sidebar */
+    body {
+        padding-left: 155px;
+    }
+
+    /* Header → sidebar izquierda fija */
+    .app-header {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 155px;
+        height: 100dvh;
+        padding: 0.7rem 0.6rem;
+        border-bottom: none;
+        border-right: 4px double var(--gold);
+        overflow-y: auto;
+        overflow-x: hidden;
+        z-index: 200;
+    }
+
+    .app-header__inner {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 0.6rem;
+        max-width: none;
+        height: 100%;
+        margin: 0;
+    }
+
+    .app-header__brand {
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(218, 165, 32, 0.35);
+        width: 100%;
+    }
+
+    .app-header__brand-text {
+        display: none;
+    }
+
+    .app-header__logo {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    /* Ocultar hamburguesa */
+    .app-header__burger {
+        display: none !important;
+    }
+
+    /* Nav siempre visible, en columna */
+    .app-header__nav,
+    .app-header__nav--open {
+        position: static;
+        flex-direction: column;
+        align-items: flex-start;
+        flex: 1;
+        width: 100%;
+        max-height: none !important;
+        overflow: visible;
+        padding: 0;
+        gap: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        transform: none !important;
+        transition: none;
+    }
+
+    .app-header__nav a {
+        padding: 0.4rem 0.3rem;
+        border-bottom: 1px dashed rgba(218, 165, 32, 0.2);
+        font-size: 0.78rem;
+        width: 100%;
+    }
+    .app-header__nav a:last-of-type {
+        border-bottom: none;
+    }
+
+    .app-header__nav .btn {
+        margin-top: 0.4rem;
+        font-size: 0.75rem;
+        padding: 0.3rem 0.6rem;
+        align-self: flex-start;
+    }
+
+    .app-header__nav .theme-toggle {
+        margin: 0.5rem 0 0;
+        align-self: flex-start;
+    }
+
+    :root[data-theme="dark"] .app-header__nav a {
+        color: #e8d8b8;
+        border-bottom-color: rgba(245, 194, 82, 0.2);
     }
 }

@@ -456,7 +456,7 @@ function MonsterCard({ monster, campaigns, isAdmin, expanded, onToggle, onEdit, 
                     </div>
 
                     {/* Atributos en grid */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "0.4rem", margin: "1rem 0", fontSize: "0.85rem", textAlign: "center" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(50px, 1fr))", gap: "0.4rem", margin: "1rem 0", fontSize: "0.85rem", textAlign: "center" }}>
                         {["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"].map(k => (
                             <div key={k}>
                                 <div style={{ fontFamily: "Cinzel, serif", fontSize: "0.7rem", color: "var(--ink-faded)", textTransform: "uppercase" }}>{k.slice(0, 3)}</div>

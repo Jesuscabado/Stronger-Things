@@ -34,7 +34,7 @@ export default function Header() {
                 <div className="app-header__brand">
                     <Link to={user ? (user.isDM ? "/campaigns" : "/characters") : "/login"}>
                         <img src="/icon.svg" alt="" className="app-header__logo" aria-hidden="true" />
-                        StrongerThings
+                        <span className="app-header__brand-text">StrongerThings</span>
                     </Link>
                 </div>
 

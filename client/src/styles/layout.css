@@ -78,6 +78,8 @@
     color: var(--gold-bright);
     letter-spacing: 0.1em;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 .app-header__brand a {
     color: var(--gold-bright);
@@ -85,6 +87,12 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.app-header__brand-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .app-header__logo {
     width: 2rem;
@@ -108,4 +116,212 @@
 }
 .app-header nav a:hover {
     color: var(--gold-bright);
+}
+
+/* ─── Admin: cards de usuarios ──────────────────────────────────────── */
+
+.admin-users {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.admin-user-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--parchment-shadow);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.04);
+    flex-wrap: wrap;
+}
+
+.admin-user-card__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.admin-user-card__name {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    font-size: 1rem;
+}
+
+.admin-user-card__email {
+    font-size: 0.82rem;
+    color: var(--ink-faded);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-user-card__date {
+    font-size: 0.75rem;
+    color: var(--ink-faded);
+    opacity: 0.7;
+}
+
+.admin-user-card__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem;
+    flex-shrink: 0;
+    width: fit-content;
+}
+
+.admin-user-card__actions .btn {
+    white-space: nowrap;
+    font-size: 0.78rem;
+    padding: 0.3rem 0.55rem;
+}
+
+.admin-perm-label {
+    font-size: 0.72rem;
+    color: var(--ink-faded);
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.3rem 0.4rem;
+    border: 1px dashed var(--parchment-shadow);
+    border-radius: 4px;
+}
+
+/* Badges de rol */
+.admin-badge {
+    font-size: 0.68rem;
+    font-family: "Cinzel", serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+}
+
+.admin-badge--gold   { color: var(--gold); }
+.admin-badge--blood  { color: var(--blood); }
+.admin-badge--faded  { color: var(--ink-faded); }
+.admin-badge--purple { color: #9b59b6; }
+
+@media (max-width: 600px) {
+    .admin-user-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-user-card__actions {
+        width: 100%;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .admin-user-card__actions .btn,
+    .admin-user-card__actions .admin-perm-label {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+}
+
+/* ─── Mapas ──────────────────────────────────────────────────────────── */
+
+.maps-page__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.maps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.map-card {
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.map-card__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.map-card__name {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.map-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--ink-faded);
+}
+
+.map-card__actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+    .map-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .map-card__actions {
+        width: 100%;
+    }
+
+    .map-card__actions .btn {
+        flex: 1;
+        text-align: center;
+    }
+}
+
+/* ─── MapSetup (pantalla de creación de mapa) ────────────────────────── */
+
+.map-setup {
+    max-width: 520px;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.map-setup__card {
+    padding: 1.5rem;
+}
+
+@media (max-width: 600px) {
+    .map-setup {
+        padding-top: 1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .map-setup__card {
+        padding: 1.25rem 1rem;
+    }
 }

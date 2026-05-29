@@ -326,7 +326,7 @@ function Editor() {
             <div style={{
                 position: "fixed",
                 inset: 0,
-                zIndex: 50,
+                zIndex: 300,
                 display: "flex",
                 flexDirection: "column",
                 background: "#1a1208"
@@ -335,64 +335,67 @@ function Editor() {
                 <div style={{
                     flexShrink: 0,
                     display: "flex",
-                    alignItems: "center",
-                    gap: "0.6rem",
+                    flexDirection: "column",
                     padding: "0.45rem 0.75rem",
+                    gap: "0.4rem",
                     background: "#221a0e",
-                    borderBottom: "1px solid #3a2e1a",
-                    flexWrap: "wrap"
+                    borderBottom: "1px solid #3a2e1a"
                 }}>
-                    <button
-                        className="btn btn-small"
-                        onClick={() => navigate("/maps")}
-                        style={{ flexShrink: 0 }}
-                    >
-                        ← Volver
-                    </button>
-
-                    <input
-                        value={mapData.name}
-                        onChange={e => setMapData(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="Nombre del mapa…"
-                        style={{
-                            flex: "1 1 180px",
-                            background: "#2e2414",
-                            color: "#e8d5b7",
-                            border: "1px solid #4a3820",
-                            borderRadius: "4px",
-                            padding: "0.3rem 0.6rem",
-                            fontSize: "0.95rem",
-                            fontFamily: "var(--font-display)"
-                        }}
-                    />
-
-                    {sessionFromQuery && !success && !error && (
-                        <span style={{ fontSize: "0.75rem", color: "#887755" }}>
-                            Vinculado a sesión al guardar
-                        </span>
-                    )}
-                    {error   && (
-                        <span
-                            style={{ color: "var(--blood)", fontSize: "0.8rem", cursor: "pointer" }}
-                            onClick={() => setError("")}
-                        >{error}</span>
-                    )}
-                    {success && (
-                        <span style={{ color: "var(--gold)", fontSize: "0.8rem" }}>{success}</span>
-                    )}
-
-                    <div style={{ display: "flex", gap: "0.4rem", marginLeft: "auto", flexShrink: 0 }}>
+                    {/* Fila 1: volver + nombre */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <button
+                            className="btn btn-small"
+                            onClick={() => navigate("/maps")}
+                            style={{ flexShrink: 0 }}
+                        >
+                            ← Volver
+                        </button>
+                        <input
+                            value={mapData.name}
+                            onChange={e => setMapData(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="Nombre del mapa…"
+                            style={{
+                                flex: 1,
+                                minWidth: 0,
+                                background: "#2e2414",
+                                color: "#e8d5b7",
+                                border: "1px solid #4a3820",
+                                borderRadius: "4px",
+                                padding: "0.3rem 0.6rem",
+                                fontSize: "0.95rem",
+                                fontFamily: "var(--font-display)"
+                            }}
+                        />
+                    </div>
+                    {/* Fila 2: mensajes + acciones */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+                        {sessionFromQuery && !success && !error && (
+                            <span style={{ fontSize: "0.72rem", color: "#887755", flex: 1 }}>
+                                Vinculado a sesión al guardar
+                            </span>
+                        )}
+                        {error && (
+                            <span
+                                style={{ color: "var(--blood)", fontSize: "0.75rem", cursor: "pointer", flex: 1 }}
+                                onClick={() => setError("")}
+                            >{error}</span>
+                        )}
+                        {success && (
+                            <span style={{ color: "var(--gold)", fontSize: "0.75rem", flex: 1 }}>{success}</span>
+                        )}
+                        {!sessionFromQuery && !success && !error && <span style={{ flex: 1 }} />}
                         <button
                             className="btn btn-small"
                             onClick={() => setShowAI(true)}
-                            style={{ background: "#3a1a6e", color: "#cbb0ff", borderColor: "#6030a0" }}
+                            style={{ background: "#3a1a6e", color: "#cbb0ff", borderColor: "#6030a0", flexShrink: 0 }}
                         >
-                            Generar con IA
+                            ✨ IA
                         </button>
                         <button
                             className="btn btn-small btn-primary"
                             onClick={save}
                             disabled={saving}
+                            style={{ flexShrink: 0 }}
                         >
                             {saving ? "Guardando…" : "Guardar"}
                         </button>
@@ -1007,7 +1010,7 @@ function AIModal({ initialPrompt = "", initialStyle = "dungeon", onClose, onResu
     return (
         <div
             className="modal-overlay"
-            style={{ zIndex: 100 }}
+            style={{ zIndex: 400 }}
             onClick={onClose}
         >
             <div
@@ -1175,8 +1178,8 @@ function MapSetup({ sessionFromQuery, onStart, onStartFromAI, onBack }) {
     );
 
     return (
-        <div className="container" style={{ maxWidth: 520, paddingTop: "3rem" }}>
-            <div className="scroll-card" style={{ padding: "2rem" }}>
+        <div className="container map-setup">
+            <div className="scroll-card map-setup__card">
                 <h2 style={{ marginTop: 0, fontFamily: "var(--font-display)" }}>Nuevo mapa táctico</h2>
                 {sessionFromQuery && (
                     <p style={{ color: "var(--gold)", fontSize: "0.85rem", margin: "0 0 1rem" }}>
@@ -1297,7 +1300,7 @@ function LinkedDetailModal({ type, id, onClose }) {
     }, [id, type]);
 
     return (
-        <div className="modal-overlay" style={{ zIndex: 300 }} onClick={onClose}>
+        <div className="modal-overlay" style={{ zIndex: 400 }} onClick={onClose}>
             <div
                 className="scroll-card"
                 style={{ maxWidth: 540, width: "90%", padding: "1.75rem", maxHeight: "85vh", overflowY: "auto" }}
