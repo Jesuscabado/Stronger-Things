@@ -34,7 +34,7 @@ export default function Header() {
                 <div className="app-header__brand">
                     <Link to={user ? (user.isDM ? "/campaigns" : "/characters") : "/login"}>
                         <img src="/icon.svg" alt="" className="app-header__logo" aria-hidden="true" />
-                        StrongerThings
+                        <span className="app-header__brand-text">StrongerThings</span>
                     </Link>
                 </div>
 
@@ -73,15 +73,16 @@ export default function Header() {
                             {(user.role === "admin" || user.features?.includes("maps")) && <Link to="/maps">Mapas</Link>}
                             {user.role === "admin" && <Link to="/admin">Admin</Link>}
                             <Link to="/account" style={{ opacity: 0.7 }}>{user.username}</Link>
-                            <button className="btn btn-small" onClick={handleLogout}>Salir</button>
+                            <ThemeToggle />
+                            <button className="btn btn-small nav-logout" onClick={handleLogout}>Salir</button>
                         </>
                     ) : (
                         <>
                             <Link to="/login">Entrar</Link>
                             <Link to="/register">Registrarse</Link>
+                            <ThemeToggle />
                         </>
                     )}
-                    <ThemeToggle />
                 </nav>
             </div>
         </header>

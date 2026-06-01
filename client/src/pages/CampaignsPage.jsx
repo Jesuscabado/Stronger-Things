@@ -293,7 +293,7 @@ function CampaignForm({ form, setForm, editingId, onSubmit, onCancel }) {
         <div className="scroll-card" style={{ marginBottom: "1.25rem", padding: "1.4rem" }}>
             <h2 style={{ marginTop: 0 }}>{editingId ? "Editar campaña" : "Nueva campaña"}</h2>
             <form onSubmit={onSubmit}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
+                <div className="form-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
                     <div style={{ gridColumn: "1/-1" }}>
                         <label style={lbl}>Nombre *</label>
                         <input type="text" value={form.name} onChange={set("name")} required placeholder="La Maldición de Strahd…" style={{ width: "100%" }} />
@@ -558,7 +558,7 @@ function MonsterDetailModal({ monsterId, onClose }) {
                             <div><strong>Velocidad:</strong> {(monster.speed || []).join(", ") || "—"}</div>
                         </div>
 
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "0.4rem", margin: "0.75rem 0", fontSize: "0.85rem", textAlign: "center" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(50px, 1fr))", gap: "0.4rem", margin: "0.75rem 0", fontSize: "0.85rem", textAlign: "center" }}>
                             {["strength","dexterity","constitution","intelligence","wisdom","charisma"].map(k => (
                                 <div key={k}>
                                     <div style={{ fontFamily: "Cinzel, serif", fontSize: "0.65rem", color: "var(--ink-faded)", textTransform: "uppercase" }}>{k.slice(0,3)}</div>
@@ -1113,7 +1113,7 @@ function SessionForm({ form, setForm, editingId, onSubmit, onCancel }) {
     return (
         <div style={{ background: "rgba(0,0,0,0.04)", borderRadius: "6px", padding: "1rem", marginBottom: "0.75rem" }}>
             <form onSubmit={onSubmit}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.7rem" }}>
+                <div className="form-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.7rem" }}>
                     <div style={{ gridColumn: "1/-1" }}>
                         <label style={lbl}>Título *</label>
                         <input type="text" value={form.title} onChange={set("title")} required placeholder="La llegada al pueblo…" style={{ width: "100%" }} />
@@ -1293,7 +1293,7 @@ function MonsterStatModal({ monsterId, onClose }) {
                             </div>
 
                             {/* Atributos */}
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: "0.4rem", margin: "0.75rem 0 1rem", fontSize: "0.85rem", textAlign: "center", borderTop: "1px dashed var(--parchment-shadow)", paddingTop: "0.75rem" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(50px, 1fr))", gap: "0.4rem", margin: "0.75rem 0 1rem", fontSize: "0.85rem", textAlign: "center", borderTop: "1px dashed var(--parchment-shadow)", paddingTop: "0.75rem" }}>
                                 {["strength","dexterity","constitution","intelligence","wisdom","charisma"].map(k => (
                                     <div key={k}>
                                         <div style={{ fontFamily: "Cinzel,serif", fontSize: "0.68rem", color: "var(--ink-faded)", textTransform: "uppercase" }}>{k.slice(0,3)}</div>

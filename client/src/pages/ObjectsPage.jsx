@@ -31,62 +31,75 @@ const emptyForm = () => ({
     damage: "", damageType: "", armorClass: "", weight: 0, rarity: "common"
 });
 
-// ─── Tarjeta de objeto (expandible) ─────────────────────────────────────────
+// ─── Tarjeta de objeto ───────────────────────────────────────────────────────
 
-function ObjectCard({ o, isAdmin, expanded, onToggle, onEdit, onDelete }) {
+function ObjectCard({ o, onClick }) {
+    const { color, bg } = rarityColor(o.stats?.rarity);
+    const stats = o.stats ?? {};
+    return (
+        <div className="scroll-card" style={{ padding: "0.85rem 1.25rem", marginBottom: 0, minWidth: 0, width: "100%", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }} onClick={onClick}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{ margin: "0 0 0.3rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.name}</h3>
+                <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", alignItems: "center" }}>
+                    <span className="badge-tag">{translateCategory(o.category)}</span>
+                    <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>{translateRarity(o.stats?.rarity)}</span>
+                    {stats.damage     && <span className="card-stat">⚔ {stats.damage.split(" ")[0]}</span>}
+                    {stats.armorClass && <span className="card-stat">🛡 {stats.armorClass}</span>}
+                    {o.cost > 0       && <span className="card-stat">💰 {o.cost} po</span>}
+                </div>
+            </div>
+            <span style={{ color: "var(--gold)", flexShrink: 0, fontSize: "1rem" }}>👁</span>
+        </div>
+    );
+}
+
+// ─── Modal de detalle de objeto ──────────────────────────────────────────────
+
+function ObjectDetailModal({ object: o, isAdmin, onClose, onEdit, onDelete }) {
     const { color, bg } = rarityColor(o.stats?.rarity);
     const canEdit = !o.isPublic || isAdmin;
 
     return (
-        <div className="scroll-card" style={{ padding: 0, overflow: "hidden" }}>
-            {/* Cabecera clicable */}
+        <div className="modal-overlay" onClick={onClose}>
             <div
-                onClick={onToggle}
-                style={{ padding: "1rem 1.25rem", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem" }}
+                className="scroll-card"
+                style={{ maxWidth: 540, width: "92%", padding: "1.5rem" }}
+                onClick={e => e.stopPropagation()}
             >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ margin: "0 0 0.3rem", ...(expanded ? {} : { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }) }}>{o.name}</h3>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", alignItems: "center" }}>
-                        <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
-                            {translateRarity(o.stats?.rarity)}
-                        </span>
-                        <span className="badge-tag">{translateCategory(o.category)}</span>
-                        {o.isPublic && (
-                            <span className="badge-tag" style={{ background: "rgba(59,109,255,0.15)", color: "#3b6dff" }}>SRD</span>
-                        )}
-                    </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+                    <h2 style={{ margin: 0 }}>{o.name}</h2>
+                    <button className="btn btn-small" onClick={onClose}>✕</button>
                 </div>
-                <span style={{ fontSize: "1.2rem", color: "var(--ink-faded)", flexShrink: 0 }}>
-                    {expanded ? "▾" : "▸"}
-                </span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", alignItems: "center", marginBottom: "1rem" }}>
+                    <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
+                        {translateRarity(o.stats?.rarity)}
+                    </span>
+                    <span className="badge-tag">{translateCategory(o.category)}</span>
+                    {o.isPublic && (
+                        <span className="badge-tag" style={{ background: "rgba(59,109,255,0.15)", color: "#3b6dff" }}>SRD</span>
+                    )}
+                </div>
+                {o.description && (
+                    <p style={{ fontSize: "0.9rem", lineHeight: 1.6, margin: "0 0 0.6rem", whiteSpace: "pre-wrap" }}>{o.description}</p>
+                )}
+                <div style={{ fontSize: "0.85rem", color: "var(--ink-faded)", lineHeight: 1.8 }}>
+                    {o.stats?.damage     && <div>⚔ <strong>Daño:</strong> {o.stats.damage}{o.stats.damageType ? ` ${o.stats.damageType}` : ""}</div>}
+                    {o.stats?.armorClass && <div>🛡 <strong>CA:</strong> {o.stats.armorClass}</div>}
+                    {(o.stats?.properties || []).length > 0 && <div>🔸 <strong>Propiedades:</strong> {o.stats.properties.join(", ")}</div>}
+                    {o.cost > 0          && <div>💰 <strong>Coste:</strong> {o.cost} po</div>}
+                    {o.stats?.weight > 0 && <div>⚖ <strong>Peso:</strong> {o.stats.weight} lb</div>}
+                </div>
+                {canEdit && (
+                    <div style={{ display: "flex", gap: "0.4rem", marginTop: "1rem", flexWrap: "wrap" }}>
+                        <button className="btn btn-small" style={{ width: "fit-content" }} onClick={onEdit}>
+                            <IconEdit /> Editar
+                        </button>
+                        <button className="btn btn-small btn-danger" style={{ width: "fit-content" }} onClick={onDelete}>
+                            × Eliminar
+                        </button>
+                    </div>
+                )}
             </div>
-
-            {/* Detalle expandido */}
-            {expanded && (
-                <div style={{ padding: "0 1.25rem 1rem", borderTop: "1px dashed var(--parchment-shadow)" }}>
-                    {o.description && (
-                        <p style={{ fontSize: "0.9rem", lineHeight: 1.6, margin: "0.85rem 0 0.6rem", whiteSpace: "pre-wrap" }}>{o.description}</p>
-                    )}
-                    <div style={{ fontSize: "0.85rem", color: "var(--ink-faded)", lineHeight: 1.8, marginTop: o.description ? 0 : "0.85rem" }}>
-                        {o.stats?.damage     && <div>⚔ <strong>Daño:</strong> {o.stats.damage}{o.stats.damageType ? ` ${o.stats.damageType}` : ""}</div>}
-                        {o.stats?.armorClass && <div>🛡 <strong>CA:</strong> {o.stats.armorClass}</div>}
-                        {(o.stats?.properties || []).length > 0 && <div>🔸 <strong>Propiedades:</strong> {o.stats.properties.join(", ")}</div>}
-                        {o.cost > 0          && <div>💰 <strong>Coste:</strong> {o.cost} po</div>}
-                        {o.stats?.weight > 0 && <div>⚖ <strong>Peso:</strong> {o.stats.weight} lb</div>}
-                    </div>
-
-                    {canEdit && (
-                        <div style={{ display: "flex", gap: "0.4rem", marginTop: "1rem", flexWrap: "wrap" }}>
-                            <button className="btn btn-small" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onEdit(); }}>
-                                <IconEdit /> Editar
-                            </button>
-                            <button className="btn btn-small btn-danger" style={{ width: "fit-content" }} onClick={e => { e.stopPropagation(); onDelete(); }}>
-                                × Eliminar
-                            </button>
-                        </div>
-                    )}
-                </div>
-            )}
         </div>
     );
 }
@@ -102,7 +115,7 @@ export default function ObjectsPage() {
     const [success, setSuccess]   = useState("");
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [expanded, setExpanded] = useState(null);
+    const [selected, setSelected] = useState(null);
     const [filter, setFilter]     = useState("all");
     const [search, setSearch]     = useState("");
     const [form, setForm]         = useState(emptyForm());
@@ -281,6 +294,16 @@ export default function ObjectsPage() {
                 </div>
             )}
 
+            {selected && (
+                <ObjectDetailModal
+                    object={selected}
+                    isAdmin={isAdmin}
+                    onClose={() => setSelected(null)}
+                    onEdit={() => { setSelected(null); openEdit(selected); }}
+                    onDelete={() => { setSelected(null); handleDelete(selected); }}
+                />
+            )}
+
             {/*
                 Barra de búsqueda. Envuelta en <form> para heredar los estilos
                 globales de inputs (font Garamond, fondo crema, borde dorado
@@ -339,16 +362,12 @@ export default function ObjectsPage() {
                     <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem", margin: "0 0 1rem" }}>
                         Mostrando {filtered.length} de {objects.length} objetos
                     </p>
-                    <div className="grid grid-3">
+                    <div className="grid grid-2">
                         {filtered.map(o => (
                             <ObjectCard
                                 key={o._id}
                                 o={o}
-                                isAdmin={isAdmin}
-                                expanded={expanded === o._id}
-                                onToggle={() => setExpanded(expanded === o._id ? null : o._id)}
-                                onEdit={() => openEdit(o)}
-                                onDelete={() => handleDelete(o)}
+                                onClick={() => setSelected(o)}
                             />
                         ))}
                     </div>

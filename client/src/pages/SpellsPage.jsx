@@ -38,7 +38,7 @@ export default function SpellsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-    const [expanded, setExpanded] = useState(null);
+    const [selected, setSelected] = useState(null);
 
     // Filtros
     const [search, setSearch] = useState("");
@@ -406,7 +406,7 @@ export default function SpellsPage() {
                         </select>
                     </div>
                     <div className="field" style={{ marginBottom: 0 }}>
-                        <label>Ordenar por</label>
+                        <label>Ordenar</label>
                         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                             <option value="level">Nivel</option>
                             <option value="name">Alfabético (A-Z)</option>
@@ -439,9 +439,7 @@ export default function SpellsPage() {
                                         <SpellCard
                                             key={spell._id}
                                             spell={spell}
-                                            expanded={expanded === spell._id}
-                                            onToggle={() => setExpanded(expanded === spell._id ? null : spell._id)}
-                                            onDelete={(!spell.isPublic || isAdmin) ? () => handleDelete(spell) : null}
+                                            onClick={() => setSelected(spell)}
                                         />
                                     ))}
                                 </div>
@@ -453,13 +451,19 @@ export default function SpellsPage() {
                                 <SpellCard
                                     key={spell._id}
                                     spell={spell}
-                                    expanded={expanded === spell._id}
-                                    onToggle={() => setExpanded(expanded === spell._id ? null : spell._id)}
-                                    onDelete={(!spell.isPublic || isAdmin) ? () => handleDelete(spell) : null}
+                                    onClick={() => setSelected(spell)}
                                     showLevelBadge
                                 />
                             ))}
                         </div>
+                    )}
+                    {selected && (
+                        <SpellDetailModal
+                            spell={selected}
+                            isAdmin={isAdmin}
+                            onClose={() => setSelected(null)}
+                            onDelete={() => { setSelected(null); handleDelete(selected); }}
+                        />
                     )}
                 </>
             )}
@@ -467,115 +471,109 @@ export default function SpellsPage() {
     );
 }
 
-function SpellCard({ spell, expanded, onToggle, onDelete, showLevelBadge }) {
+function SpellCard({ spell, onClick, showLevelBadge }) {
     const { color: schoolColor, bg: schoolBg } = spellSchoolColor(spell.school);
+    return (
+        <div className="scroll-card" style={{ padding: "0.85rem 1.25rem", marginBottom: 0, minWidth: 0, width: "100%", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }} onClick={onClick}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{ margin: "0 0 0.3rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{spell.name}</h3>
+                <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", alignItems: "center" }}>
+                    {showLevelBadge && <span className="badge-tag">{LEVEL_LABEL(spell.level ?? 0)}</span>}
+                    <span className="badge-tag" style={{ color: schoolColor, background: schoolBg, border: `1px solid ${schoolColor}40` }}>{spell.school}</span>
+                    {spell.castingTime && <span className="card-stat">⚡ {spell.castingTime}</span>}
+                    {spell.range      && <span className="card-stat">📏 {spell.range}</span>}
+                </div>
+            </div>
+            <span style={{ color: "var(--gold)", flexShrink: 0, fontSize: "1rem" }}>👁</span>
+        </div>
+    );
+}
 
-    const componentLetters = [
-        spell.components?.verbal && "V",
-        spell.components?.somatic && "S",
-        spell.components?.material && "M"
-    ].filter(Boolean).join("/");
+function SpellDetailModal({ spell, isAdmin, onClose, onDelete }) {
+    const { color: schoolColor, bg: schoolBg } = spellSchoolColor(spell.school);
+    const canDelete = !spell.isPublic || isAdmin;
 
     return (
-        <div className="scroll-card" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="modal-overlay" onClick={onClose}>
             <div
-                onClick={onToggle}
-                style={{
-                    padding: "1rem 1.5rem",
-                    cursor: "pointer",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    gap: "1rem"
-                }}
+                className="scroll-card"
+                style={{ maxWidth: 540, width: "92%", padding: "1.5rem" }}
+                onClick={e => e.stopPropagation()}
             >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ margin: 0, marginBottom: "0.3rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+                    <h2 style={{ margin: 0 }}>
                         {spell.name}
                         {spell.nameOriginal && spell.nameOriginal !== spell.name && (
                             <span style={{ fontSize: "0.8rem", color: "var(--ink-faded)", fontWeight: "normal", marginLeft: "0.5rem" }}>
                                 ({spell.nameOriginal})
                             </span>
                         )}
-                    </h3>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center" }}>
-                        {showLevelBadge && (
-                            <span className="badge-tag" style={{ background: "rgba(184, 134, 11, 0.3)" }}>
-                                {LEVEL_LABEL(spell.level ?? 0)}
-                            </span>
-                        )}
-                        <span
-                            className="badge-tag"
-                            style={{ color: schoolColor, background: schoolBg, border: `1px solid ${schoolColor}40` }}
-                        >
-                            {spell.school}
+                    </h2>
+                    <button className="btn btn-small" onClick={onClose}>✕</button>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center", marginBottom: "1rem" }}>
+                    <span className="badge-tag" style={{ background: "rgba(184, 134, 11, 0.3)" }}>
+                        {LEVEL_LABEL(spell.level ?? 0)}
+                    </span>
+                    <span
+                        className="badge-tag"
+                        style={{ color: schoolColor, background: schoolBg, border: `1px solid ${schoolColor}40` }}
+                    >
+                        {spell.school}
+                    </span>
+                    {spell.concentration && <span className="badge-tag">Concentración</span>}
+                    {spell.ritual && <span className="badge-tag">Ritual</span>}
+                    {spell.damageType && (
+                        <span className="badge-tag" style={{ background: "rgba(160, 32, 32, 0.15)" }}>
+                            {spell.damageType}
                         </span>
-                        {spell.concentration && <span className="badge-tag">Concentración</span>}
-                        {spell.ritual && <span className="badge-tag">Ritual</span>}
-                        {componentLetters && <span className="badge-tag">{componentLetters}</span>}
-                        {spell.damageType && (
-                            <span className="badge-tag" style={{ background: "rgba(160, 32, 32, 0.15)" }}>
-                                {spell.damageType}
-                            </span>
-                        )}
+                    )}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "0.8rem", margin: "1rem 0", fontSize: "0.9rem" }}>
+                    <div>
+                        <div style={{ fontSize: "0.7rem", color: "var(--ink-faded)", textTransform: "uppercase", fontFamily: "Cinzel" }}>Lanzamiento</div>
+                        <div><strong>{spell.castingTime}</strong></div>
+                    </div>
+                    <div>
+                        <div style={{ fontSize: "0.7rem", color: "var(--ink-faded)", textTransform: "uppercase", fontFamily: "Cinzel" }}>Alcance</div>
+                        <div><strong>{spell.range}</strong></div>
+                    </div>
+                    <div>
+                        <div style={{ fontSize: "0.7rem", color: "var(--ink-faded)", textTransform: "uppercase", fontFamily: "Cinzel" }}>Duración</div>
+                        <div><strong>{spell.duration}</strong></div>
                     </div>
                 </div>
-                <span style={{ fontSize: "1.3rem", color: "var(--ink-faded)" }}>
-                    {expanded ? "▾" : "▸"}
-                </span>
+
+                {spell.components?.material && spell.components?.materialDesc && (
+                    <p style={{ fontSize: "0.85rem", color: "var(--ink-faded)", fontStyle: "italic", marginBottom: "0.8rem" }}>
+                        <strong>Materiales:</strong> {spell.components.materialDesc}
+                    </p>
+                )}
+
+                {spell.description && (
+                    <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5, marginBottom: "0.8rem" }}>
+                        {spell.description}
+                    </div>
+                )}
+
+                {spell.atHigherLevels && (
+                    <div className="spell-item__higher" style={{ marginBottom: "0.8rem" }}>
+                        <strong>A niveles superiores:</strong> {spell.atHigherLevels}
+                    </div>
+                )}
+
+                {spell.classes?.length > 0 && (
+                    <p style={{ fontSize: "0.85rem", color: "var(--ink-faded)", marginBottom: canDelete ? "0.8rem" : 0 }}>
+                        <strong>Clases:</strong> {spell.classes.map(translateClass).join(", ")}
+                    </p>
+                )}
+
+                {canDelete && (
+                    <button className="btn btn-small btn-danger" onClick={onDelete}>
+                        Eliminar del catálogo
+                    </button>
+                )}
             </div>
-
-            {expanded && (
-                <div style={{ padding: "0 1.5rem 1rem", borderTop: "1px dashed var(--parchment-shadow)" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.8rem", margin: "1rem 0", fontSize: "0.9rem" }}>
-                        <div>
-                            <div style={{ fontSize: "0.7rem", color: "var(--ink-faded)", textTransform: "uppercase", fontFamily: "Cinzel" }}>Lanzamiento</div>
-                            <div><strong>{spell.castingTime}</strong></div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: "0.7rem", color: "var(--ink-faded)", textTransform: "uppercase", fontFamily: "Cinzel" }}>Alcance</div>
-                            <div><strong>{spell.range}</strong></div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: "0.7rem", color: "var(--ink-faded)", textTransform: "uppercase", fontFamily: "Cinzel" }}>Duración</div>
-                            <div><strong>{spell.duration}</strong></div>
-                        </div>
-                    </div>
-
-                    {spell.components?.material && spell.components?.materialDesc && (
-                        <p style={{ fontSize: "0.85rem", color: "var(--ink-faded)", fontStyle: "italic", marginBottom: "0.8rem" }}>
-                            <strong>Materiales:</strong> {spell.components.materialDesc}
-                        </p>
-                    )}
-
-                    {spell.description && (
-                        <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5, marginBottom: "0.8rem" }}>
-                            {spell.description}
-                        </div>
-                    )}
-
-                    {spell.atHigherLevels && (
-                        <div className="spell-item__higher" style={{ marginBottom: "0.8rem" }}>
-                            <strong>A niveles superiores:</strong> {spell.atHigherLevels}
-                        </div>
-                    )}
-
-                    {spell.classes?.length > 0 && (
-                        <p style={{ fontSize: "0.85rem", color: "var(--ink-faded)", marginBottom: onDelete ? "0.8rem" : 0 }}>
-                            <strong>Clases:</strong> {spell.classes.map(translateClass).join(", ")}
-                        </p>
-                    )}
-
-                    {onDelete && (
-                        <button
-                            className="btn btn-small btn-danger"
-                            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                        >
-                            Eliminar del catálogo
-                        </button>
-                    )}
-                </div>
-            )}
         </div>
     );
 }

@@ -55,14 +55,12 @@ function MapsList() {
     };
 
     return (
-        <div className="container">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "0.75rem" }}>
+        <div className="container maps-page">
+            <div className="maps-page__header">
                 <h1 style={{ margin: 0 }}>Mapas tácticos</h1>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <button className="btn btn-primary" onClick={() => navigate("/maps/new")}>
-                        + Nuevo mapa
-                    </button>
-                </div>
+                <button className="btn btn-primary" onClick={() => navigate("/maps/new")}>
+                    + Nuevo mapa
+                </button>
             </div>
 
             {error   && <div className="alert" onClick={() => setError("")}>{error}</div>}
@@ -84,7 +82,7 @@ function MapsList() {
                     </button>
                 </div>
             ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                <div className="maps-list">
                     {maps.map(m => (
                         <MapCard
                             key={m._id}
@@ -104,37 +102,18 @@ function MapCard({ map, onEdit, onDelete }) {
     const dims = grid ? `${grid.cols}×${grid.rows}` : "";
 
     return (
-        <div className="scroll-card" style={{ padding: "1rem 1.25rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
-                        <strong style={{ fontSize: "1rem" }}>{map.name}</strong>
-                        {dims && (
-                            <span style={{ fontSize: "0.75rem", color: "var(--ink-faded)" }}>
-                                {dims} celdas
-                            </span>
-                        )}
-                        {session && (
-                            <span style={{ fontSize: "0.75rem", color: "var(--gold)" }}>
-                                {session.name}
-                            </span>
-                        )}
-                    </div>
-                    {map.description && (
-                        <p style={{ margin: "0.3rem 0 0", fontSize: "0.85rem", color: "var(--ink-faded)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {map.description}
-                        </p>
-                    )}
-                    <p style={{ margin: "0.2rem 0 0", fontSize: "0.78rem", color: "var(--ink-faded)" }}>
-                        Editado {new Date(map.updatedAt).toLocaleDateString("es-ES")}
-                    </p>
+        <div className="scroll-card map-card">
+            <div className="map-card__info">
+                <strong className="map-card__name">{map.name}</strong>
+                <div className="map-card__meta">
+                    {dims && <span>{dims} celdas</span>}
+                    {session && <span style={{ color: "var(--gold)" }}>{session.name}</span>}
+                    <span>Editado {new Date(map.updatedAt).toLocaleDateString("es-ES")}</span>
                 </div>
-                <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>
-                    <button className="btn btn-small" onClick={onEdit}>Editar</button>
-                    <button className="btn btn-small" style={{ color: "var(--blood)" }} onClick={onDelete}>
-                        Eliminar
-                    </button>
-                </div>
+            </div>
+            <div className="map-card__actions">
+                <button className="btn btn-small" onClick={onEdit}>Editar</button>
+                <button className="btn btn-small btn-danger" onClick={onDelete}>Eliminar</button>
             </div>
         </div>
     );

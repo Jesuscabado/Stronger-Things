@@ -7,10 +7,11 @@
     inset: 0;
     background: rgba(0,0,0,0.6);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    overflow-y: auto;
     z-index: 100;
-    padding: 1rem;
+    padding: 1.5rem 1rem;
 }
 
 .modal-content {
@@ -21,12 +22,11 @@
     max-width: 500px;
     width: 100%;
     box-shadow: 0 12px 24px var(--shadow);
+    margin: auto 0;   /* centra verticalmente cuando el contenido es corto */
 }
 
-/* ─── Modal de formulario (más ancho, con scroll interno) ─── */
+/* ─── Modal de formulario (más ancho) ─── */
 .modal-overlay--form {
-    align-items: flex-start;
-    overflow-y: auto;
     padding: 2rem 1rem;
 }
 

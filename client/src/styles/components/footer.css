@@ -1,6 +1,6 @@
 .app-footer {
-    background: linear-gradient(180deg, #2a1a0c 0%, var(--leather) 100%);
-    color: #f4e8d0;
+    background: linear-gradient(180deg, var(--parchment-dark) 0%, var(--parchment-shadow) 100%);
+    color: var(--ink);
     border-top: 4px double var(--gold);
     padding: 1.25rem 2rem;
     margin-top: auto;
@@ -19,12 +19,12 @@
 .app-footer__copy {
     margin: 0;
     font-size: 0.8rem;
-    color: #f4e8d0;
+    color: var(--ink);
     opacity: 0.85;
 }
 
 .app-footer__copy a {
-    color: var(--gold-bright);
+    color: var(--gold);
     border-bottom-color: transparent;
 }
 
@@ -34,7 +34,7 @@
 }
 
 .app-footer__links a {
-    color: #f4e8d0;
+    color: var(--ink);
     font-family: "Cinzel", serif;
     font-size: 0.8rem;
     text-transform: uppercase;
