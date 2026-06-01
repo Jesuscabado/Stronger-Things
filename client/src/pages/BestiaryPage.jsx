@@ -111,7 +111,7 @@ function Bestiary() {
     const [form, setForm] = useState(emptyMonster);
     const [editingId, setEditingId] = useState(null);
 
-    const [expanded, setExpanded] = useState(null);
+    const [selected, setSelected] = useState(null);
 
     const flash = (msg) => {
         setSuccess(msg);
@@ -343,7 +343,7 @@ function Bestiary() {
                         </select>
                     </div>
                     <div className="field" style={{ marginBottom: 0 }}>
-                        <label>Desafío (CR)</label>
+                        <label>CR</label>
                         <select value={filterCR} onChange={(e) => setFilterCR(e.target.value)}>
                             <option value="">Cualquiera</option>
                             {CR_OPTIONS.map(cr => <option key={cr} value={cr}>{cr}</option>)}
@@ -363,31 +363,60 @@ function Bestiary() {
                         : "Tu bestiario está vacío. Crea tu primer monstruo con \"+ Nuevo monstruo\"."}
                 </div>
             ) : (
-                <div className="grid grid-2">
-                    {monsters.map(m => (
-                        <MonsterCard
-                            key={m._id}
-                            monster={m}
+                <>
+                    <div className="grid grid-2">
+                        {monsters.map(m => (
+                            <MonsterCard
+                                key={m._id}
+                                monster={m}
+                                onClick={() => setSelected(m)}
+                            />
+                        ))}
+                    </div>
+                    {selected && (
+                        <MonsterDetailModal
+                            monster={selected}
                             campaigns={campaigns}
                             isAdmin={user?.role === "admin"}
-                            expanded={expanded === m._id}
-                            onToggle={() => setExpanded(expanded === m._id ? null : m._id)}
-                            onEdit={() => openEdit(m)}
-                            onDelete={() => handleDelete(m)}
-                            onClone={() => handleClone(m)}
-                            onAddToCampaign={(campaignId) => handleAddToCampaign(m._id, campaignId)}
+                            onClose={() => setSelected(null)}
+                            onEdit={() => { setSelected(null); openEdit(selected); }}
+                            onDelete={() => { setSelected(null); handleDelete(selected); }}
+                            onClone={() => { setSelected(null); handleClone(selected); }}
+                            onAddToCampaign={(cid) => { handleAddToCampaign(selected._id, cid); }}
                         />
-                    ))}
-                </div>
+                    )}
+                </>
             )}
         </div>
     );
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   Tarjeta de monstruo (modo lectura, expandible).
+   Tarjeta de monstruo (compacta, abre modal al clicar).
    ───────────────────────────────────────────────────────────────────── */
-function MonsterCard({ monster, campaigns, isAdmin, expanded, onToggle, onEdit, onDelete, onClone, onAddToCampaign }) {
+function MonsterCard({ monster, onClick }) {
+    const { color, bg } = monsterTypeColor(monster.type);
+    const hp = typeof monster.hitPoints === "object" ? monster.hitPoints?.average : monster.hitPoints;
+    return (
+        <div className="scroll-card" style={{ padding: "0.85rem 1.25rem", marginBottom: 0, minWidth: 0, width: "100%", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }} onClick={onClick}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{ margin: "0 0 0.3rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{monster.name}</h3>
+                <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", alignItems: "center" }}>
+                    <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>{monster.type}</span>
+                    <span className="badge-tag" style={{ background: "rgba(160,32,32,0.15)" }}>CR {monster.challengeRating}</span>
+                    {hp                 && <span className="card-stat">❤ {hp}</span>}
+                    {monster.armorClass && <span className="card-stat">🛡 {Number(monster.armorClass) || monster.armorClass}</span>}
+                </div>
+            </div>
+            <span style={{ color: "var(--gold)", flexShrink: 0, fontSize: "1rem" }}>👁</span>
+        </div>
+    );
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Modal de detalle de monstruo.
+   ───────────────────────────────────────────────────────────────────── */
+function MonsterDetailModal({ monster, campaigns, isAdmin, onClose, onEdit, onDelete, onClone, onAddToCampaign }) {
     const [selectedCampaign, setSelectedCampaign] = useState("");
 
     const abil = (key) => {
@@ -397,149 +426,137 @@ function MonsterCard({ monster, campaigns, isAdmin, expanded, onToggle, onEdit, 
     };
 
     return (
-        <div className="scroll-card" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="modal-overlay" onClick={onClose}>
             <div
-                onClick={onToggle}
-                style={{
-                    padding: "1rem 1.5rem",
-                    cursor: "pointer",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    gap: "1rem"
-                }}
+                className="scroll-card"
+                style={{ maxWidth: 540, width: "92%", padding: "1.5rem" }}
+                onClick={e => e.stopPropagation()}
             >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+                    <h2 style={{ margin: 0 }}>{monster.name}</h2>
+                    <button className="btn btn-small" onClick={onClose}>✕</button>
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center", fontSize: "0.85rem", marginBottom: "1rem" }}>
+                    <span className="badge-tag">{monster.size}</span>
+                    {(() => {
+                        const { color, bg } = monsterTypeColor(monster.type);
+                        return (
+                            <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
+                                {monster.type}{monster.subtype ? ` (${monster.subtype})` : ""}
+                            </span>
+                        );
+                    })()}
+                    <span className="badge-tag" style={{ background: "rgba(160, 32, 32, 0.15)" }}>CR {monster.challengeRating}</span>
+                    <span>·</span>
+                    <span style={{ color: "var(--ink-faded)" }}>{monster.alignment}</span>
+                    {monster.isPublic && (
+                        <span className="badge-tag" style={{ background: "rgba(59, 109, 255, 0.15)", color: "#3b6dff" }}>SRD</span>
+                    )}
+                </div>
+
                 {monster.image?.cloudinaryUrl && (
                     <img
                         src={monster.image.cloudinaryUrl}
                         alt={monster.name}
-                        style={{ width: "56px", height: "56px", objectFit: "cover", borderRadius: "2px", border: "1px solid var(--ink-faded)", flexShrink: 0 }}
+                        style={{ maxHeight: "160px", borderRadius: "2px", border: "1px solid var(--ink-faded)", marginBottom: "1rem", display: "block" }}
                     />
                 )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ margin: 0, marginBottom: "0.3rem" }}>{monster.name}</h3>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center", fontSize: "0.85rem", color: "var(--ink-faded)" }}>
-                        <span className="badge-tag">{monster.size}</span>
-                        {(() => {
-                            const { color, bg } = monsterTypeColor(monster.type);
-                            return (
-                                <span className="badge-tag" style={{ background: bg, color, border: `1px solid ${color}40` }}>
-                                    {monster.type}{monster.subtype ? ` (${monster.subtype})` : ""}
-                                </span>
-                            );
-                        })()}
-                        <span className="badge-tag" style={{ background: "rgba(160, 32, 32, 0.15)" }}>CR {monster.challengeRating}</span>
-                        <span>·</span>
-                        <span>{monster.alignment}</span>
-                        {monster.isPublic && (
-                            <span className="badge-tag" style={{ background: "rgba(59, 109, 255, 0.15)", color: "#3b6dff" }}>
-                                SRD
-                            </span>
-                        )}
+
+                {/* Defensas */}
+                <div style={{ margin: "1rem 0", fontSize: "0.9rem", lineHeight: 1.6 }}>
+                    <div><strong>Clase de armadura:</strong> {monster.armorClass}{monster.armorClassNote && ` (${monster.armorClassNote})`}</div>
+                    <div>
+                        <strong>Puntos de golpe:</strong> {monster.hitPoints?.average}
+                        {monster.hitPoints?.roll && ` (${monster.hitPoints.roll})`}
                     </div>
+                    <div><strong>Velocidad:</strong> {(monster.speed || []).join(", ") || "—"}</div>
                 </div>
-                <span style={{ fontSize: "1.3rem", color: "var(--ink-faded)" }}>
-                    {expanded ? "▾" : "▸"}
-                </span>
-            </div>
 
-            {expanded && (
-                <div style={{ padding: "0 1.5rem 1rem", borderTop: "1px dashed var(--parchment-shadow)" }}>
-                    {/* Defensas */}
-                    <div style={{ margin: "1rem 0", fontSize: "0.9rem", lineHeight: 1.6 }}>
-                        <div><strong>Clase de armadura:</strong> {monster.armorClass}{monster.armorClassNote && ` (${monster.armorClassNote})`}</div>
-                        <div>
-                            <strong>Puntos de golpe:</strong> {monster.hitPoints?.average}
-                            {monster.hitPoints?.roll && ` (${monster.hitPoints.roll})`}
+                {/* Atributos en grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(50px, 1fr))", gap: "0.4rem", margin: "1rem 0", fontSize: "0.85rem", textAlign: "center" }}>
+                    {["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"].map(k => (
+                        <div key={k}>
+                            <div style={{ fontFamily: "Cinzel, serif", fontSize: "0.7rem", color: "var(--ink-faded)", textTransform: "uppercase" }}>{k.slice(0, 3)}</div>
+                            <div><strong>{abil(k)}</strong></div>
                         </div>
-                        <div><strong>Velocidad:</strong> {(monster.speed || []).join(", ") || "—"}</div>
+                    ))}
+                </div>
+
+                {/* Sentidos e idiomas */}
+                <div style={{ fontSize: "0.85rem", lineHeight: 1.6 }}>
+                    {(monster.senses || []).length > 0 && (
+                        <div><strong>Sentidos:</strong> {monster.senses.join(", ")}, Percepción pasiva {monster.passivePerception}</div>
+                    )}
+                    {(monster.languages || []).length > 0 && (
+                        <div><strong>Idiomas:</strong> {monster.languages.join(", ")}</div>
+                    )}
+                    {(monster.damageResistances || []).length > 0 && (
+                        <div><strong>Resistencias:</strong> {monster.damageResistances.join(", ")}</div>
+                    )}
+                    {(monster.damageImmunities || []).length > 0 && (
+                        <div><strong>Inmunidades:</strong> {monster.damageImmunities.join(", ")}</div>
+                    )}
+                    {(monster.conditionImmunities || []).length > 0 && (
+                        <div><strong>Inmunidad a condiciones:</strong> {monster.conditionImmunities.join(", ")}</div>
+                    )}
+                </div>
+
+                {/* Acciones agrupadas por tipo */}
+                {(monster.actions || []).length > 0 && (
+                    <ActionsGroup actions={monster.actions} />
+                )}
+
+                {monster.spellcastingNote && (
+                    <div style={{ marginTop: "1rem", padding: "0.6rem", background: "rgba(184, 134, 11, 0.08)", borderLeft: "3px solid var(--gold)", borderRadius: "2px", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>
+                        <strong>Lanzamiento de conjuros:</strong> {monster.spellcastingNote}
                     </div>
+                )}
 
-                    {/* Atributos en grid */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(50px, 1fr))", gap: "0.4rem", margin: "1rem 0", fontSize: "0.85rem", textAlign: "center" }}>
-                        {["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"].map(k => (
-                            <div key={k}>
-                                <div style={{ fontFamily: "Cinzel, serif", fontSize: "0.7rem", color: "var(--ink-faded)", textTransform: "uppercase" }}>{k.slice(0, 3)}</div>
-                                <div><strong>{abil(k)}</strong></div>
-                            </div>
-                        ))}
+                {monster.description && (
+                    <div style={{ marginTop: "1rem", fontStyle: "italic", whiteSpace: "pre-wrap" }}>{monster.description}</div>
+                )}
+
+                {monster.dmNotes && (
+                    <div style={{ marginTop: "1rem", padding: "0.6rem", background: "rgba(139, 0, 0, 0.08)", borderLeft: "3px solid var(--blood)", borderRadius: "2px", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>
+                        <strong>📝 Notas del DM:</strong>
+                        <br />
+                        {monster.dmNotes}
                     </div>
+                )}
 
-                    {/* Sentidos e idiomas */}
-                    <div style={{ fontSize: "0.85rem", lineHeight: 1.6 }}>
-                        {(monster.senses || []).length > 0 && (
-                            <div><strong>Sentidos:</strong> {monster.senses.join(", ")}, Percepción pasiva {monster.passivePerception}</div>
-                        )}
-                        {(monster.languages || []).length > 0 && (
-                            <div><strong>Idiomas:</strong> {monster.languages.join(", ")}</div>
-                        )}
-                        {(monster.damageResistances || []).length > 0 && (
-                            <div><strong>Resistencias:</strong> {monster.damageResistances.join(", ")}</div>
-                        )}
-                        {(monster.damageImmunities || []).length > 0 && (
-                            <div><strong>Inmunidades:</strong> {monster.damageImmunities.join(", ")}</div>
-                        )}
-                        {(monster.conditionImmunities || []).length > 0 && (
-                            <div><strong>Inmunidad a condiciones:</strong> {monster.conditionImmunities.join(", ")}</div>
-                        )}
-                    </div>
-
-                    {/* Acciones agrupadas por tipo */}
-                    {(monster.actions || []).length > 0 && (
-                        <ActionsGroup actions={monster.actions} />
+                {/* Botones de acción */}
+                <div style={{ display: "flex", gap: "0.4rem", marginTop: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+                    {monster.isPublic && !isAdmin ? (
+                        <button className="btn btn-small" onClick={onClone}>
+                            📋 Clonar para editar
+                        </button>
+                    ) : (
+                        <>
+                            <button className="btn btn-small" onClick={onEdit}>Editar</button>
+                            <button className="btn btn-small btn-danger" onClick={onDelete}>Eliminar</button>
+                        </>
                     )}
-
-                    {monster.spellcastingNote && (
-                        <div style={{ marginTop: "1rem", padding: "0.6rem", background: "rgba(184, 134, 11, 0.08)", borderLeft: "3px solid var(--gold)", borderRadius: "2px", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>
-                            <strong>Lanzamiento de conjuros:</strong> {monster.spellcastingNote}
-                        </div>
-                    )}
-
-                    {monster.description && (
-                        <div style={{ marginTop: "1rem", fontStyle: "italic", whiteSpace: "pre-wrap" }}>{monster.description}</div>
-                    )}
-
-                    {monster.dmNotes && (
-                        <div style={{ marginTop: "1rem", padding: "0.6rem", background: "rgba(139, 0, 0, 0.08)", borderLeft: "3px solid var(--blood)", borderRadius: "2px", fontSize: "0.9rem", whiteSpace: "pre-wrap" }}>
-                            <strong>📝 Notas del DM:</strong>
-                            <br />
-                            {monster.dmNotes}
-                        </div>
-                    )}
-
-                    {/* Acciones */}
-                    <div style={{ display: "flex", gap: "0.4rem", marginTop: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-                        {monster.isPublic && !isAdmin ? (
-                            <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); onClone(); }}>
-                                📋 Clonar para editar
+                    {campaigns.length > 0 && (
+                        <div style={{ display: "flex", gap: "0.3rem", alignItems: "center", marginLeft: "auto" }}>
+                            <select
+                                value={selectedCampaign}
+                                onChange={e => setSelectedCampaign(e.target.value)}
+                            >
+                                <option value="">Añadir a campaña…</option>
+                                {campaigns.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                            </select>
+                            <button
+                                className="btn btn-small btn-gold"
+                                disabled={!selectedCampaign}
+                                onClick={() => { onAddToCampaign(selectedCampaign); setSelectedCampaign(""); }}
+                            >
+                                ＋
                             </button>
-                        ) : (
-                            <>
-                                <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); onEdit(); }}>Editar</button>
-                                <button className="btn btn-small btn-danger" onClick={(e) => { e.stopPropagation(); onDelete(); }}>Eliminar</button>
-                            </>
-                        )}
-                        {campaigns.length > 0 && (
-                            <div style={{ display: "flex", gap: "0.3rem", alignItems: "center", marginLeft: "auto" }} onClick={e => e.stopPropagation()}>
-                                <select
-                                    value={selectedCampaign}
-                                    onChange={e => setSelectedCampaign(e.target.value)}
-                                >
-                                    <option value="">Añadir a campaña…</option>
-                                    {campaigns.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                                </select>
-                                <button
-                                    className="btn btn-small btn-gold"
-                                    disabled={!selectedCampaign}
-                                    onClick={() => { onAddToCampaign(selectedCampaign); setSelectedCampaign(""); }}
-                                >
-                                    ＋
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }
@@ -665,7 +682,7 @@ function MonsterForm({ form, setForm, editingId, onSubmit, onCancel, helpers, on
                         <input value={form.alignment} onChange={(e) => setForm({ ...form, alignment: e.target.value })} />
                     </div>
                     <div className="field">
-                        <label>Desafío (CR)</label>
+                        <label>CR</label>
                         <select value={form.challengeRating} onChange={(e) => setForm({ ...form, challengeRating: e.target.value })}>
                             {CR_OPTIONS.map(cr => <option key={cr} value={cr}>{cr}</option>)}
                         </select>

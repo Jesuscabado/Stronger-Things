@@ -10,7 +10,7 @@
 }
 
 /* Grid genérico, usado en muchas pantallas */
-.grid { display: grid; gap: 1.5rem; }
+.grid { display: grid; gap: 1.5rem; align-items: start; }
 .grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 .grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 
@@ -25,7 +25,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    /* sticky para que la lista no se desplace al hacer scroll del detalle */
     position: sticky;
     top: 1rem;
     max-height: calc(100vh - 6rem);
@@ -116,6 +115,16 @@
 }
 .app-header nav a:hover {
     color: var(--gold-bright);
+}
+
+/* ─── Stat inline en cards de catálogo ──────────────────────────────── */
+.card-stat {
+    font-size: 0.72rem;
+    color: var(--ink-faded);
+    font-family: "Cinzel", serif;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 /* ─── Admin: cards de usuarios ──────────────────────────────────────── */

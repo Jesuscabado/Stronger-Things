@@ -73,15 +73,16 @@ export default function Header() {
                             {(user.role === "admin" || user.features?.includes("maps")) && <Link to="/maps">Mapas</Link>}
                             {user.role === "admin" && <Link to="/admin">Admin</Link>}
                             <Link to="/account" style={{ opacity: 0.7 }}>{user.username}</Link>
-                            <button className="btn btn-small" onClick={handleLogout}>Salir</button>
+                            <ThemeToggle />
+                            <button className="btn btn-small nav-logout" onClick={handleLogout}>Salir</button>
                         </>
                     ) : (
                         <>
                             <Link to="/login">Entrar</Link>
                             <Link to="/register">Registrarse</Link>
+                            <ThemeToggle />
                         </>
                     )}
-                    <ThemeToggle />
                 </nav>
             </div>
         </header>
