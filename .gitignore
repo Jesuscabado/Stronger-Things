@@ -146,6 +146,7 @@ vite.config.ts.timestamp-*
 # La configuración está en twa-manifest.json (raíz del repo).
 # Para regenerar el proyecto: bubblewrap init (desde esa carpeta)
 strongerthings-android/
+android.keystore
 
 # Google files
 google-credentials.json
