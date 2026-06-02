@@ -142,6 +142,12 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# Android / Bubblewrap TWA — carpeta completa ignorada.
+# La configuración está en twa-manifest.json (raíz del repo).
+# Para regenerar el proyecto: bubblewrap init (desde esa carpeta)
+strongerthings-android/
+android.keystore
+
 # Google files
 google-credentials.json
 uploads/

@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.jesuscabado.strongerthings.twa",
+    "sha256_cert_fingerprints": [
+      "DE:B2:15:6E:B8:66:B2:C1:8F:17:C0:DE:97:09:F6:02:19:5E:64:47:1B:00:BA:75:93:5B:7A:A0:9F:76:25:F9"
+    ]
+  }
+}]
