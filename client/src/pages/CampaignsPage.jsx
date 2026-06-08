@@ -329,7 +329,7 @@ function CampaignForm({ form, setForm, editingId, onSubmit, onCancel }) {
 
 function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChanged, onError, onFlash, onEdit, onDelete }) {
     const { color, bg } = campaignColor(colorIndex);
-    const [tab, setTab]           = useState("sessions"); // "sessions" | "participants" | "gallery" | "notes"
+    const [tab, setTab]           = useState("sessions"); // "dashboard" | "sessions" | "participants" | "gallery" | "notes"
     const [showSessionForm, setShowSessionForm] = useState(false);
     const [sessionForm, setSessionForm]         = useState(emptySessionForm());
     const [editingSessionId, setEditingSessionId] = useState(null);
@@ -391,7 +391,7 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
 
             {/* Pestañas internas */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", borderBottom: `2px solid ${color}`, marginBottom: "1rem" }}>
-                {[["sessions", "Sesiones"], ["participants", "Aventureros"], ["gallery", "⚔️ Galería"], ["notes", "Notas DM"]].map(([id, label]) => (
+                {[["dashboard", "📊 Resumen"], ["sessions", "Sesiones"], ["participants", "Aventureros"], ["gallery", "⚔️ Galería"], ["notes", "Notas DM"]].map(([id, label]) => (
                     <button
                         key={id}
                         className="btn btn-small"
@@ -402,6 +402,9 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
                     </button>
                 ))}
             </div>
+
+            {/* ── Resumen ── */}
+            {tab === "dashboard" && <CampaignDashboard campaign={campaign} color={color} bg={bg} />}
 
             {/* ── Sesiones ── */}
             {tab === "sessions" && (
@@ -495,6 +498,142 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
                 />
             )}
         </div>
+    );
+}
+
+// ─── Resumen de campaña (dashboard) ──────────────────────────────────────────
+// Métricas calculadas a partir de los datos ya cargados en `campaign`
+// (sesiones, bitácora, participantes) — sin peticiones adicionales al servidor.
+
+function CampaignDashboard({ campaign, color, bg }) {
+    const sessions     = campaign.sessions || [];
+    const participants = campaign.participants || [];
+
+    const sessionsWithDate = sessions
+        .filter(s => s.date)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const now    = new Date();
+    const past   = sessionsWithDate.filter(s => new Date(s.date) <= now);
+    const future = sessionsWithDate.filter(s => new Date(s.date) > now);
+    const lastSession = past[past.length - 1] || null;
+    const nextSession = future[0] || null;
+
+    let avgGapDays = null;
+    if (sessionsWithDate.length >= 2) {
+        const gaps = sessionsWithDate.slice(1).map((s, i) =>
+            (new Date(s.date) - new Date(sessionsWithDate[i].date)) / 86400000
+        );
+        avgGapDays = Math.round(gaps.reduce((sum, g) => sum + g, 0) / gaps.length);
+    }
+
+    const logCounts    = { diary: 0, note: 0, encounter: 0 };
+    const monsterCount = {};
+    sessions.forEach(session => {
+        (session.log || []).forEach(entry => {
+            logCounts[entry.kind] = (logCounts[entry.kind] || 0) + 1;
+            if (entry.kind !== "encounter") return;
+
+            const monsters = entry.monsters?.length > 0 ? entry.monsters : (entry.monster ? [entry.monster] : []);
+            const names = monsters.length > 0
+                ? monsters.map(m => (typeof m === "object" && m.name) ? m.name : null).filter(Boolean)
+                : (entry.monsterNames?.length > 0 ? entry.monsterNames : (entry.monsterName ? [entry.monsterName] : []));
+            names.forEach(name => { monsterCount[name] = (monsterCount[name] || 0) + 1; });
+        });
+    });
+    const totalLogEntries = logCounts.diary + logCounts.note + logCounts.encounter;
+    const topMonsters     = Object.entries(monsterCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    const fmtDate = (d) => new Date(d).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+
+    const stats = [
+        { label: "Sesiones jugadas",     value: sessions.length },
+        { label: "Aventureros",          value: participants.length },
+        { label: "Encuentros",           value: logCounts.encounter },
+        { label: "Entradas de bitácora", value: totalLogEntries },
+    ];
+
+    return (
+        <div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "0.6rem", marginBottom: "1.2rem" }}>
+                {stats.map(({ label, value }) => (
+                    <div key={label} style={{ background: bg, border: `1px solid ${color}33`, borderLeft: `3px solid ${color}`, borderRadius: "4px", padding: "0.65rem 0.85rem", textAlign: "center" }}>
+                        <div style={{ fontSize: "1.6rem", fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
+                        <div style={{ fontSize: "0.7rem", color: "var(--ink-faded)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "0.25rem" }}>{label}</div>
+                    </div>
+                ))}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.2rem" }}>
+                <div style={{ minWidth: 0 }}>
+                    <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem", color }}>📅 Ritmo de juego</h3>
+                    {sessionsWithDate.length === 0 ? (
+                        <p style={{ color: "var(--ink-faded)", fontSize: "0.85rem" }}>Aún no hay sesiones con fecha registrada.</p>
+                    ) : (
+                        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.4rem", fontSize: "0.85rem" }}>
+                            {lastSession && (
+                                <li><strong style={{ color: "var(--ink)" }}>Última sesión:</strong>{" "}
+                                    <span style={{ color: "var(--ink-faded)" }}>{lastSession.title} · {fmtDate(lastSession.date)}</span></li>
+                            )}
+                            {nextSession && (
+                                <li><strong style={{ color: "var(--ink)" }}>Próxima sesión:</strong>{" "}
+                                    <span style={{ color: "var(--ink-faded)" }}>{nextSession.title} · {fmtDate(nextSession.date)}</span></li>
+                            )}
+                            {avgGapDays != null && (
+                                <li><strong style={{ color: "var(--ink)" }}>Cadencia media:</strong>{" "}
+                                    <span style={{ color: "var(--ink-faded)" }}>cada {avgGapDays} día{avgGapDays !== 1 ? "s" : ""}</span></li>
+                            )}
+                        </ul>
+                    )}
+                </div>
+
+                <div style={{ minWidth: 0 }}>
+                    <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem", color }}>📖 Bitácora</h3>
+                    {totalLogEntries === 0 ? (
+                        <p style={{ color: "var(--ink-faded)", fontSize: "0.85rem" }}>Aún no hay entradas registradas en el diario de sesiones.</p>
+                    ) : (
+                        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                            {Object.entries(LOG_KIND_LABEL).map(([kind, label]) => (
+                                <li key={kind} style={{ display: "grid", gridTemplateColumns: "20px 1fr auto", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}>
+                                    <span>{LOG_KIND_ICON[kind]}</span>
+                                    <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", minWidth: 0 }}>
+                                        <span style={{ color: "var(--ink)" }}>{label}</span>
+                                        <BarTrack value={logCounts[kind] || 0} max={totalLogEntries} color={color} />
+                                    </span>
+                                    <span style={{ color, fontWeight: 700 }}>{logCounts[kind] || 0}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+
+                <div style={{ minWidth: 0 }}>
+                    <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem", color }}>⚔️ Rivales habituales</h3>
+                    {topMonsters.length === 0 ? (
+                        <p style={{ color: "var(--ink-faded)", fontSize: "0.85rem" }}>Sin encuentros registrados todavía.</p>
+                    ) : (
+                        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                            {topMonsters.map(([name, count]) => (
+                                <li key={name} style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", fontSize: "0.85rem" }}>
+                                    <span style={{ color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={name}>{name}</span>
+                                    <span style={{ color, fontWeight: 700, flexShrink: 0 }}>× {count}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Barra de proporción ligera — evita depender de una librería de gráficos para el resumen.
+function BarTrack({ value, max, color }) {
+    const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+    return (
+        <span style={{ flex: 1, minWidth: "40px", height: "6px", borderRadius: "3px", background: `${color}22`, overflow: "hidden" }}>
+            <span style={{ display: "block", height: "100%", width: `${pct}%`, background: color, borderRadius: "3px" }} />
+        </span>
     );
 }
 
