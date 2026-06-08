@@ -374,8 +374,8 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
 
     return (
         <div className="scroll-card" style={{ padding: "1.4rem", borderTop: `4px solid ${color}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                <div style={{ flex: 1, minWidth: "140px" }}>
                     <h2 style={{ margin: 0, color }}>{campaign.name}</h2>
                     <span style={{ fontSize: "0.8rem", color: STATUS_COLOR[campaign.status] }}>● {STATUS_LABEL[campaign.status]}</span>
                     {campaign.description && <p style={{ margin: "0.3rem 0 0", color: "var(--ink-faded)", fontSize: "0.85rem" }}>{campaign.description}</p>}
@@ -390,7 +390,7 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
             </div>
 
             {/* Pestañas internas */}
-            <div style={{ display: "flex", gap: "0.3rem", borderBottom: `2px solid ${color}`, marginBottom: "1rem" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", borderBottom: `2px solid ${color}`, marginBottom: "1rem" }}>
                 {[["sessions", "Sesiones"], ["participants", "Aventureros"], ["gallery", "⚔️ Galería"], ["notes", "Notas DM"]].map(([id, label]) => (
                     <button
                         key={id}
