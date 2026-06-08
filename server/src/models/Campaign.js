@@ -32,10 +32,13 @@ const logEntrySchema = new mongoose.Schema(
 // ─── Sesión individual dentro de una campaña ─────────────────────────────────
 const sessionSchema = new mongoose.Schema(
     {
-        title:   { type: String, required: true, trim: true },
-        date:    { type: Date },
-        summary: { type: String, default: "" },
-        log:     [logEntrySchema]
+        title:     { type: String, required: true, trim: true },
+        date:      { type: Date },
+        summary:   { type: String, default: "" },
+        // Duración real de la sesión en minutos (para el resumen de horas jugadas)
+        duration:  { type: Number, min: 0 },
+        attendees: [{ type: mongoose.Schema.Types.ObjectId, ref: "Character" }],
+        log:       [logEntrySchema]
     },
     { timestamps: true }
 );

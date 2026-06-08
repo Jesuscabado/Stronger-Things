@@ -362,7 +362,13 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
     };
 
     const openEditSession = (s) => {
-        setSessionForm({ title: s.title, date: s.date ? s.date.slice(0, 10) : "", summary: s.summary || "" });
+        setSessionForm({
+            title:     s.title,
+            date:      s.date ? s.date.slice(0, 10) : "",
+            summary:   s.summary || "",
+            duration:  s.duration ?? "",
+            attendees: (s.attendees || []).map(a => (a._id || a).toString())
+        });
         setEditingSessionId(s._id);
         setShowSessionForm(true);
     };
@@ -422,6 +428,7 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
                             form={sessionForm}
                             setForm={setSessionForm}
                             editingId={editingSessionId}
+                            participants={campaign.participants || []}
                             onSubmit={submitSession}
                             onCancel={() => { setShowSessionForm(false); setEditingSessionId(null); }}
                         />
@@ -544,6 +551,21 @@ function CampaignDashboard({ campaign, color, bg }) {
     const totalLogEntries = logCounts.diary + logCounts.note + logCounts.encounter;
     const topMonsters     = Object.entries(monsterCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
+    const totalMinutes = sessions.reduce((sum, s) => sum + (typeof s.duration === "number" ? s.duration : 0), 0);
+    const totalHours   = totalMinutes > 0 ? Math.round((totalMinutes / 60) * 10) / 10 : null;
+
+    const sessionsWithAttendance = sessions.filter(s => (s.attendees || []).length > 0);
+    const attendance = {};
+    sessionsWithAttendance.forEach(session => {
+        (session.attendees || []).forEach(a => {
+            const id   = (a._id || a).toString();
+            const name = a.name || "Personaje";
+            if (!attendance[id]) attendance[id] = { id, name, count: 0 };
+            attendance[id].count++;
+        });
+    });
+    const attendanceRanking = Object.values(attendance).sort((a, b) => b.count - a.count);
+
     const fmtDate = (d) => new Date(d).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
 
     const stats = [
@@ -552,6 +574,7 @@ function CampaignDashboard({ campaign, color, bg }) {
         { label: "Encuentros",           value: logCounts.encounter },
         { label: "Entradas de bitácora", value: totalLogEntries },
     ];
+    if (totalHours != null) stats.push({ label: "Horas jugadas", value: totalHours });
 
     return (
         <div>
@@ -604,6 +627,30 @@ function CampaignDashboard({ campaign, color, bg }) {
                                 </li>
                             ))}
                         </ul>
+                    )}
+                </div>
+
+                <div style={{ minWidth: 0 }}>
+                    <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem", color }}>🎭 Asistencia</h3>
+                    {attendanceRanking.length === 0 ? (
+                        <p style={{ color: "var(--ink-faded)", fontSize: "0.85rem" }}>Aún no se ha registrado la asistencia de ninguna sesión.</p>
+                    ) : (
+                        <>
+                            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                                {attendanceRanking.map(({ id, name, count }) => (
+                                    <li key={id} style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}>
+                                        <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", minWidth: 0 }}>
+                                            <span style={{ color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={name}>{name}</span>
+                                            <BarTrack value={count} max={sessionsWithAttendance.length} color={color} />
+                                        </span>
+                                        <span style={{ color, fontWeight: 700 }}>{count}/{sessionsWithAttendance.length}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                            <p style={{ ...hint, marginTop: "0.5rem" }}>
+                                Sobre {sessionsWithAttendance.length} sesión{sessionsWithAttendance.length !== 1 ? "es" : ""} con asistencia registrada.
+                            </p>
+                        </>
                     )}
                 </div>
 
@@ -1247,8 +1294,17 @@ function SessionView({ campaign, colorIndex, session, onBack, onChanged, onError
 
 // ─── Formulario de sesión ─────────────────────────────────────────────────────
 
-function SessionForm({ form, setForm, editingId, onSubmit, onCancel }) {
+function SessionForm({ form, setForm, editingId, participants, onSubmit, onCancel }) {
     const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+
+    const toggleAttendee = (charId) => {
+        setForm(p => {
+            const id = charId.toString();
+            const has = p.attendees.includes(id);
+            return { ...p, attendees: has ? p.attendees.filter(a => a !== id) : [...p.attendees, id] };
+        });
+    };
+
     return (
         <div style={{ background: "rgba(0,0,0,0.04)", borderRadius: "6px", padding: "1rem", marginBottom: "0.75rem" }}>
             <form onSubmit={onSubmit}>
@@ -1262,10 +1318,40 @@ function SessionForm({ form, setForm, editingId, onSubmit, onCancel }) {
                         <input type="date" value={form.date} onChange={set("date")} style={{ width: "100%" }} />
                     </div>
                     <div>
+                        <label style={lbl}>Duración (minutos)</label>
+                        <input type="number" min="0" step="5" value={form.duration} onChange={set("duration")} placeholder="180" style={{ width: "100%" }} />
+                    </div>
+                    <div style={{ gridColumn: "1/-1" }}>
                         <label style={lbl}>Resumen</label>
                         <input type="text" value={form.summary} onChange={set("summary")} placeholder="Breve descripción…" style={{ width: "100%" }} />
                     </div>
                 </div>
+
+                {participants.length > 0 && (
+                    <div style={{ marginTop: "0.7rem" }}>
+                        <label style={lbl}>Asistentes</label>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                            {participants.map(p => {
+                                const charId = (p.character?._id || p.character || "").toString();
+                                const name   = p.character?.name || p.characterName || "Personaje";
+                                const active = form.attendees.includes(charId);
+                                return (
+                                    <button
+                                        type="button"
+                                        key={charId}
+                                        onClick={() => toggleAttendee(charId)}
+                                        className="btn btn-small"
+                                        style={{ opacity: active ? 1 : 0.5, fontWeight: active ? 700 : 400 }}
+                                    >
+                                        {active ? "✓ " : ""}{name}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <p style={hint}>Marca quiénes estuvieron presentes para llevar el registro de asistencia.</p>
+                    </div>
+                )}
+
                 <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
                     <button type="submit" className="btn btn-primary">{editingId ? "Guardar" : "Crear sesión"}</button>
                     <button type="button" className="btn" onClick={onCancel}>Cancelar</button>
@@ -1506,6 +1592,6 @@ function MonsterActionsGroup({ actions }) {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const emptyCampaignForm = () => ({ name: "", description: "", status: "planning", notes: "" });
-const emptySessionForm  = () => ({ title: "", date: "", summary: "" });
+const emptySessionForm  = () => ({ title: "", date: "", summary: "", duration: "", attendees: [] });
 const lbl  = { display: "block", marginBottom: "0.25rem", fontWeight: 600, fontSize: "0.85rem" };
 const hint = { fontSize: "0.8rem", color: "var(--ink-faded)", marginTop: "0.4rem" };

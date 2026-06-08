@@ -13,6 +13,16 @@ const checkOwner = (campaign, dmId) => {
     if (!campaign.dm.equals(dmId)) throw forbidden();
 };
 
+// Sólo se puede marcar como asistente a quien ya participa en la campaña
+const sanitizeAttendees = (campaign, attendees) => {
+    if (!Array.isArray(attendees)) return [];
+    const participantIds = new Set(campaign.participants.map(p => p.character?.toString()).filter(Boolean));
+    return attendees.filter(a => participantIds.has(a?.toString()));
+};
+
+const sanitizeDuration = (duration) =>
+    duration === undefined || duration === null || duration === "" ? undefined : Number(duration);
+
 // Populate ligero para la lista
 const listPopulate = (q) =>
     q.populate({ path: "participants.character", select: "name charClass level" });
@@ -21,6 +31,7 @@ const listPopulate = (q) =>
 const detailPopulate = (q) =>
     q
         .populate({ path: "participants.character", select: "name charClass level avatar" })
+        .populate({ path: "sessions.attendees",     select: "name charClass level avatar" })
         .populate({ path: "sessions.log.monster",  select: "name challengeRating type" })
         .populate({ path: "sessions.log.monsters", select: "name challengeRating type" })
         .populate({ path: "monsters", select: "name challengeRating type size source" });
@@ -89,9 +100,15 @@ export const removeParticipant = async (id, characterId, dmId) => {
 export const addSession = async (id, data, dmId) => {
     const campaign = await Campaign.findById(id);
     checkOwner(campaign, dmId);
-    const { title, date, summary } = data;
+    const { title, date, summary, duration, attendees } = data;
     if (!title?.trim()) throw badReq("El título de la sesión es obligatorio");
-    campaign.sessions.push({ title, date, summary });
+    campaign.sessions.push({
+        title,
+        date,
+        summary,
+        duration:  sanitizeDuration(duration),
+        attendees: sanitizeAttendees(campaign, attendees)
+    });
     await campaign.save();
     return detailPopulate(Campaign.findById(id)).lean();
 };
@@ -101,10 +118,12 @@ export const updateSession = async (id, sessionId, data, dmId) => {
     checkOwner(campaign, dmId);
     const session = campaign.sessions.id(sessionId);
     if (!session) throw notFound("Sesión no encontrada");
-    const { title, date, summary } = data;
-    if (title   !== undefined) session.title   = title;
-    if (date    !== undefined) session.date    = date;
-    if (summary !== undefined) session.summary = summary;
+    const { title, date, summary, duration, attendees } = data;
+    if (title     !== undefined) session.title     = title;
+    if (date      !== undefined) session.date      = date;
+    if (summary   !== undefined) session.summary   = summary;
+    if (duration  !== undefined) session.duration  = sanitizeDuration(duration);
+    if (attendees !== undefined) session.attendees = sanitizeAttendees(campaign, attendees);
     await campaign.save();
     return detailPopulate(Campaign.findById(id)).lean();
 };
