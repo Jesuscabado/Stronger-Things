@@ -51,7 +51,7 @@ export default function AdminPage() {
     const handleToggleFeature = async (u, feature) => {
         const hasFeat = (u.features ?? []).includes(feature);
         const next    = !hasFeat;
-        const labels  = { maps: "acceso a Mapas" };
+        const labels  = { maps: "acceso a Mapas", campaigns: "acceso a Campañas" };
         if (!confirm(`¿${next ? "Dar" : "Quitar"} ${labels[feature]} a ${u.username}?`)) return;
         try { await adminApi.updateFeature(u._id, feature, next); flash(`${labels[feature]} ${next ? "concedido" : "retirado"}`); load(); }
         catch (err) { setError(err.message); }
@@ -121,7 +121,8 @@ function StatBox({ value, label, color }) {
 }
 
 function UserCard({ user: u, isMe, onToggleRole, onToggleDM, onToggleFeature, onDelete }) {
-    const hasMaps = (u.features ?? []).includes("maps");
+    const hasMaps      = (u.features ?? []).includes("maps");
+    const hasCampaigns = (u.features ?? []).includes("campaigns");
     const isAdmin = u.role === "admin";
 
     return (
@@ -136,6 +137,7 @@ function UserCard({ user: u, isMe, onToggleRole, onToggleDM, onToggleFeature, on
                     </span>
                     {u.isDM && <span className="admin-badge admin-badge--gold">DM</span>}
                     {hasMaps && !isAdmin && <span className="admin-badge admin-badge--purple">Mapas</span>}
+                    {hasCampaigns && !isAdmin && <span className="admin-badge admin-badge--purple">Campañas</span>}
                 </div>
                 <div className="admin-user-card__email">{u.email}</div>
                 <div className="admin-user-card__date">
@@ -149,6 +151,7 @@ function UserCard({ user: u, isMe, onToggleRole, onToggleDM, onToggleFeature, on
                     className="btn btn-small"
                     onClick={() => onToggleRole(u)}
                     disabled={isMe}
+                    title={isAdmin ? "Quitar rol de administrador y convertir en usuario normal" : "Convertir en administrador con acceso total"}
                 >
                     {isAdmin ? "↓ Degradar" : "↑ Promover"}
                 </button>
@@ -158,20 +161,36 @@ function UserCard({ user: u, isMe, onToggleRole, onToggleDM, onToggleFeature, on
                     onClick={() => onToggleDM(u)}
                     disabled={isMe}
                     style={{ color: u.isDM ? "var(--blood)" : "var(--gold)" }}
+                    title={u.isDM ? "Retirar el rol de Director de Juego" : "Asignar rol de Director de Juego (gestiona campañas, bestiario y sesiones)"}
                 >
                     {u.isDM ? "✕ DM" : "🎲 DM"}
                 </button>
 
                 {isAdmin ? (
-                    <span className="admin-perm-label">Mapas ∞</span>
+                    <span className="admin-perm-label" title="Los administradores tienen acceso ilimitado a Mapas">Mapas ∞</span>
                 ) : (
                     <button
                         className="btn btn-small"
                         onClick={() => onToggleFeature(u, "maps")}
                         disabled={isMe}
                         style={{ color: hasMaps ? "var(--blood)" : "var(--gold)" }}
+                        title={hasMaps ? "Revocar acceso al editor de mapas tácticos" : "Conceder acceso al editor de mapas tácticos"}
                     >
                         {hasMaps ? "✕ Mapas" : "✓ Mapas"}
+                    </button>
+                )}
+
+                {isAdmin ? (
+                    <span className="admin-perm-label" title="Los administradores tienen acceso ilimitado a Campañas">Campañas ∞</span>
+                ) : (
+                    <button
+                        className="btn btn-small"
+                        onClick={() => onToggleFeature(u, "campaigns")}
+                        disabled={isMe}
+                        style={{ color: hasCampaigns ? "var(--blood)" : "var(--gold)" }}
+                        title={hasCampaigns ? "Revocar acceso a la gestión de campañas" : "Conceder acceso a la gestión de campañas y sesiones"}
+                    >
+                        {hasCampaigns ? "✕ Campañas" : "✓ Campañas"}
                     </button>
                 )}
 
@@ -179,6 +198,7 @@ function UserCard({ user: u, isMe, onToggleRole, onToggleDM, onToggleFeature, on
                     className="btn btn-small btn-danger"
                     onClick={() => onDelete(u)}
                     disabled={isMe}
+                    title="Eliminar usuario y todos sus personajes de forma permanente"
                 >
                     Eliminar
                 </button>
