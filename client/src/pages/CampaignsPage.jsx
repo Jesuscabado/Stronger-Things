@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { campaignsApi, charactersSearchApi } from "../api/campaigns.js";
+import { campaignsApi, charactersSearchApi, playerCampaignsApi } from "../api/campaigns.js";
+import { charactersApi } from "../api/characters.js";
 import PageIntro from "../components/layout/PageIntro.jsx";
 import { monstersApi } from "../api/monsters.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -25,20 +26,344 @@ const LOG_KIND_ICON  = { diary: "📖", note: "📝", encounter: "⚔️" };
 
 export default function CampaignsPage() {
     const { user } = useAuth();
-    if (!user?.isDM) return <NoDMAccess />;
+    if (!user?.isDM) return <PlayerCampaigns />;
     return <Campaigns />;
 }
 
-function NoDMAccess() {
+// ─── Vista de jugador ─────────────────────────────────────────────────────────
+// Vista de sólo lectura para aventureros: campañas en las que participan,
+// con sus sesiones, bitácora, notas compartidas por el DM y encuestas de
+// disponibilidad en las que pueden votar con sus personajes.
+
+function PlayerCampaigns() {
+    const [campaigns, setCampaigns] = useState([]);
+    const [loading, setLoading]     = useState(true);
+    const [error, setError]         = useState("");
+    const [success, setSuccess]     = useState("");
+    const [selectedId, setSelectedId] = useState(null);
+
+    const flash = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(""), 2500); };
+
+    const load = async () => {
+        try {
+            setLoading(true);
+            setCampaigns(await playerCampaignsApi.list());
+        } catch (e) { setError(e.message); }
+        finally { setLoading(false); }
+    };
+
+    useEffect(() => { load(); }, []);
+
+    const reload = async (id) => {
+        try {
+            const updated = await playerCampaignsApi.get(id);
+            setCampaigns(prev => prev.map(c => c._id === id ? updated : c));
+        } catch (e) { setError(e.message); }
+    };
+
+    const selected = campaigns.find(c => c._id === selectedId) || null;
+    const colorIdx = Object.fromEntries(
+        [...campaigns].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)).map((c, i) => [c._id, i])
+    );
+
     return (
         <div className="container">
-            <div className="scroll-card" style={{ textAlign: "center", padding: "3rem 2rem" }}>
-                <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🔒</div>
-                <h1>Acceso restringido</h1>
-                <p style={{ color: "var(--ink-faded)", maxWidth: "480px", margin: "1rem auto" }}>
-                    Las campañas están disponibles únicamente para los Directores de Juego.
-                    Contacta con un administrador para que te asigne el rol DM.
-                </p>
+            <PageIntro pageKey="campaigns-player" text="Aquí puedes consultar las campañas en las que participas: sesiones jugadas, bitácora, notas que comparte tu DM y encuestas de disponibilidad." />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "0.75rem" }}>
+                <h1 style={{ margin: 0 }}>Mis campañas</h1>
+            </div>
+
+            {error   && <div className="alert" style={{ cursor: "pointer" }} onClick={() => setError("")}>{error}</div>}
+            {success && <div className="alert-success" style={{ marginBottom: "1rem", padding: "0.75rem 1rem", borderRadius: "4px" }}>{success}</div>}
+
+            {loading ? (
+                <p style={{ color: "var(--ink-faded)" }}>Cargando campañas…</p>
+            ) : selected ? (
+                <PlayerCampaignDetail
+                    campaign={selected}
+                    colorIndex={colorIdx[selected._id] ?? 0}
+                    onClose={() => setSelectedId(null)}
+                    onChanged={() => reload(selected._id)}
+                    onError={setError}
+                    onFlash={flash}
+                />
+            ) : campaigns.length === 0 ? (
+                <div className="scroll-card" style={{ textAlign: "center", padding: "2.5rem 2rem" }}>
+                    <div style={{ fontSize: "3rem", marginBottom: "0.75rem" }}>🗺️</div>
+                    <p style={{ color: "var(--ink-faded)", margin: 0 }}>
+                        Todavía no participas en ninguna campaña. Pide a tu Director de Juego que añada a uno de tus personajes como aventurero.
+                    </p>
+                </div>
+            ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "0.8rem" }}>
+                    {campaigns.map(c => {
+                        const { color } = campaignColor(colorIdx[c._id] ?? 0);
+                        return (
+                            <div
+                                key={c._id}
+                                className="scroll-card"
+                                style={{ padding: "1rem", borderTop: `4px solid ${color}`, cursor: "pointer" }}
+                                onClick={() => setSelectedId(c._id)}
+                            >
+                                <h3 style={{ margin: 0, color }}>{c.name}</h3>
+                                <span style={{ fontSize: "0.78rem", color: STATUS_COLOR[c.status] }}>● {STATUS_LABEL[c.status]}</span>
+                                {c.description && <p style={{ margin: "0.35rem 0 0", fontSize: "0.82rem", color: "var(--ink-faded)" }}>{c.description}</p>}
+                                <p style={{ margin: "0.6rem 0 0", fontSize: "0.78rem", color: "var(--ink-faded)" }}>
+                                    {c.sessions?.length || 0} sesión{c.sessions?.length !== 1 ? "es" : ""} · {c.participants?.length || 0} aventurero{c.participants?.length !== 1 ? "s" : ""}
+                                </p>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function PlayerCampaignDetail({ campaign, colorIndex, onClose, onChanged, onError, onFlash }) {
+    const { color, bg } = campaignColor(colorIndex);
+    const [tab, setTab] = useState("dashboard");
+    const [selectedSession, setSelectedSession] = useState(null);
+    const [myCharacters, setMyCharacters] = useState([]);
+
+    useEffect(() => { charactersApi.list().then(setMyCharacters).catch(() => {}); }, []);
+
+    const myCharIds = new Set(myCharacters.map(c => c._id.toString()));
+    const myParticipants = (campaign.participants || []).filter(p => myCharIds.has((p.character?._id || p.character)?.toString()));
+
+    const sessions = [...(campaign.sessions || [])].sort((a, b) => {
+        if (a.date && b.date) return new Date(a.date) - new Date(b.date);
+        return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+
+    if (selectedSession) {
+        return (
+            <PlayerSessionView
+                campaign={campaign}
+                colorIndex={colorIndex}
+                session={selectedSession}
+                onBack={() => setSelectedSession(null)}
+            />
+        );
+    }
+
+    return (
+        <div className="scroll-card" style={{ padding: "1.4rem", borderTop: `4px solid ${color}` }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                <div style={{ flex: 1, minWidth: "140px" }}>
+                    <h2 style={{ margin: 0, color }}>{campaign.name}</h2>
+                    <span style={{ fontSize: "0.8rem", color: STATUS_COLOR[campaign.status] }}>● {STATUS_LABEL[campaign.status]}</span>
+                    {campaign.description && <p style={{ margin: "0.3rem 0 0", color: "var(--ink-faded)", fontSize: "0.85rem" }}>{campaign.description}</p>}
+                </div>
+                <button className="btn btn-small" onClick={onClose}>✕</button>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", borderBottom: `2px solid ${color}`, marginBottom: "1rem" }}>
+                {[
+                    ["dashboard", "📊 Resumen"],
+                    ["sessions", "Sesiones"],
+                    ["shared", "🤝 Notas compartidas"],
+                    ["polls", "🗳️ Encuestas"],
+                ].map(([id, label]) => (
+                    <button
+                        key={id}
+                        className="btn btn-small"
+                        style={{ borderRadius: "4px 4px 0 0", borderBottom: "none", opacity: tab === id ? 1 : 0.55, fontWeight: tab === id ? 700 : 400, background: tab === id ? bg : undefined, color: tab === id ? color : undefined }}
+                        onClick={() => setTab(id)}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+
+            {tab === "dashboard" && <CampaignDashboard campaign={campaign} color={color} bg={bg} />}
+
+            {tab === "sessions" && (
+                sessions.length === 0 ? (
+                    <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Tu DM aún no ha registrado sesiones en esta campaña.</p>
+                ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.6rem" }}>
+                        {sessions.map((s, i) => (
+                            <div
+                                key={s._id}
+                                onClick={() => setSelectedSession(s)}
+                                style={{ background: "var(--parchment)", border: `1px solid ${color}33`, borderLeft: `3px solid ${color}`, borderRadius: "4px", padding: "0.65rem 0.85rem", cursor: "pointer" }}
+                            >
+                                <div style={{ fontSize: "0.68rem", color, fontFamily: "Cinzel, serif", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.15rem" }}>
+                                    Sesión {i + 1}
+                                </div>
+                                <div style={{ fontWeight: 700, fontSize: "0.88rem" }}>{s.title}</div>
+                                <div style={{ fontSize: "0.72rem", color: "var(--ink-faded)" }}>
+                                    {s.date ? new Date(s.date).toLocaleDateString("es-ES") + " · " : ""}
+                                    {s.log?.length || 0} entrada{s.log?.length !== 1 ? "s" : ""}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )
+            )}
+
+            {tab === "shared" && (
+                (campaign.sharedNotes || []).length === 0 ? (
+                    <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Tu DM no ha compartido ninguna nota todavía.</p>
+                ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.6rem", alignItems: "start" }}>
+                        {campaign.sharedNotes.map(note => (
+                            <div key={note._id} style={{ background: "var(--parchment)", border: "1px solid var(--parchment-shadow)", borderLeft: "3px solid var(--gold-bright)", borderRadius: "4px", padding: "0.7rem 0.85rem", fontSize: "0.85rem", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                {note.content || <span style={{ color: "var(--ink-faded)" }}>(sin contenido)</span>}
+                            </div>
+                        ))}
+                    </div>
+                )
+            )}
+
+            {tab === "polls" && (
+                <PlayerPollsPanel campaign={campaign} color={color} myParticipants={myParticipants} onChanged={onChanged} onError={onError} onFlash={onFlash} />
+            )}
+        </div>
+    );
+}
+
+function PlayerSessionView({ campaign, colorIndex, session, onBack }) {
+    const [monsterPopup, setMonsterPopup] = useState(null);
+    const { color: sessionColor } = campaignColor(colorIndex);
+
+    const log = [...(session.log || [])].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    const sessions = [...(campaign.sessions || [])].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    const sessionIndex = sessions.findIndex(s => s._id === session._id);
+
+    return (
+        <>
+        <div className="scroll-card" style={{ padding: "1.4rem", borderTop: `4px solid ${sessionColor}` }}>
+            <div style={{ marginBottom: "1rem" }}>
+                <button className="btn btn-small" onClick={onBack} style={{ marginBottom: "0.4rem", borderColor: sessionColor, color: sessionColor }}>← {campaign.name}</button>
+                <h2 style={{ margin: 0, fontSize: "1.1rem", color: sessionColor }}>Sesión {sessionIndex + 1}: {session.title}</h2>
+                {session.date && <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem", color: "var(--ink-faded)" }}>{new Date(session.date).toLocaleDateString("es-ES")}</p>}
+                {session.summary && <p style={{ margin: "0.4rem 0 0", fontSize: "0.85rem", color: "var(--ink-faded)" }}>{session.summary}</p>}
+            </div>
+
+            {log.length === 0 ? (
+                <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem", textAlign: "center" }}>El log de esta sesión está vacío todavía.</p>
+            ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                    {log.map(entry => (
+                        <div key={entry._id} style={{ borderLeft: `3px solid ${entry.kind === "diary" ? "var(--gold)" : entry.kind === "encounter" ? "var(--blood)" : "var(--parchment-shadow)"}`, paddingLeft: "0.85rem" }}>
+                            <span style={{ fontSize: "0.72rem", color: "var(--ink-faded)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                                {LOG_KIND_ICON[entry.kind]} {LOG_KIND_LABEL[entry.kind]}
+                                {" · "}
+                                {new Date(entry.createdAt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                            {entry.kind === "encounter" && (() => {
+                                const monsters = entry.monsters?.filter(Boolean) ?? [];
+                                const legacy   = entry.monster;
+                                const legacyNm = entry.monsterName;
+                                if (!monsters.length && !legacy && !legacyNm) return null;
+                                const monsterBtn = (m) => (
+                                    <span key={m._id} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                                        <button onClick={() => setMonsterPopup(m._id)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--blood)", fontWeight: 600, fontSize: "inherit", textDecoration: "underline dotted", textUnderlineOffset: "3px" }} title="Ver stat block">
+                                            ⚔️ {m.name}
+                                        </button>
+                                        {m.challengeRating && <span style={{ fontWeight: 400, color: "var(--ink-faded)", fontSize: "0.8em" }}>CR {m.challengeRating}</span>}
+                                    </span>
+                                );
+                                return (
+                                    <div style={{ margin: "0.15rem 0 0", fontSize: "0.85rem", fontWeight: 600, display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                                        {monsters.length
+                                            ? monsters.map(m => monsterBtn(m))
+                                            : legacy?._id
+                                                ? monsterBtn(legacy)
+                                                : <span style={{ color: "var(--blood)" }}>⚔️ {legacyNm}</span>
+                                        }
+                                    </div>
+                                );
+                            })()}
+                            {entry.content && <p style={{ margin: "0.2rem 0 0", fontSize: "0.88rem", whiteSpace: "pre-wrap" }}>{entry.content}</p>}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+
+        {monsterPopup && <MonsterStatModal monsterId={monsterPopup} onClose={() => setMonsterPopup(null)} />}
+        </>
+    );
+}
+
+function PlayerPollsPanel({ campaign, color, myParticipants, onChanged, onError, onFlash }) {
+    const charOptions = myParticipants.map(p => ({
+        id:   (p.character?._id || p.character)?.toString(),
+        name: p.character?.name || p.characterName || "Personaje"
+    }));
+    const [votingCharId, setVotingCharId] = useState(charOptions[0]?.id || "");
+
+    if (charOptions.length === 0) {
+        return <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Necesitas tener un personaje participando en esta campaña para votar en las encuestas de disponibilidad.</p>;
+    }
+
+    const polls = [...(campaign.availabilityPolls || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    if (polls.length === 0) {
+        return <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Tu DM no ha creado ninguna encuesta de disponibilidad todavía.</p>;
+    }
+
+    const vote = async (poll, option) => {
+        try {
+            await playerCampaignsApi.vote(campaign._id, poll._id, option._id, votingCharId);
+            onFlash("Voto registrado");
+            onChanged();
+        } catch (e) { onError(e.message); }
+    };
+
+    return (
+        <div>
+            {charOptions.length > 1 && (
+                <div style={{ marginBottom: "1rem" }}>
+                    <label style={lbl}>Votar como</label>
+                    <select value={votingCharId} onChange={e => setVotingCharId(e.target.value)} style={{ width: "100%", maxWidth: "260px" }}>
+                        {charOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                </div>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.7rem" }}>
+                {polls.map(poll => {
+                    const totalVotes = poll.options.reduce((s, o) => s + (o.votes?.length || 0), 0);
+                    const maxVotes   = Math.max(1, ...poll.options.map(o => o.votes?.length || 0));
+                    return (
+                        <div key={poll._id} style={{ background: "var(--parchment)", border: "1px solid var(--parchment-shadow)", borderLeft: `3px solid ${poll.status === "open" ? color : "var(--ink-faded)"}`, borderRadius: "4px", padding: "0.7rem 0.9rem" }}>
+                            <div style={{ marginBottom: "0.5rem" }}>
+                                <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>{poll.title}</div>
+                                <span style={{ fontSize: "0.72rem", color: poll.status === "open" ? color : "var(--ink-faded)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                    ● {poll.status === "open" ? "Abierta" : "Cerrada"} · {totalVotes} voto{totalVotes !== 1 ? "s" : ""}
+                                </span>
+                            </div>
+                            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                                {poll.options.map(opt => {
+                                    const votes = opt.votes || [];
+                                    const votedByMe = votes.some(v => (v._id || v)?.toString() === votingCharId);
+                                    return (
+                                        <li key={opt._id} style={{ display: "grid", gridTemplateColumns: "100px 1fr auto", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}>
+                                            <span style={{ color: "var(--ink)" }}>{new Date(opt.date).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</span>
+                                            <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", minWidth: 0 }}>
+                                                <BarTrack value={votes.length} max={maxVotes} color={color} />
+                                                {votes.length > 0 && (
+                                                    <span style={{ color: "var(--ink-faded)", fontSize: "0.74rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={votes.map(v => v.name).join(", ")}>
+                                                        {votes.map(v => v.name).join(", ")}
+                                                    </span>
+                                                )}
+                                            </span>
+                                            {poll.status === "open" ? (
+                                                <button className="btn btn-small" style={{ fontWeight: votedByMe ? 700 : 400, borderColor: votedByMe ? color : undefined, color: votedByMe ? color : undefined }} onClick={() => vote(poll, opt)}>
+                                                    {votedByMe ? "✓ Tu voto" : "Votar"}
+                                                </button>
+                                            ) : (
+                                                <span style={{ color, fontWeight: 700 }}>{votes.length}</span>
+                                            )}
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
@@ -329,7 +654,7 @@ function CampaignForm({ form, setForm, editingId, onSubmit, onCancel }) {
 
 function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChanged, onError, onFlash, onEdit, onDelete }) {
     const { color, bg } = campaignColor(colorIndex);
-    const [tab, setTab]           = useState("sessions"); // "dashboard" | "sessions" | "participants" | "gallery" | "notes"
+    const [tab, setTab]           = useState("sessions"); // "dashboard" | "sessions" | "calendar" | "timeline" | "participants" | "gallery" | "templates" | "polls" | "notes" | "shared"
     const [showSessionForm, setShowSessionForm] = useState(false);
     const [sessionForm, setSessionForm]         = useState(emptySessionForm());
     const [editingSessionId, setEditingSessionId] = useState(null);
@@ -397,7 +722,18 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
 
             {/* Pestañas internas */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", borderBottom: `2px solid ${color}`, marginBottom: "1rem" }}>
-                {[["dashboard", "📊 Resumen"], ["sessions", "Sesiones"], ["participants", "Aventureros"], ["gallery", "⚔️ Galería"], ["notes", "Notas DM"]].map(([id, label]) => (
+                {[
+                    ["dashboard", "📊 Resumen"],
+                    ["sessions", "Sesiones"],
+                    ["calendar", "📅 Calendario"],
+                    ["timeline", "🕒 Línea temporal"],
+                    ["participants", "Aventureros"],
+                    ["gallery", "⚔️ Galería"],
+                    ["templates", "🗒️ Plantillas"],
+                    ["polls", "🗳️ Encuestas"],
+                    ["notes", "Notas DM"],
+                    ["shared", "🤝 Compartidas"],
+                ].map(([id, label]) => (
                     <button
                         key={id}
                         className="btn btn-small"
@@ -482,6 +818,12 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
                 </div>
             )}
 
+            {/* ── Calendario ── */}
+            {tab === "calendar" && <CalendarPanel campaign={campaign} color={color} bg={bg} onSelectSession={onSelectSession} />}
+
+            {/* ── Línea temporal ── */}
+            {tab === "timeline" && <TimelinePanel campaign={campaign} color={color} onSelectSession={onSelectSession} />}
+
             {/* ── Aventureros ── */}
             {tab === "participants" && (
                 <ParticipantsPanel
@@ -495,6 +837,16 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
             {/* ── Galería de encuentros ── */}
             {tab === "gallery" && <EncounterGallery campaign={campaign} />}
 
+            {/* ── Plantillas de encuentro ── */}
+            {tab === "templates" && (
+                <TemplatesPanel campaign={campaign} onChanged={onChanged} onError={onError} onFlash={onFlash} />
+            )}
+
+            {/* ── Encuestas de disponibilidad ── */}
+            {tab === "polls" && (
+                <PollsPanel campaign={campaign} color={color} bg={bg} onChanged={onChanged} onError={onError} onFlash={onFlash} />
+            )}
+
             {/* ── Notas DM ── */}
             {tab === "notes" && (
                 <NotesPanel
@@ -503,6 +855,11 @@ function CampaignDetail({ campaign, colorIndex, onClose, onSelectSession, onChan
                     onError={onError}
                     onFlash={onFlash}
                 />
+            )}
+
+            {/* ── Notas compartidas con jugadores ── */}
+            {tab === "shared" && (
+                <SharedNotesPanel campaign={campaign} onChanged={onChanged} onError={onError} onFlash={onFlash} />
             )}
         </div>
     );
@@ -1101,6 +1458,440 @@ function NoteCard({ note, campaignId, onDeleted, onError, onFlash }) {
     );
 }
 
+// ─── Calendario de campaña ────────────────────────────────────────────────────
+
+function CalendarPanel({ campaign, color, bg, onSelectSession }) {
+    const sessions = (campaign.sessions || []).filter(s => s.date);
+
+    const [cursor, setCursor] = useState(() => {
+        const sorted = [...sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
+        return sorted[0] ? new Date(sorted[0].date) : new Date();
+    });
+
+    const year  = cursor.getFullYear();
+    const month = cursor.getMonth();
+
+    const byDay = {};
+    sessions.forEach(s => {
+        const d = new Date(s.date);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+            (byDay[d.getDate()] = byDay[d.getDate()] || []).push(s);
+        }
+    });
+
+    const firstDow     = (new Date(year, month, 1).getDay() + 6) % 7; // lunes = 0
+    const daysInMonth  = new Date(year, month + 1, 0).getDate();
+    const cells        = [...Array(firstDow).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+
+    const monthLabel = cursor.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+    const today = new Date();
+    const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+
+    return (
+        <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.85rem" }}>
+                <button className="btn btn-small" onClick={() => setCursor(new Date(year, month - 1, 1))}>← Anterior</button>
+                <h3 style={{ margin: 0, color, textTransform: "capitalize" }}>{monthLabel}</h3>
+                <button className="btn btn-small" onClick={() => setCursor(new Date(year, month + 1, 1))}>Siguiente →</button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "0.3rem", marginBottom: "0.3rem" }}>
+                {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map(d => (
+                    <div key={d} style={{ textAlign: "center", fontSize: "0.68rem", color: "var(--ink-faded)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{d}</div>
+                ))}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "0.3rem" }}>
+                {cells.map((d, i) => {
+                    const daySessions = d ? (byDay[d] || []) : [];
+                    return (
+                        <div key={i} style={{
+                            minHeight: "62px", borderRadius: "4px", padding: "0.3rem",
+                            background: d == null ? "transparent" : daySessions.length ? bg : "var(--parchment)",
+                            border: d == null ? "none" : `1px solid ${daySessions.length ? color + "55" : "var(--parchment-shadow)"}`,
+                            outline: d && isToday(d) ? `2px solid ${color}` : "none"
+                        }}>
+                            {d != null && (
+                                <>
+                                    <div style={{ fontSize: "0.7rem", color: "var(--ink-faded)", marginBottom: "0.15rem" }}>{d}</div>
+                                    {daySessions.map(s => (
+                                        <button
+                                            key={s._id}
+                                            onClick={() => onSelectSession(s)}
+                                            title={s.title}
+                                            style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "0.05rem 0", cursor: "pointer", color, fontWeight: 700, fontSize: "0.7rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                        >
+                                            ▸ {s.title}
+                                        </button>
+                                    ))}
+                                </>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+
+            {sessions.length === 0 && (
+                <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem", marginTop: "0.85rem" }}>Aún no hay sesiones con fecha asignada — añade una fecha al crear o editar una sesión para verla aquí.</p>
+            )}
+        </div>
+    );
+}
+
+// ─── Línea temporal de la campaña ─────────────────────────────────────────────
+// Encadena las entradas de tipo "diario" de todas las sesiones en orden cronológico.
+
+function TimelinePanel({ campaign, color, onSelectSession }) {
+    const entries = [];
+    (campaign.sessions || []).forEach(session => {
+        (session.log || []).forEach(entry => {
+            if (entry.kind === "diary") entries.push({ entry, session });
+        });
+    });
+    entries.sort((a, b) => new Date(a.entry.createdAt) - new Date(b.entry.createdAt));
+
+    if (entries.length === 0) {
+        return <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Aún no hay entradas de diario. Añade narraciones de tipo "📖 Diario" en el log de las sesiones para construir la línea temporal de la campaña.</p>;
+    }
+
+    return (
+        <div>
+            <p style={{ ...hint, marginBottom: "1.1rem" }}>{entries.length} entrada{entries.length !== 1 ? "s" : ""} de diario, encadenadas en orden cronológico.</p>
+            <div style={{ position: "relative", paddingLeft: "1.5rem", borderLeft: `2px solid ${color}55` }}>
+                {entries.map(({ entry, session }, i) => (
+                    <div key={entry._id} style={{ position: "relative", marginBottom: i === entries.length - 1 ? 0 : "1.2rem" }}>
+                        <span style={{ position: "absolute", left: "-1.97rem", top: "0.2rem", width: "0.7rem", height: "0.7rem", borderRadius: "50%", background: color, border: "2px solid var(--parchment)" }} />
+                        <div style={{ fontSize: "0.72rem", color: "var(--ink-faded)", marginBottom: "0.2rem" }}>
+                            {new Date(entry.createdAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
+                            {" · "}
+                            <button onClick={() => onSelectSession(session)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color, fontWeight: 700, textDecoration: "underline dotted", textUnderlineOffset: "2px", fontSize: "inherit" }}>
+                                {session.title}
+                            </button>
+                        </div>
+                        <p style={{ margin: 0, fontSize: "0.88rem", whiteSpace: "pre-wrap", lineHeight: 1.55 }}>{entry.content}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ─── Plantillas de encuentro reutilizables ────────────────────────────────────
+
+function TemplatesPanel({ campaign, onChanged, onError, onFlash }) {
+    const [showForm, setShowForm]   = useState(false);
+    const [form, setForm]           = useState({ name: "", monsterIds: [] });
+    const [editingId, setEditingId] = useState(null);
+    const [saving, setSaving]       = useState(false);
+
+    const templates = campaign.encounterTemplates || [];
+
+    const openCreate = () => { setForm({ name: "", monsterIds: [] }); setEditingId(null); setShowForm(true); };
+    const openEdit = (t) => {
+        setForm({ name: t.name, monsterIds: (t.monsters || []).map(m => (m._id || m).toString()) });
+        setEditingId(t._id);
+        setShowForm(true);
+    };
+
+    const submit = async (e) => {
+        e.preventDefault();
+        if (!form.name.trim()) return;
+        setSaving(true);
+        try {
+            if (editingId) {
+                await campaignsApi.updateEncounterTemplate(campaign._id, editingId, { name: form.name, monsterIds: form.monsterIds });
+                onFlash("Plantilla actualizada");
+            } else {
+                await campaignsApi.addEncounterTemplate(campaign._id, { name: form.name, monsterIds: form.monsterIds });
+                onFlash("Plantilla creada");
+            }
+            setShowForm(false);
+            setEditingId(null);
+            onChanged();
+        } catch (e) { onError(e.message); }
+        finally { setSaving(false); }
+    };
+
+    const remove = async (t) => {
+        if (!confirm(`¿Eliminar la plantilla "${t.name}"?`)) return;
+        try {
+            await campaignsApi.removeEncounterTemplate(campaign._id, t._id);
+            onFlash("Plantilla eliminada");
+            onChanged();
+        } catch (e) { onError(e.message); }
+    };
+
+    return (
+        <div>
+            <p style={hint}>Guarda combinaciones de monstruos habituales (p. ej. "3 acólitos + 1 sacerdote") para reutilizarlas al registrar encuentros en el log de las sesiones.</p>
+
+            {!showForm && (
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "0.5rem 0 0.75rem" }}>
+                    <button className="btn btn-primary btn-small" onClick={openCreate}>+ Nueva plantilla</button>
+                </div>
+            )}
+
+            {showForm && (
+                <form onSubmit={submit} className="scroll-card" style={{ padding: "1rem", marginBottom: "1rem", background: "rgba(0,0,0,0.03)" }}>
+                    <label style={lbl}>Nombre</label>
+                    <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="P. ej. Emboscada de bandidos" style={{ width: "100%", marginBottom: "0.6rem" }} required />
+                    <MonsterPicker value={form.monsterIds} onChange={ids => setForm(f => ({ ...f, monsterIds: ids }))} campaignMonsters={campaign.monsters || []} />
+                    <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.5rem" }}>
+                        <button className="btn btn-primary btn-small" disabled={saving}>{editingId ? "Guardar cambios" : "Crear plantilla"}</button>
+                        <button type="button" className="btn btn-small" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancelar</button>
+                    </div>
+                </form>
+            )}
+
+            {templates.length === 0 ? (
+                <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Aún no hay plantillas guardadas.</p>
+            ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "0.6rem" }}>
+                    {templates.map(t => (
+                        <div key={t._id} style={{ background: "var(--parchment)", border: "1px solid var(--parchment-shadow)", borderLeft: "3px solid var(--gold)", borderRadius: "4px", padding: "0.65rem 0.85rem" }}>
+                            <div style={{ fontWeight: 700, fontSize: "0.88rem", marginBottom: "0.25rem" }}>{t.name}</div>
+                            <div style={{ fontSize: "0.78rem", color: "var(--ink-faded)", marginBottom: "0.5rem" }}>
+                                {(t.monsters || []).length === 0 ? "Sin monstruos" : (t.monsters || []).map(m => m?.name).filter(Boolean).join(", ")}
+                            </div>
+                            <div style={{ display: "flex", gap: "0.3rem" }}>
+                                <button className="btn btn-small" onClick={() => openEdit(t)}><IconEdit /> Editar</button>
+                                <button className="btn btn-small btn-danger" onClick={() => remove(t)}>× Eliminar</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Encuestas de disponibilidad (vista DM) ───────────────────────────────────
+
+function PollsPanel({ campaign, color, bg, onChanged, onError, onFlash }) {
+    const [showForm, setShowForm] = useState(false);
+    const [title, setTitle]       = useState("");
+    const [dates, setDates]       = useState([""]);
+    const [saving, setSaving]     = useState(false);
+
+    const polls = [...(campaign.availabilityPolls || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    const openCreate = () => { setTitle(""); setDates([""]); setShowForm(true); };
+    const updateDate = (i, v)   => setDates(ds => ds.map((d, idx) => idx === i ? v : d));
+    const addDateField = ()     => setDates(ds => [...ds, ""]);
+    const removeDateField = (i) => setDates(ds => ds.filter((_, idx) => idx !== i));
+
+    const submit = async (e) => {
+        e.preventDefault();
+        const validDates = dates.map(d => d.trim()).filter(Boolean);
+        if (!validDates.length) return;
+        setSaving(true);
+        try {
+            await campaignsApi.addPoll(campaign._id, { title: title.trim() || undefined, dates: validDates });
+            onFlash("Encuesta creada");
+            setShowForm(false);
+            onChanged();
+        } catch (e) { onError(e.message); }
+        finally { setSaving(false); }
+    };
+
+    const close = async (poll) => {
+        try {
+            await campaignsApi.closePoll(campaign._id, poll._id);
+            onFlash("Encuesta cerrada");
+            onChanged();
+        } catch (e) { onError(e.message); }
+    };
+
+    const remove = async (poll) => {
+        if (!confirm(`¿Eliminar la encuesta "${poll.title}"?`)) return;
+        try {
+            await campaignsApi.removePoll(campaign._id, poll._id);
+            onFlash("Encuesta eliminada");
+            onChanged();
+        } catch (e) { onError(e.message); }
+    };
+
+    return (
+        <div>
+            <p style={hint}>Propón fechas para la próxima sesión y deja que tus aventureros voten cuál les viene mejor desde su vista de campaña.</p>
+
+            {!showForm && (
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "0.5rem 0 0.75rem" }}>
+                    <button className="btn btn-primary btn-small" onClick={openCreate}>+ Nueva encuesta</button>
+                </div>
+            )}
+
+            {showForm && (
+                <form onSubmit={submit} className="scroll-card" style={{ padding: "1rem", marginBottom: "1rem", background: "rgba(0,0,0,0.03)" }}>
+                    <label style={lbl}>Título (opcional)</label>
+                    <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="¿Cuándo jugamos la próxima sesión?" style={{ width: "100%", marginBottom: "0.6rem" }} />
+                    <label style={lbl}>Fechas propuestas</label>
+                    {dates.map((d, i) => (
+                        <div key={i} style={{ display: "flex", gap: "0.3rem", marginBottom: "0.3rem" }}>
+                            <input type="date" value={d} onChange={e => updateDate(i, e.target.value)} style={{ flex: 1 }} />
+                            {dates.length > 1 && <button type="button" className="btn btn-small btn-danger" onClick={() => removeDateField(i)}>×</button>}
+                        </div>
+                    ))}
+                    <button type="button" className="btn btn-small" onClick={addDateField} style={{ marginBottom: "0.6rem" }}>+ Añadir fecha</button>
+                    <div style={{ display: "flex", gap: "0.4rem" }}>
+                        <button className="btn btn-primary btn-small" disabled={saving}>Crear encuesta</button>
+                        <button type="button" className="btn btn-small" onClick={() => setShowForm(false)}>Cancelar</button>
+                    </div>
+                </form>
+            )}
+
+            {polls.length === 0 ? (
+                <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Aún no has creado ninguna encuesta de disponibilidad.</p>
+            ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.7rem" }}>
+                    {polls.map(poll => {
+                        const totalVotes = poll.options.reduce((s, o) => s + (o.votes?.length || 0), 0);
+                        const maxVotes   = Math.max(1, ...poll.options.map(o => o.votes?.length || 0));
+                        return (
+                            <div key={poll._id} style={{ background: "var(--parchment)", border: "1px solid var(--parchment-shadow)", borderLeft: `3px solid ${poll.status === "open" ? color : "var(--ink-faded)"}`, borderRadius: "4px", padding: "0.7rem 0.9rem" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                                    <div>
+                                        <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>{poll.title}</div>
+                                        <span style={{ fontSize: "0.72rem", color: poll.status === "open" ? color : "var(--ink-faded)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                            ● {poll.status === "open" ? "Abierta" : "Cerrada"} · {totalVotes} voto{totalVotes !== 1 ? "s" : ""}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: "flex", gap: "0.3rem", flexShrink: 0 }}>
+                                        {poll.status === "open" && <button className="btn btn-small" onClick={() => close(poll)}>Cerrar</button>}
+                                        <button className="btn btn-small btn-danger" onClick={() => remove(poll)}>× Eliminar</button>
+                                    </div>
+                                </div>
+                                <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                                    {poll.options.map(opt => {
+                                        const votes = opt.votes || [];
+                                        return (
+                                            <li key={opt._id} style={{ display: "grid", gridTemplateColumns: "100px 1fr auto", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}>
+                                                <span style={{ color: "var(--ink)" }}>{new Date(opt.date).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</span>
+                                                <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", minWidth: 0 }}>
+                                                    <BarTrack value={votes.length} max={maxVotes} color={color} />
+                                                    {votes.length > 0 && (
+                                                        <span style={{ color: "var(--ink-faded)", fontSize: "0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={votes.map(v => v.name).join(", ")}>
+                                                            {votes.map(v => v.name).join(", ")}
+                                                        </span>
+                                                    )}
+                                                </span>
+                                                <span style={{ color, fontWeight: 700 }}>{votes.length}</span>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Notas compartidas con jugadores ──────────────────────────────────────────
+
+function SharedNotesPanel({ campaign, onChanged, onError, onFlash }) {
+    const [adding, setAdding] = useState(false);
+
+    const addCard = async () => {
+        setAdding(true);
+        try {
+            await campaignsApi.addSharedNote(campaign._id, { content: "" });
+            onChanged();
+        } catch (e) { onError(e.message); }
+        finally { setAdding(false); }
+    };
+
+    const cards = campaign.sharedNotes || [];
+
+    return (
+        <div>
+            <p style={hint}>Estas notas son visibles para todos los aventureros que participan en la campaña — úsalas para compartir resúmenes, pistas o avisos.</p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0.5rem 0 0.75rem" }}>
+                <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--ink-faded)" }}>
+                    {cards.length} nota{cards.length !== 1 ? "s" : ""} compartida{cards.length !== 1 ? "s" : ""}
+                </p>
+                <button className="btn btn-primary btn-small" onClick={addCard} disabled={adding}>+ Nueva nota</button>
+            </div>
+
+            {cards.length === 0 && (
+                <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem" }}>Sin notas compartidas todavía.</p>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.6rem", alignItems: "start" }}>
+                {cards.map(note => (
+                    <SharedNoteCard key={note._id} note={note} campaignId={campaign._id} onDeleted={onChanged} onError={onError} onFlash={onFlash} />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function SharedNoteCard({ note, campaignId, onDeleted, onError, onFlash }) {
+    const [content,      setContent]      = useState(note.content);
+    const [savedContent, setSavedContent] = useState(note.content);
+    const [editing,      setEditing]      = useState(!note.content);
+    const [saving,       setSaving]       = useState(false);
+    const dirty = content !== savedContent;
+
+    const save = async () => {
+        setSaving(true);
+        try {
+            await campaignsApi.updateSharedNote(campaignId, note._id, { content });
+            setSavedContent(content);
+            setEditing(false);
+            onFlash("Nota guardada");
+        } catch (e) { onError(e.message); }
+        finally { setSaving(false); }
+    };
+
+    const cancel = () => { setContent(savedContent); setEditing(false); };
+
+    const remove = async () => {
+        if (!confirm("¿Eliminar esta nota compartida?")) return;
+        try {
+            await campaignsApi.removeSharedNote(campaignId, note._id);
+            onDeleted();
+        } catch (e) { onError(e.message); }
+    };
+
+    return (
+        <div
+            style={{ background: "var(--parchment)", border: "1px solid var(--parchment-shadow)", borderLeft: "3px solid var(--gold-bright)", borderRadius: "4px", padding: "0.7rem 0.85rem", display: "flex", flexDirection: "column", gap: "0.4rem", cursor: editing ? "default" : "pointer" }}
+            onClick={!editing ? () => setEditing(true) : undefined}
+        >
+            {editing ? (
+                <textarea
+                    autoFocus
+                    value={content}
+                    onChange={e => setContent(e.target.value)}
+                    rows={5}
+                    placeholder="Escribe una nota visible para tus aventureros…"
+                    onClick={e => e.stopPropagation()}
+                    style={{ width: "100%", minWidth: 0, boxSizing: "border-box", resize: "vertical", background: "transparent", border: "none", outline: "none", fontSize: "0.85rem", lineHeight: 1.6, color: "var(--ink)", fontFamily: "inherit", padding: 0 }}
+                />
+            ) : (
+                <div style={{ minHeight: "4rem", fontSize: "0.85rem", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word", color: content ? "var(--ink)" : "var(--ink-faded)" }}>
+                    {content || "Haz clic para escribir…"}
+                </div>
+            )}
+
+            {editing && (
+                <div style={{ borderTop: "1px dashed var(--parchment-shadow)", paddingTop: "0.4rem", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                    <div style={{ display: "flex", gap: "0.3rem" }}>
+                        <button className="btn btn-small btn-primary" style={{ flex: 1, fontSize: "0.75rem" }} onMouseDown={e => e.preventDefault()} onClick={e => { e.stopPropagation(); save(); }} disabled={!dirty || saving}>
+                            {saving ? "Guardando" : "Guardar"}
+                        </button>
+                        <button className="btn btn-small" style={{ flex: 1, fontSize: "0.75rem" }} onMouseDown={e => e.preventDefault()} onClick={e => { e.stopPropagation(); cancel(); }}>Cancelar</button>
+                    </div>
+                    <button className="btn btn-small btn-danger" style={{ fontSize: "0.75rem" }} onMouseDown={e => e.preventDefault()} onClick={e => { e.stopPropagation(); remove(); }}>Eliminar</button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ─── Vista de sesión con log ──────────────────────────────────────────────────
 
 function SessionView({ campaign, colorIndex, session, onBack, onChanged, onError, onFlash }) {
@@ -1110,8 +1901,28 @@ function SessionView({ campaign, colorIndex, session, onBack, onChanged, onError
     const [adding, setAdding]         = useState(false);
     const [editingEntry, setEditingEntry] = useState(null);
     const [monsterPopup, setMonsterPopup] = useState(null);
+    const [logSearch, setLogSearch]     = useState("");
+    const [logKindFilter, setLogKindFilter] = useState("all"); // "all" | "diary" | "note" | "encounter"
+
+    const useTemplate = (templateId) => {
+        if (!templateId) return;
+        const tpl = (campaign.encounterTemplates || []).find(t => t._id === templateId);
+        if (!tpl) return;
+        setLogMonsters((tpl.monsters || []).map(m => (m._id || m).toString()));
+    };
 
     const log = [...(session.log || [])].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    const filteredLog = log.filter(entry => {
+        if (logKindFilter !== "all" && entry.kind !== logKindFilter) return false;
+        if (logSearch.trim()) {
+            const q = logSearch.trim().toLowerCase();
+            const monsterNames = (entry.monsters?.length ? entry.monsters.map(m => m?.name) : entry.monsterNames || []).filter(Boolean);
+            const haystack = [entry.content, ...monsterNames].join(" ").toLowerCase();
+            if (!haystack.includes(q)) return false;
+        }
+        return true;
+    });
 
     const addEntry = async () => {
         if (logKind !== "encounter" && !logContent.trim()) return;
@@ -1187,11 +1998,24 @@ function SessionView({ campaign, colorIndex, session, onBack, onChanged, onError
                 </div>
 
                 {logKind === "encounter" && (
-                    <MonsterPicker
-                        value={logMonsters}
-                        onChange={setLogMonsters}
-                        campaignMonsters={campaign.monsters || []}
-                    />
+                    <>
+                        {(campaign.encounterTemplates || []).length > 0 && (
+                            <div style={{ marginBottom: "0.5rem" }}>
+                                <label style={lbl}>Usar plantilla guardada</label>
+                                <select defaultValue="" onChange={e => { useTemplate(e.target.value); e.target.value = ""; }} style={{ width: "100%" }}>
+                                    <option value="" disabled>Selecciona una plantilla…</option>
+                                    {campaign.encounterTemplates.map(t => (
+                                        <option key={t._id} value={t._id}>{t.name} ({(t.monsters || []).length} monstruo{(t.monsters || []).length !== 1 ? "s" : ""})</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        <MonsterPicker
+                            value={logMonsters}
+                            onChange={setLogMonsters}
+                            campaignMonsters={campaign.monsters || []}
+                        />
+                    </>
                 )}
 
                 <textarea
@@ -1218,8 +2042,34 @@ function SessionView({ campaign, colorIndex, session, onBack, onChanged, onError
             {log.length === 0 ? (
                 <p style={{ color: "var(--ink-faded)", fontSize: "0.9rem", textAlign: "center" }}>El log está vacío. Añade la primera entrada.</p>
             ) : (
+                <>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center", marginBottom: "0.75rem" }}>
+                        <input
+                            type="text"
+                            value={logSearch}
+                            onChange={e => setLogSearch(e.target.value)}
+                            placeholder="🔍 Buscar en el log…"
+                            style={{ flex: "1 1 180px", minWidth: 0 }}
+                        />
+                        <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
+                            {[["all", "Todo"], ...Object.entries(LOG_KIND_LABEL)].map(([k, label]) => (
+                                <button
+                                    key={k}
+                                    className="btn btn-small"
+                                    style={{ fontWeight: logKindFilter === k ? 700 : 400, opacity: logKindFilter === k ? 1 : 0.55, borderColor: logKindFilter === k ? sessionColor : undefined, color: logKindFilter === k ? sessionColor : undefined }}
+                                    onClick={() => setLogKindFilter(k)}
+                                >
+                                    {LOG_KIND_ICON[k] ? `${LOG_KIND_ICON[k]} ` : ""}{label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {filteredLog.length === 0 ? (
+                        <p style={{ color: "var(--ink-faded)", fontSize: "0.88rem", textAlign: "center" }}>Ninguna entrada coincide con la búsqueda o el filtro.</p>
+                    ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                    {log.map(entry => (
+                    {filteredLog.map(entry => (
                         <div key={entry._id} style={{ borderLeft: `3px solid ${entry.kind === "diary" ? "var(--gold)" : entry.kind === "encounter" ? "var(--blood)" : "var(--parchment-shadow)"}`, paddingLeft: "0.85rem", position: "relative" }}>
                             {editingEntry?._id === entry._id ? (
                                 <div>
@@ -1282,6 +2132,8 @@ function SessionView({ campaign, colorIndex, session, onBack, onChanged, onError
                         </div>
                     ))}
                 </div>
+                    )}
+                </>
             )}
         </div>
 
