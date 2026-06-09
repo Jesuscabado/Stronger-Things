@@ -12,6 +12,18 @@ export const createCampaign   = async (req, res, next) => { try { res.status(201
 export const updateCampaign   = async (req, res, next) => { try { res.json(await svc.update(req.params.id, req.body, req.user._id)); }             catch (e) { handle(e, res, next); } };
 export const deleteCampaign   = async (req, res, next) => { try { res.json(await svc.remove(req.params.id, req.user._id)); }                      catch (e) { handle(e, res, next); } };
 
+// ─── Vista de jugador ─────────────────────────────────────────────────────────
+export const listParticipatingCampaigns = async (req, res, next) => { try { res.json(await svc.listForPlayer(req.user._id)); }                  catch (e) { handle(e, res, next); } };
+export const getParticipatingCampaign   = async (req, res, next) => { try { res.json(await svc.getForPlayer(req.params.id, req.user._id)); }    catch (e) { handle(e, res, next); } };
+
+export const voteAvailabilityPoll = async (req, res, next) => {
+    try {
+        const { characterId } = req.body;
+        if (!characterId) return res.status(400).json({ message: "Falta characterId" });
+        res.json(await svc.voteAvailabilityPoll(req.params.id, req.params.pollId, req.params.optionId, characterId, req.user._id));
+    } catch (e) { handle(e, res, next); }
+};
+
 // ─── Participantes ────────────────────────────────────────────────────────────
 export const addParticipant = async (req, res, next) => {
     try {
@@ -46,3 +58,18 @@ export const addMonsterToPool = async (req, res, next) => {
     } catch (e) { handle(e, res, next); }
 };
 export const removeMonsterFromPool = async (req, res, next) => { try { res.json(await svc.removeMonsterFromPool(req.params.id, req.params.monsterId, req.user._id)); } catch (e) { handle(e, res, next); } };
+
+// ─── Notas compartidas ────────────────────────────────────────────────────────
+export const addSharedNote    = async (req, res, next) => { try { res.status(201).json(await svc.addSharedNote(req.params.id, req.body, req.user._id)); }                  catch (e) { handle(e, res, next); } };
+export const updateSharedNote = async (req, res, next) => { try { res.json(await svc.updateSharedNote(req.params.id, req.params.noteId, req.body, req.user._id)); }         catch (e) { handle(e, res, next); } };
+export const removeSharedNote = async (req, res, next) => { try { res.json(await svc.removeSharedNote(req.params.id, req.params.noteId, req.user._id)); }                   catch (e) { handle(e, res, next); } };
+
+// ─── Plantillas de encuentro ──────────────────────────────────────────────────
+export const addEncounterTemplate    = async (req, res, next) => { try { res.status(201).json(await svc.addEncounterTemplate(req.params.id, req.body, req.user._id)); }                              catch (e) { handle(e, res, next); } };
+export const updateEncounterTemplate = async (req, res, next) => { try { res.json(await svc.updateEncounterTemplate(req.params.id, req.params.templateId, req.body, req.user._id)); }                catch (e) { handle(e, res, next); } };
+export const removeEncounterTemplate = async (req, res, next) => { try { res.json(await svc.removeEncounterTemplate(req.params.id, req.params.templateId, req.user._id)); }                          catch (e) { handle(e, res, next); } };
+
+// ─── Encuestas de disponibilidad (DM) ─────────────────────────────────────────
+export const addAvailabilityPoll   = async (req, res, next) => { try { res.status(201).json(await svc.addAvailabilityPoll(req.params.id, req.body, req.user._id)); }            catch (e) { handle(e, res, next); } };
+export const closeAvailabilityPoll = async (req, res, next) => { try { res.json(await svc.closeAvailabilityPoll(req.params.id, req.params.pollId, req.user._id)); }              catch (e) { handle(e, res, next); } };
+export const removeAvailabilityPoll = async (req, res, next) => { try { res.json(await svc.removeAvailabilityPoll(req.params.id, req.params.pollId, req.user._id)); }            catch (e) { handle(e, res, next); } };

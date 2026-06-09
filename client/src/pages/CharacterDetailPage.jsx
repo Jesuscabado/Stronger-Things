@@ -459,8 +459,8 @@ const handleRemoveDiaryEntry = async (entryId) => {
                             )}
                         </div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                        <h1 style={{ fontFamily: "MedievalSharp", fontSize: "2.5rem", margin: 0 }}>{character.name}</h1>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <h1 style={{ fontFamily: "MedievalSharp", margin: 0 }}>{character.name}</h1>
                         <div style={{ marginBottom: "0.8rem" }}>
                             <span className="class-badge">{translateClass(character.charClass)}</span>{" "}
                             <span style={{ color: "var(--ink-faded)" }}>

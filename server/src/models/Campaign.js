@@ -32,10 +32,13 @@ const logEntrySchema = new mongoose.Schema(
 // ─── Sesión individual dentro de una campaña ─────────────────────────────────
 const sessionSchema = new mongoose.Schema(
     {
-        title:   { type: String, required: true, trim: true },
-        date:    { type: Date },
-        summary: { type: String, default: "" },
-        log:     [logEntrySchema]
+        title:     { type: String, required: true, trim: true },
+        date:      { type: Date },
+        summary:   { type: String, default: "" },
+        // Duración real de la sesión en minutos (para el resumen de horas jugadas)
+        duration:  { type: Number, min: 0 },
+        attendees: [{ type: mongoose.Schema.Types.ObjectId, ref: "Character" }],
+        log:       [logEntrySchema]
     },
     { timestamps: true }
 );
@@ -47,6 +50,36 @@ const participantSchema = new mongoose.Schema(
         characterName: { type: String, trim: true }
     },
     { _id: false }
+);
+
+// ─── Plantilla de encuentro reutilizable ─────────────────────────────────────
+// Combinación de monstruos guardada por el DM para registrar encuentros
+// recurrentes ("3 acólitos + 1 sacerdote") sin tener que repetir la selección.
+const encounterTemplateSchema = new mongoose.Schema(
+    {
+        name:     { type: String, required: true, trim: true },
+        monsters: [{ type: mongoose.Schema.Types.ObjectId, ref: "Monster" }]
+    },
+    { timestamps: true }
+);
+
+// ─── Encuesta de disponibilidad ──────────────────────────────────────────────
+// El DM propone fechas para la próxima sesión y los aventureros votan cuál
+// les viene mejor. Cada opción guarda los personajes que han votado por ella.
+const availabilityOptionSchema = new mongoose.Schema(
+    {
+        date:  { type: Date, required: true },
+        votes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Character" }]
+    }
+);
+
+const availabilityPollSchema = new mongoose.Schema(
+    {
+        title:   { type: String, required: true, trim: true, default: "¿Cuándo jugamos la próxima sesión?" },
+        status:  { type: String, enum: ["open", "closed"], default: "open" },
+        options: [availabilityOptionSchema]
+    },
+    { timestamps: true }
 );
 
 // ─── Campaña ──────────────────────────────────────────────────────────────────
@@ -68,7 +101,12 @@ const campaignSchema = new mongoose.Schema(
         sessions:    [sessionSchema],
         monsters:    [{ type: mongoose.Schema.Types.ObjectId, ref: "Monster" }],
         notes:       { type: String, default: "" },
-        noteCards:   [noteCardSchema]
+        // Notas privadas del DM (tramas, secretos) — nunca visibles para jugadores
+        noteCards:   [noteCardSchema],
+        // Notas que el DM decide compartir con los aventureros de la campaña
+        sharedNotes: [noteCardSchema],
+        encounterTemplates: [encounterTemplateSchema],
+        availabilityPolls:  [availabilityPollSchema]
     },
     { timestamps: true }
 );

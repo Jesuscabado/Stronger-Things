@@ -205,6 +205,11 @@
     .campaigns-layout {
         grid-template-columns: 1fr;
     }
+    /* Sin esto, el grid item se ensancha al min-content de su contenido
+       (cabecera + pestañas internas) y desborda la columna única */
+    .campaigns-detail {
+        min-width: 0;
+    }
     .campaigns-layout[data-has-detail="true"] .campaigns-sidebar {
         display: none;
     }
